@@ -34,19 +34,9 @@ func (c *Client) GetVersion() (string, error) {
 		return "", err
 	}
 
-	req.Header.Set("Authorization", c.Token)
-
-	res, err := c.HTTPClient.Do(req)
+	body, err := c.doRequest(req)
 	if err != nil {
 		return "", err
-	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
 	}
 
 	return string(body), nil
@@ -80,7 +70,7 @@ func (c *Client) SetCleanup(settings Settings) (*Settings, error) {
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/json, text/plain")
 
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {

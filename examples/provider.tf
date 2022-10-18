@@ -7,7 +7,7 @@ terraform {
 }
 provider "teamcity" {
   host = "http://localhost:8111"
-  token = "123"
+#  token = "" # env.TEAMCITY_TOKEN
 }
 
 data "teamcity_server" "server" {}
@@ -17,5 +17,5 @@ output "server_version" {
 }
 
 resource "teamcity_cleanup" "cleanup" {
-  enabled = true
+  enabled = false
 }
