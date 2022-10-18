@@ -13,5 +13,9 @@ provider "teamcity" {
 data "teamcity_server" "server" {}
 
 output "server_version" {
-  value = data.teamcity_server.server
+  value = data.teamcity_server.server.version
+}
+
+resource "teamcity_cleanup" "cleanup" {
+#  enabled = false
 }

@@ -2,12 +2,12 @@ package teamcity
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
@@ -35,7 +35,7 @@ func (r *cleanupResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 		Attributes: map[string]tfsdk.Attribute{
 			"enabled": {
 				Type:     types.BoolType,
-				Computed: true,
+				Required: true,
 			},
 		},
 	}, nil
@@ -49,7 +49,31 @@ func (r *cleanupResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan cleanupResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
+	var enabled = plan.Enabled.Value
+
+	result, err := r.client.SetCleanup(enabled)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error setting cleanup",
+			"Cannot set cleanup, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	plan.Enabled = types.Bool{Value: result}
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *cleanupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

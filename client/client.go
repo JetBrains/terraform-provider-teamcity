@@ -45,3 +45,7 @@ func (c *Client) GetVersion() (string, error) {
 
 	return string(body), nil
 }
+
+func (c *Client) SetCleanup(enabled bool) (bool, error) {
+	return true, nil
+}
