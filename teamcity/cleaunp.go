@@ -56,10 +56,8 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	var enabled = plan.Enabled.Value
-
 	settings := client.Settings{
-		Enabled: enabled,
+		Enabled: plan.Enabled.Value,
 	}
 	result, err := r.client.SetCleanup(settings)
 	if err != nil {
@@ -106,6 +104,32 @@ func (r *cleanupResource) Read(ctx context.Context, req resource.ReadRequest, re
 }
 
 func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan cleanupResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	settings := client.Settings{
+		Enabled: plan.Enabled.Value,
+	}
+	result, err := r.client.SetCleanup(settings)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error setting cleanup",
+			"Cannot set cleanup, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	plan.Enabled = types.Bool{Value: result.Enabled}
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *cleanupResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
