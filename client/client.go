@@ -25,8 +25,14 @@ func NewClient(host, token *string) (*Client, error) {
 }
 
 type Settings struct {
-	Enabled     bool `json:"enabled"`
-	MaxDuration int  `json:"maxCleanupDuration"`
+	Enabled     bool  `json:"enabled"`
+	MaxDuration int   `json:"maxCleanupDuration"`
+	Daily       Daily `json:"daily"`
+}
+
+type Daily struct {
+	Hour   int `json:"hour"`
+	Minute int `json:"minute"`
 }
 
 func (c *Client) GetVersion() (string, error) {

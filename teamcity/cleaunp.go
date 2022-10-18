@@ -23,8 +23,14 @@ type cleanupResource struct {
 	client *client.Client
 }
 type cleanupResourceModel struct {
-	Enabled     types.Bool  `tfsdk:"enabled"`
-	MaxDuration types.Int64 `tfsdk:"max_duration"`
+	Enabled     types.Bool         `tfsdk:"enabled"`
+	MaxDuration types.Int64        `tfsdk:"max_duration"`
+	Daily       dailyResourceModel `tfsdk:"daily"`
+}
+
+type dailyResourceModel struct {
+	Hour   types.Int64 `tfsdk:"hour"`
+	Minute types.Int64 `tfsdk:"minute"`
 }
 
 func (r *cleanupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -41,6 +47,19 @@ func (r *cleanupResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 			"max_duration": {
 				Type:     types.Int64Type,
 				Required: true,
+			},
+			"daily": {
+				Required: true,
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"hour": {
+						Type:     types.Int64Type,
+						Required: true,
+					},
+					"minute": {
+						Type:     types.Int64Type,
+						Required: true,
+					},
+				}),
 			},
 		},
 	}, nil
@@ -64,6 +83,10 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 	settings := client.Settings{
 		Enabled:     plan.Enabled.Value,
 		MaxDuration: int(plan.MaxDuration.Value),
+		Daily: client.Daily{
+			Hour:   int(plan.Daily.Hour.Value),
+			Minute: int(plan.Daily.Minute.Value),
+		},
 	}
 	result, err := r.client.SetCleanup(settings)
 	if err != nil {
@@ -76,6 +99,10 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 
 	plan.Enabled = types.Bool{Value: result.Enabled}
 	plan.MaxDuration = types.Int64{Value: int64(result.MaxDuration)}
+	plan.Daily = dailyResourceModel{
+		Hour:   types.Int64{Value: int64(result.Daily.Hour)},
+		Minute: types.Int64{Value: int64(result.Daily.Minute)},
+	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -103,6 +130,10 @@ func (r *cleanupResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	state.Enabled = types.Bool{Value: actual.Enabled}
 	state.MaxDuration = types.Int64{Value: int64(actual.MaxDuration)}
+	state.Daily = dailyResourceModel{
+		Hour:   types.Int64{Value: int64(actual.Daily.Hour)},
+		Minute: types.Int64{Value: int64(actual.Daily.Minute)},
+	}
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -122,6 +153,10 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 	settings := client.Settings{
 		Enabled:     plan.Enabled.Value,
 		MaxDuration: int(plan.MaxDuration.Value),
+		Daily: client.Daily{
+			Hour:   int(plan.Daily.Hour.Value),
+			Minute: int(plan.Daily.Minute.Value),
+		},
 	}
 	result, err := r.client.SetCleanup(settings)
 	if err != nil {
@@ -134,6 +169,10 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	plan.Enabled = types.Bool{Value: result.Enabled}
 	plan.MaxDuration = types.Int64{Value: int64(result.MaxDuration)}
+	plan.Daily = dailyResourceModel{
+		Hour:   types.Int64{Value: int64(result.Daily.Hour)},
+		Minute: types.Int64{Value: int64(result.Daily.Minute)},
+	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)

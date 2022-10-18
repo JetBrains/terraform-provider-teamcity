@@ -19,4 +19,8 @@ output "server_version" {
 resource "teamcity_cleanup" "cleanup" {
   enabled = true
   max_duration = 0
+  daily = {
+    hour = 2
+    minute = 15
+  }
 }
