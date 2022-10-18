@@ -17,5 +17,6 @@ output "server_version" {
 }
 
 resource "teamcity_cleanup" "cleanup" {
-  enabled = false
+  enabled = true
+  max_duration = 0
 }
