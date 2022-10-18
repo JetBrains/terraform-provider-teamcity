@@ -80,6 +80,29 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 }
 
 func (r *cleanupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state cleanupResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	actual, err := r.client.GetCleanup()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading Cleanup",
+			"Could not read cleanup settings: "+err.Error(),
+		)
+		return
+	}
+
+	state.Enabled = types.Bool{Value: actual.Enabled}
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

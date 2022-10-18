@@ -67,6 +67,26 @@ func (c *Client) SetCleanup(settings Settings) (*Settings, error) {
 	return &actual, nil
 }
 
+func (c *Client) GetCleanup() (*Settings, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/cleanup", c.HostURL), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	actual := Settings{}
+	err = json.Unmarshal(body, &actual)
+	if err != nil {
+		return nil, err
+	}
+
+	return &actual, nil
+}
+
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	req.Header.Set("Content-Type", "application/json")
