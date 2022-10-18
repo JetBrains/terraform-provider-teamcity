@@ -121,5 +121,7 @@ func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.Da
 }
 
 func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewCleanupResource,
+	}
 }
