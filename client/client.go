@@ -1,9 +1,11 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -20,6 +22,10 @@ func NewClient(host, token *string) (*Client, error) {
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 	}
 	return &c, nil
+}
+
+type Settings struct {
+	Enabled bool `json:"enabled"`
 }
 
 func (c *Client) GetVersion() (string, error) {
@@ -46,6 +52,50 @@ func (c *Client) GetVersion() (string, error) {
 	return string(body), nil
 }
 
-func (c *Client) SetCleanup(enabled bool) (bool, error) {
-	return true, nil
+func (c *Client) SetCleanup(settings Settings) (*Settings, error) {
+	rb, err := json.Marshal(settings)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/cleanup", c.HostURL), strings.NewReader(string(rb)))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	actual := Settings{}
+	err = json.Unmarshal(body, &actual)
+	if err != nil {
+		return nil, err
+	}
+
+	return &actual, nil
+}
+
+func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	res, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
+	}
+
+	return body, err
 }

@@ -58,7 +58,10 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 
 	var enabled = plan.Enabled.Value
 
-	result, err := r.client.SetCleanup(enabled)
+	settings := client.Settings{
+		Enabled: enabled,
+	}
+	result, err := r.client.SetCleanup(settings)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting cleanup",
@@ -67,7 +70,7 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	plan.Enabled = types.Bool{Value: result}
+	plan.Enabled = types.Bool{Value: result.Enabled}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
