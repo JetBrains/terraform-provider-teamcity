@@ -24,6 +24,7 @@ func NewCleanupResource() resource.Resource {
 type cleanupResource struct {
 	client *client.Client
 }
+
 type cleanupResourceModel struct {
 	Enabled     types.Bool          `tfsdk:"enabled"`
 	MaxDuration types.Int64         `tfsdk:"max_duration"`
@@ -123,19 +124,19 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	settings := client.Settings{
+	settings := client.CleanupSettings{
 		Enabled:     plan.Enabled.Value,
 		MaxDuration: int(plan.MaxDuration.Value),
 	}
 
 	if plan.Daily != nil {
-		settings.Daily = &client.Daily{
+		settings.Daily = &client.CleanupDaily{
 			Hour:   int(plan.Daily.Hour.Value),
 			Minute: int(plan.Daily.Minute.Value),
 		}
 	}
 	if plan.Cron != nil {
-		settings.Cron = &client.Cron{
+		settings.Cron = &client.CleanupCron{
 			Minute:  plan.Cron.Minute.Value,
 			Hour:    plan.Cron.Hour.Value,
 			Day:     plan.Cron.Day.Value,
@@ -231,19 +232,19 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	settings := client.Settings{
+	settings := client.CleanupSettings{
 		Enabled:     plan.Enabled.Value,
 		MaxDuration: int(plan.MaxDuration.Value),
 	}
 
 	if plan.Daily != nil {
-		settings.Daily = &client.Daily{
+		settings.Daily = &client.CleanupDaily{
 			Hour:   int(plan.Daily.Hour.Value),
 			Minute: int(plan.Daily.Minute.Value),
 		}
 	}
 	if plan.Cron != nil {
-		settings.Cron = &client.Cron{
+		settings.Cron = &client.CleanupCron{
 			Minute:  plan.Cron.Minute.Value,
 			Hour:    plan.Cron.Hour.Value,
 			Day:     plan.Cron.Day.Value,

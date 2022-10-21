@@ -12,19 +12,19 @@ provider "teamcity" {
 
 data "teamcity_server" "buildserver" {}
 
-output "server_version" {
-  value = data.teamcity_server.server.version
-}
+#output "version" {
+#  value = data.teamcity_server.buildserver.version
+#}
 
-resource "teamcity_cleanup" "cleanup" {
-  enabled = true
-  max_duration = 0
-
-  daily = {
-    hour = 2
-    minute = 15
-  }
-
+#resource "teamcity_cleanup" "cleanup" {
+#  enabled = true
+#  max_duration = 0
+#
+##  daily = {
+##    hour = 2
+##    minute = 15
+##  }
+#
 #  cron = {
 #    minute = 15
 #    hour = 2
@@ -32,4 +32,8 @@ resource "teamcity_cleanup" "cleanup" {
 #    month = "*"
 #    day_week = "?"
 #  }
+#}
+
+resource "teamcity_project" "a" {
+  name = "a"
 }

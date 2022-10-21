@@ -24,19 +24,19 @@ func NewClient(host, token *string) (*Client, error) {
 	return &c, nil
 }
 
-type Settings struct {
-	Enabled     bool   `json:"enabled"`
-	MaxDuration int    `json:"maxCleanupDuration"`
-	Daily       *Daily `json:"daily"`
-	Cron        *Cron  `json:"cron"`
+type CleanupSettings struct {
+	Enabled     bool          `json:"enabled"`
+	MaxDuration int           `json:"maxCleanupDuration"`
+	Daily       *CleanupDaily `json:"daily"`
+	Cron        *CleanupCron  `json:"cron"`
 }
 
-type Daily struct {
+type CleanupDaily struct {
 	Hour   int `json:"hour"`
 	Minute int `json:"minute"`
 }
 
-type Cron struct {
+type CleanupCron struct {
 	Minute  string `json:"minute"`
 	Hour    string `json:"hour"`
 	Day     string `json:"day"`
@@ -58,7 +58,7 @@ func (c *Client) GetVersion() (string, error) {
 	return string(body), nil
 }
 
-func (c *Client) SetCleanup(settings Settings) (*Settings, error) {
+func (c *Client) SetCleanup(settings CleanupSettings) (*CleanupSettings, error) {
 	rb, err := json.Marshal(settings)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (c *Client) SetCleanup(settings Settings) (*Settings, error) {
 		return nil, err
 	}
 
-	actual := Settings{}
+	actual := CleanupSettings{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (c *Client) SetCleanup(settings Settings) (*Settings, error) {
 	return &actual, nil
 }
 
-func (c *Client) GetCleanup() (*Settings, error) {
+func (c *Client) GetCleanup() (*CleanupSettings, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/cleanup", c.HostURL), nil)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (c *Client) GetCleanup() (*Settings, error) {
 		return nil, err
 	}
 
-	actual := Settings{}
+	actual := CleanupSettings{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
 		return nil, err
@@ -104,8 +104,12 @@ func (c *Client) GetCleanup() (*Settings, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+	return c.doRequestWithType(req, "application/json")
+}
+
+func (c *Client) doRequestWithType(req *http.Request, ct string) ([]byte, error) {
 	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", ct)
 	req.Header.Set("Accept", "application/json, text/plain")
 
 	res, err := c.HTTPClient.Do(req)
@@ -119,7 +123,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
 		return nil, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
 	}
 
