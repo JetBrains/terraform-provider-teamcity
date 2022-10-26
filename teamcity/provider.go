@@ -124,5 +124,6 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 	return []func() resource.Resource{
 		NewCleanupResource,
 		NewProjectResource,
+		NewVcsRootResource,
 	}
 }

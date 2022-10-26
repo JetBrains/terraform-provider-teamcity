@@ -93,3 +93,7 @@ func (c *Client) DeleteProject(id string) error {
 
 	return nil
 }
+
+type ProjectLocator struct {
+	Id string `json:"id"`
+}
