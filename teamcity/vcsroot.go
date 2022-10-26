@@ -192,19 +192,19 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 }
 
 func (r *vcsRootResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	//var state vcsRootResourceModel
-	//diags := req.State.Get(ctx, &state)
-	//resp.Diagnostics.Append(diags...)
-	//if resp.Diagnostics.HasError() {
-	//	return
-	//}
-	//
-	//err := r.client.DeleteProject(state.Id.Value)
-	//if err != nil {
-	//	resp.Diagnostics.AddError(
-	//		"Error Deleting project",
-	//		"Could not delete project, unexpected error: "+err.Error(),
-	//	)
-	//	return
-	//}
+	var state vcsRootResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.client.DeleteVcsRoot(state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Deleting VCS root",
+			err.Error(),
+		)
+		return
+	}
 }
