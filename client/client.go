@@ -129,3 +129,23 @@ func (c *Client) doRequestWithType(req *http.Request, ct string) ([]byte, error)
 
 	return body, err
 }
+
+func (c *Client) SetParameter(resource, id, name, value string) (*string, error) {
+	req, err := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
+		strings.NewReader(value),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequestWithType(req, "text/plain")
+	if err != nil {
+		return nil, err
+	}
+
+	result := string(body)
+
+	return &result, nil
+}

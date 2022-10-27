@@ -158,37 +158,56 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) {
 }
 
 func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	//var plan vcsRootResourceModel
-	//diags := req.Plan.Get(ctx, &plan)
-	//resp.Diagnostics.Append(diags...)
-	//if resp.Diagnostics.HasError() {
-	//	return
-	//}
-	//
-	//var state vcsRootResourceModel
-	//diags = req.State.Get(ctx, &state)
-	//resp.Diagnostics.Append(diags...)
-	//if resp.Diagnostics.HasError() {
-	//	return
-	//}
-	//
-	//result, err := r.client.RenameProject(state.Id.Value, plan.Name.Value)
-	//if err != nil {
-	//	resp.Diagnostics.AddError(
-	//		"Error setting project",
-	//		"Cannot set project, unexpected error: "+err.Error(),
-	//	)
-	//	return
-	//}
-	//
-	//plan.Name = types.String{Value: result.Name}
-	//plan.Id = types.String{Value: *result.Id}
-	//
-	//diags = resp.State.Set(ctx, plan)
-	//resp.Diagnostics.Append(diags...)
-	//if resp.Diagnostics.HasError() {
-	//	return
-	//}
+	var plan vcsRootResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var state vcsRootResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	props := make(map[string]*types.String)
+	props["name"] = &plan.Name
+	props["project"] = &plan.ProjectId
+	props["properties/url"] = &plan.Url
+	props["properties/branch"] = &plan.Branch
+	//props["id"] = &plan.Id
+
+	for k, v := range props {
+		if v.IsNull() {
+			continue
+		}
+		result, err := r.client.SetParameter(
+			"vcs-roots",
+			state.Id.Value,
+			k,
+			v.Value,
+		)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error setting VCS root field",
+				err.Error(),
+			)
+			return
+		}
+		v = &types.String{Value: *result}
+	}
+
+	if plan.Id.Unknown == true {
+		plan.Id = types.String{Value: state.Id.Value}
+	}
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *vcsRootResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
