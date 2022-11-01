@@ -1,5 +1,5 @@
 /.idea/
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
 *.log
 *.http

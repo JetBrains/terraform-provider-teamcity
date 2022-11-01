@@ -172,23 +172,40 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	props := make(map[string]*types.String)
-	props["name"] = &plan.Name
-	props["project"] = &plan.ProjectId
-	props["properties/url"] = &plan.Url
-	props["properties/branch"] = &plan.Branch
-	//props["id"] = &plan.Id
+	props := []struct {
+		plan     *types.String
+		state    string
+		resource string
+	}{
+		{
+			plan:     &plan.Name,
+			state:    state.Name.Value,
+			resource: "name",
+		},
+		{
+			plan:     &plan.ProjectId,
+			state:    state.ProjectId.Value,
+			resource: "project",
+		},
+		{
+			plan:     &plan.Url,
+			state:    state.Url.Value,
+			resource: "properties/url",
+		},
+		{
+			plan:     &plan.Branch,
+			state:    state.Branch.Value,
+			resource: "properties/branch",
+		},
+		{ // id is updated last
+			plan:     &plan.Id,
+			state:    state.Id.Value,
+			resource: "id",
+		},
+	}
 
-	for k, v := range props {
-		if v.IsNull() {
-			continue
-		}
-		result, err := r.client.SetParameter(
-			"vcs-roots",
-			state.Id.Value,
-			k,
-			v.Value,
-		)
+	for _, p := range props {
+		err := r.setParameter(p.plan, p.state, state.Id.Value, p.resource)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error setting VCS root field",
@@ -196,7 +213,6 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 			)
 			return
 		}
-		v = &types.String{Value: *result}
 	}
 
 	if plan.Id.Unknown == true {
@@ -208,6 +224,22 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+func (r *vcsRootResource) setParameter(pl *types.String, st, id, res string) error {
+	if pl.Unknown != true && pl.Value != st {
+		result, err := r.client.SetParameter(
+			"vcs-roots",
+			id,
+			res,
+			pl.Value,
+		)
+		if err != nil {
+			return err
+		}
+		*pl = types.String{Value: *result}
+	}
+	return nil
 }
 
 func (r *vcsRootResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
