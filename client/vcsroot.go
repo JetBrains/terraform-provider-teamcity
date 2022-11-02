@@ -8,11 +8,12 @@ import (
 )
 
 type VcsRoot struct {
-	Name       *string        `json:"name"`
-	Id         *string        `json:"id"`
-	VcsName    string         `json:"vcsName"`
-	Project    ProjectLocator `json:"project"`
-	Properties VcsProperties  `json:"properties"`
+	Name            *string        `json:"name"`
+	Id              *string        `json:"id"`
+	VcsName         string         `json:"vcsName"`
+	PollingInterval *int           `json:"modificationCheckInterval"`
+	Project         ProjectLocator `json:"project"`
+	Properties      VcsProperties  `json:"properties"`
 }
 
 type VcsProperties struct {

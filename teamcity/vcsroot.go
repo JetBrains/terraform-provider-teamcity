@@ -2,6 +2,9 @@ package teamcity
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strconv"
 	"terraform-provider-teamcity/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -24,12 +27,13 @@ type vcsRootResource struct {
 }
 
 type vcsRootResourceModel struct {
-	Name      types.String `tfsdk:"name"`
-	Id        types.String `tfsdk:"id"`
-	Type      types.String `tfsdk:"type"`
-	ProjectId types.String `tfsdk:"project_id"`
-	Url       types.String `tfsdk:"url"`
-	Branch    types.String `tfsdk:"branch"`
+	Name            types.String `tfsdk:"name"`
+	Id              types.String `tfsdk:"id"`
+	Type            types.String `tfsdk:"type"`
+	PollingInterval types.Int64  `tfsdk:"polling_interval"`
+	ProjectId       types.String `tfsdk:"project_id"`
+	Url             types.String `tfsdk:"url"`
+	Branch          types.String `tfsdk:"branch"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -51,6 +55,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 			"type": {
 				Type:     types.StringType,
 				Required: true,
+			},
+			"polling_interval": {
+				Type:     types.Int64Type,
+				Optional: true,
 			},
 			"project_id": {
 				Type:     types.StringType,
@@ -83,9 +91,11 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	interval := int(plan.PollingInterval.Value)
 	root := client.VcsRoot{
-		Name:    &plan.Name.Value,
-		VcsName: plan.Type.Value,
+		Name:            &plan.Name.Value,
+		VcsName:         plan.Type.Value,
+		PollingInterval: &interval,
 		Project: client.ProjectLocator{
 			Id: plan.ProjectId.Value,
 		},
@@ -150,11 +160,24 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) {
 	plan.Name = types.String{Value: *result.Name}
 	plan.Id = types.String{Value: *result.Id}
 
+	p := result.PollingInterval
+	if p != nil {
+		plan.PollingInterval = types.Int64{Value: int64(*result.PollingInterval)}
+	} else {
+		plan.PollingInterval = types.Int64{Null: true}
+	}
+
 	plan.Type = types.String{Value: result.VcsName}
 	plan.ProjectId = types.String{Value: result.Project.Id}
 
 	plan.Url = types.String{Value: props["url"]}
 	plan.Branch = types.String{Value: props["branch"]}
+}
+
+type refType = func(*vcsRootResourceModel) any
+type prop struct {
+	ref      refType
+	resource string
 }
 
 func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -172,40 +195,35 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	props := []struct {
-		plan     *types.String
-		state    string
-		resource string
-	}{
+	props := []prop{
 		{
-			plan:     &plan.Name,
-			state:    state.Name.Value,
+			ref:      func(a *vcsRootResourceModel) any { return &a.Name },
 			resource: "name",
 		},
 		{
-			plan:     &plan.ProjectId,
-			state:    state.ProjectId.Value,
+			ref:      func(a *vcsRootResourceModel) any { return &a.PollingInterval },
+			resource: "modificationCheckInterval",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.ProjectId },
 			resource: "project",
 		},
 		{
-			plan:     &plan.Url,
-			state:    state.Url.Value,
+			ref:      func(a *vcsRootResourceModel) any { return &a.Url },
 			resource: "properties/url",
 		},
 		{
-			plan:     &plan.Branch,
-			state:    state.Branch.Value,
+			ref:      func(a *vcsRootResourceModel) any { return &a.Branch },
 			resource: "properties/branch",
 		},
 		{ // id is updated last
-			plan:     &plan.Id,
-			state:    state.Id.Value,
+			ref:      func(a *vcsRootResourceModel) any { return &a.Id },
 			resource: "id",
 		},
 	}
 
 	for _, p := range props {
-		err := r.setParameter(p.plan, p.state, state.Id.Value, p.resource)
+		err := r.setParameter(&plan, &state, p)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error setting VCS root field",
@@ -226,19 +244,51 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 }
 
-func (r *vcsRootResource) setParameter(pl *types.String, st, id, res string) error {
-	if pl.Unknown != true && pl.Value != st {
-		result, err := r.client.SetParameter(
-			"vcs-roots",
-			id,
-			res,
-			pl.Value,
-		)
-		if err != nil {
-			return err
+func (r *vcsRootResource) setParameter(plan, state *vcsRootResourceModel, prop prop) error {
+	switch param := prop.ref(plan).(type) {
+	case *types.String:
+		st := prop.ref(state).(*types.String)
+		if param.Unknown != true && param.Value != st.Value {
+			result, err := r.client.SetParameter(
+				"vcs-roots",
+				state.Id.Value,
+				prop.resource,
+				param.Value,
+			)
+			if err != nil {
+				return err
+			}
+			param = &types.String{Value: *result}
 		}
-		*pl = types.String{Value: *result}
+	case *types.Int64:
+		st := prop.ref(state).(*types.Int64)
+		if param.Unknown != true && param.Value != st.Value {
+			var value string
+			if param.IsNull() {
+				value = ""
+			} else {
+				value = param.String()
+			}
+			result, err := r.client.SetParameter(
+				"vcs-roots",
+				state.Id.Value,
+				prop.resource,
+				value,
+			)
+			if err != nil {
+				return err
+			}
+
+			i, err := strconv.ParseInt(*result, 10, 64)
+			if err != nil {
+				return err
+			}
+			param = &types.Int64{Value: i}
+		}
+	default:
+		return errors.New("Unknown type: " + fmt.Sprintf("%T", param))
 	}
+
 	return nil
 }
 
