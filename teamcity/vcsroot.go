@@ -27,13 +27,17 @@ type vcsRootResource struct {
 }
 
 type vcsRootResourceModel struct {
-	Name            types.String `tfsdk:"name"`
-	Id              types.String `tfsdk:"id"`
-	Type            types.String `tfsdk:"type"`
-	PollingInterval types.Int64  `tfsdk:"polling_interval"`
-	ProjectId       types.String `tfsdk:"project_id"`
-	Url             types.String `tfsdk:"url"`
-	Branch          types.String `tfsdk:"branch"`
+	Name            types.String        `tfsdk:"name"`
+	Id              types.String        `tfsdk:"id"`
+	Type            types.String        `tfsdk:"type"`
+	PollingInterval types.Int64         `tfsdk:"polling_interval"`
+	ProjectId       types.String        `tfsdk:"project_id"`
+	Git             *GitPropertiesModel `tfsdk:"git"`
+}
+
+type GitPropertiesModel struct {
+	Url    types.String `tfsdk:"url"`
+	Branch types.String `tfsdk:"branch"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -64,13 +68,18 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Type:     types.StringType,
 				Required: true,
 			},
-			"url": {
-				Type:     types.StringType,
+			"git": {
 				Required: true,
-			},
-			"branch": {
-				Type:     types.StringType,
-				Required: true,
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"url": {
+						Type:     types.StringType,
+						Required: true,
+					},
+					"branch": {
+						Type:     types.StringType,
+						Required: true,
+					},
+				}),
 			},
 		},
 	}, nil
@@ -101,8 +110,8 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		},
 		Properties: client.VcsProperties{
 			Property: []client.VcsProperty{
-				{Name: "url", Value: plan.Url.Value},
-				{Name: "branch", Value: plan.Branch.Value},
+				{Name: "url", Value: plan.Git.Url.Value},
+				{Name: "branch", Value: plan.Git.Branch.Value},
 			},
 		},
 	}
@@ -170,8 +179,10 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) {
 	plan.Type = types.String{Value: result.VcsName}
 	plan.ProjectId = types.String{Value: result.Project.Id}
 
-	plan.Url = types.String{Value: props["url"]}
-	plan.Branch = types.String{Value: props["branch"]}
+	plan.Git = &GitPropertiesModel{
+		Url:    types.String{Value: props["url"]},
+		Branch: types.String{Value: props["branch"]},
+	}
 }
 
 type refType = func(*vcsRootResourceModel) any
@@ -197,6 +208,28 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	props := []prop{
 		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Url },
+			resource: "properties/url",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Branch },
+			resource: "properties/branch",
+		},
+	}
+
+	for _, p := range props {
+		err := r.setParameter(&plan, &state, p)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error setting VCS root field",
+				err.Error(),
+			)
+			return
+		}
+	}
+
+	fields := []prop{
+		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Name },
 			resource: "name",
 		},
@@ -208,21 +241,13 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 			ref:      func(a *vcsRootResourceModel) any { return &a.ProjectId },
 			resource: "project",
 		},
-		{
-			ref:      func(a *vcsRootResourceModel) any { return &a.Url },
-			resource: "properties/url",
-		},
-		{
-			ref:      func(a *vcsRootResourceModel) any { return &a.Branch },
-			resource: "properties/branch",
-		},
 		{ // id is updated last
 			ref:      func(a *vcsRootResourceModel) any { return &a.Id },
 			resource: "id",
 		},
 	}
 
-	for _, p := range props {
+	for _, p := range fields {
 		err := r.setParameter(&plan, &state, p)
 		if err != nil {
 			resp.Diagnostics.AddError(
