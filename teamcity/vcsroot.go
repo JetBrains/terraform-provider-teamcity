@@ -108,7 +108,6 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	interval := int(plan.PollingInterval.Value)
 	props := []client.VcsProperty{
 		{Name: "url", Value: plan.Git.Url.Value},
 		{Name: "branch", Value: plan.Git.Branch.Value},
@@ -117,15 +116,18 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		props = append(props, client.VcsProperty{Name: "push_url", Value: plan.Git.PushUrl.Value})
 	}
 	root := client.VcsRoot{
-		Name:            &plan.Name.Value,
-		VcsName:         plan.Type.Value,
-		PollingInterval: &interval,
+		Name:    &plan.Name.Value,
+		VcsName: plan.Type.Value,
 		Project: client.ProjectLocator{
 			Id: plan.ProjectId.Value,
 		},
 		Properties: client.VcsProperties{
 			Property: props,
 		},
+	}
+	if plan.PollingInterval.IsNull() != true {
+		interval := int(plan.PollingInterval.Value)
+		root.PollingInterval = &interval
 	}
 
 	result, err := r.client.NewVcsRoot(root)
