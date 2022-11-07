@@ -36,8 +36,9 @@ type vcsRootResourceModel struct {
 }
 
 type GitPropertiesModel struct {
-	Url    types.String `tfsdk:"url"`
-	Branch types.String `tfsdk:"branch"`
+	Url     types.String `tfsdk:"url"`
+	PushUrl types.String `tfsdk:"push_url"`
+	Branch  types.String `tfsdk:"branch"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -75,6 +76,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 					},
+					"push_url": {
+						Type:     types.StringType,
+						Optional: true,
+					},
 					"branch": {
 						Type:     types.StringType,
 						Required: true,
@@ -101,6 +106,13 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	interval := int(plan.PollingInterval.Value)
+	props := []client.VcsProperty{
+		{Name: "url", Value: plan.Git.Url.Value},
+		{Name: "branch", Value: plan.Git.Branch.Value},
+	}
+	if plan.Git.PushUrl.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "push_url", Value: plan.Git.PushUrl.Value})
+	}
 	root := client.VcsRoot{
 		Name:            &plan.Name.Value,
 		VcsName:         plan.Type.Value,
@@ -109,10 +121,7 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 			Id: plan.ProjectId.Value,
 		},
 		Properties: client.VcsProperties{
-			Property: []client.VcsProperty{
-				{Name: "url", Value: plan.Git.Url.Value},
-				{Name: "branch", Value: plan.Git.Branch.Value},
-			},
+			Property: props,
 		},
 	}
 
@@ -183,6 +192,12 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) {
 		Url:    types.String{Value: props["url"]},
 		Branch: types.String{Value: props["branch"]},
 	}
+
+	if val, ok := props["push_url"]; ok {
+		plan.Git.PushUrl = types.String{Value: val}
+	} else {
+		plan.Git.PushUrl = types.String{Null: true}
+	}
 }
 
 type refType = func(*vcsRootResourceModel) any
@@ -214,6 +229,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Branch },
 			resource: "properties/branch",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.PushUrl },
+			resource: "properties/push_url",
 		},
 	}
 
