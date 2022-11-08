@@ -36,9 +36,10 @@ type vcsRootResourceModel struct {
 }
 
 type GitPropertiesModel struct {
-	Url     types.String `tfsdk:"url"`
-	PushUrl types.String `tfsdk:"push_url"`
-	Branch  types.String `tfsdk:"branch"`
+	Url        types.String `tfsdk:"url"`
+	PushUrl    types.String `tfsdk:"push_url"`
+	Branch     types.String `tfsdk:"branch"`
+	BranchSpec types.String `tfsdk:"branch_spec"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -87,6 +88,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 					},
+					"branch_spec": {
+						Type:     types.StringType,
+						Optional: true,
+					},
 				}),
 			},
 		},
@@ -115,6 +120,10 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	if plan.Git.PushUrl.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "push_url", Value: plan.Git.PushUrl.Value})
 	}
+	if plan.Git.BranchSpec.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "teamcity:branchSpec", Value: plan.Git.BranchSpec.Value})
+	}
+
 	root := client.VcsRoot{
 		Name:    &plan.Name.Value,
 		VcsName: plan.Type.Value,
@@ -203,6 +212,11 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) {
 	} else {
 		plan.Git.PushUrl = types.String{Null: true}
 	}
+	if val, ok := props["teamcity:branchSpec"]; ok {
+		plan.Git.BranchSpec = types.String{Value: val}
+	} else {
+		plan.Git.BranchSpec = types.String{Null: true}
+	}
 }
 
 type refType = func(*vcsRootResourceModel) any
@@ -238,6 +252,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.PushUrl },
 			resource: "properties/push_url",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.BranchSpec },
+			resource: "properties/teamcity:branchSpec",
 		},
 	}
 
