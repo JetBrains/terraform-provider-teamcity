@@ -131,8 +131,15 @@ func (c *Client) doRequestWithType(req *http.Request, ct string) ([]byte, error)
 }
 
 func (c *Client) SetParameter(resource, id, name, value string) (*string, error) {
+	var method string
+	if value == "" {
+		method = "DELETE"
+	} else {
+		method = "PUT"
+	}
+
 	req, err := http.NewRequest(
-		"PUT",
+		method,
 		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
 		strings.NewReader(value),
 	)

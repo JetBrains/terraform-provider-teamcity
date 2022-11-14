@@ -36,10 +36,11 @@ type vcsRootResourceModel struct {
 }
 
 type GitPropertiesModel struct {
-	Url        types.String `tfsdk:"url"`
-	PushUrl    types.String `tfsdk:"push_url"`
-	Branch     types.String `tfsdk:"branch"`
-	BranchSpec types.String `tfsdk:"branch_spec"`
+	Url            types.String `tfsdk:"url"`
+	PushUrl        types.String `tfsdk:"push_url"`
+	Branch         types.String `tfsdk:"branch"`
+	BranchSpec     types.String `tfsdk:"branch_spec"`
+	TagsAsBranches types.Bool   `tfsdk:"tags_as_branches"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -92,6 +93,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 					},
+					"tags_as_branches": {
+						Type:     types.BoolType,
+						Optional: true,
+					},
 				}),
 			},
 		},
@@ -123,6 +128,11 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	if plan.Git.BranchSpec.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "teamcity:branchSpec", Value: plan.Git.BranchSpec.Value})
 	}
+	if plan.Git.TagsAsBranches.Value == true {
+		props = append(props, client.VcsProperty{Name: "reportTagRevisions", Value: "true"})
+	} else if plan.Git.TagsAsBranches.Value == false && plan.Git.TagsAsBranches.Null == false {
+		props = append(props, client.VcsProperty{Name: "reportTagRevisions", Value: "false"})
+	}
 
 	root := client.VcsRoot{
 		Name:    &plan.Name.Value,
@@ -148,7 +158,14 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	read(result, &plan)
+	err = read(result, &plan)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"REST returned invalid value: ",
+			err.Error(),
+		)
+		return
+	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -174,7 +191,14 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	read(actual, &state)
+	err = read(actual, &state)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"REST returned invalid value: ",
+			err.Error(),
+		)
+		return
+	}
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -183,7 +207,7 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 }
 
-func read(result *client.VcsRoot, plan *vcsRootResourceModel) {
+func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 	props := make(map[string]string)
 	for _, p := range result.Properties.Property {
 		props[p.Name] = p.Value
@@ -217,6 +241,19 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) {
 	} else {
 		plan.Git.BranchSpec = types.String{Null: true}
 	}
+
+	if val, ok := props["reportTagRevisions"]; ok {
+		v, err := strconv.ParseBool(val)
+		if err == nil {
+			plan.Git.TagsAsBranches = types.Bool{Value: v}
+		} else {
+			return err
+		}
+	} else {
+		plan.Git.TagsAsBranches = types.Bool{Null: true}
+	}
+
+	return nil
 }
 
 type refType = func(*vcsRootResourceModel) any
@@ -256,6 +293,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.BranchSpec },
 			resource: "properties/teamcity:branchSpec",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.TagsAsBranches },
+			resource: "properties/reportTagRevisions",
 		},
 	}
 
@@ -351,6 +392,38 @@ func (r *vcsRootResource) setParameter(plan, state *vcsRootResourceModel, prop p
 				return err
 			}
 			param = &types.Int64{Value: i}
+		}
+	case *types.Bool:
+		st := prop.ref(state).(*types.Bool)
+		if param.Unknown == true ||
+			st.Null == param.Null && st.Value == param.Value {
+		} else {
+			var value string
+			if param.IsNull() {
+				value = ""
+			} else if param.Value == false {
+				value = "false"
+			} else {
+				value = "true"
+			}
+
+			result, err := r.client.SetParameter(
+				"vcs-roots",
+				state.Id.Value,
+				prop.resource,
+				value,
+			)
+			if err != nil {
+				return err
+			}
+
+			if *result == "true" {
+				param = &types.Bool{Value: true}
+			} else if *result == "false " {
+				param = &types.Bool{Value: false}
+			} else {
+				param = &types.Bool{Null: true}
+			}
 		}
 	default:
 		return errors.New("Unknown type: " + fmt.Sprintf("%T", param))
