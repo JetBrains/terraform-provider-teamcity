@@ -43,6 +43,7 @@ type GitPropertiesModel struct {
 	BranchSpec     types.String `tfsdk:"branch_spec"`
 	TagsAsBranches types.Bool   `tfsdk:"tags_as_branches"`
 	UsernameStyle  types.String `tfsdk:"username_style"`
+	Submodules     types.String `tfsdk:"submodules"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -106,6 +107,13 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 							stringvalidator.OneOf([]string{"USERID", "NAME", "EMAIL", "FULL"}...),
 						},
 					},
+					"submodules": {
+						Type:     types.StringType,
+						Optional: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringvalidator.OneOf([]string{"IGNORE", "CHECKOUT"}...),
+						},
+					},
 				}),
 			},
 		},
@@ -144,6 +152,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.UsernameStyle.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "usernameStyle", Value: plan.Git.UsernameStyle.Value})
+	}
+	if plan.Git.Submodules.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "submoduleCheckout", Value: plan.Git.Submodules.Value})
 	}
 
 	root := client.VcsRoot{
@@ -271,6 +282,12 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.UsernameStyle = types.String{Null: true}
 	}
 
+	if val, ok := props["submoduleCheckout"]; ok {
+		plan.Git.Submodules = types.String{Value: val}
+	} else {
+		plan.Git.Submodules = types.String{Null: true}
+	}
+
 	return nil
 }
 
@@ -319,6 +336,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.UsernameStyle },
 			resource: "properties/usernameStyle",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Submodules },
+			resource: "properties/submoduleCheckout",
 		},
 	}
 
