@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"terraform-provider-teamcity/client"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -41,6 +42,7 @@ type GitPropertiesModel struct {
 	Branch         types.String `tfsdk:"branch"`
 	BranchSpec     types.String `tfsdk:"branch_spec"`
 	TagsAsBranches types.Bool   `tfsdk:"tags_as_branches"`
+	UsernameStyle  types.String `tfsdk:"username_style"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -97,6 +99,13 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.BoolType,
 						Optional: true,
 					},
+					"username_style": {
+						Type:     types.StringType,
+						Optional: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringvalidator.OneOf([]string{"USERID", "NAME", "EMAIL", "FULL"}...),
+						},
+					},
 				}),
 			},
 		},
@@ -132,6 +141,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		props = append(props, client.VcsProperty{Name: "reportTagRevisions", Value: "true"})
 	} else if plan.Git.TagsAsBranches.Value == false && plan.Git.TagsAsBranches.Null == false {
 		props = append(props, client.VcsProperty{Name: "reportTagRevisions", Value: "false"})
+	}
+	if plan.Git.UsernameStyle.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "usernameStyle", Value: plan.Git.UsernameStyle.Value})
 	}
 
 	root := client.VcsRoot{
@@ -253,6 +265,12 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.TagsAsBranches = types.Bool{Null: true}
 	}
 
+	if val, ok := props["usernameStyle"]; ok {
+		plan.Git.UsernameStyle = types.String{Value: val}
+	} else {
+		plan.Git.UsernameStyle = types.String{Null: true}
+	}
+
 	return nil
 }
 
@@ -297,6 +315,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.TagsAsBranches },
 			resource: "properties/reportTagRevisions",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.UsernameStyle },
+			resource: "properties/usernameStyle",
 		},
 	}
 
