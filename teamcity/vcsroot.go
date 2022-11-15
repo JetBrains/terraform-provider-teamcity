@@ -49,6 +49,7 @@ type GitPropertiesModel struct {
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
 	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
+	CheckoutPolicy   types.String `tfsdk:"checkout_policy"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -135,6 +136,13 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 					},
+					"checkout_policy": {
+						Type:     types.StringType,
+						Optional: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringvalidator.OneOf([]string{"AUTO", "USE_MIRRORS", "NO_MIRRORS", "SHALLOW_CLONE"}...),
+						},
+					},
 				}),
 			},
 		},
@@ -195,6 +203,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 
 	if plan.Git.PathToGit.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "agentGitPath", Value: plan.Git.PathToGit.Value})
+	}
+	if plan.Git.CheckoutPolicy.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "useAlternates", Value: plan.Git.CheckoutPolicy.Value})
 	}
 
 	root := client.VcsRoot{
@@ -361,6 +372,11 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 	} else {
 		plan.Git.PathToGit = types.String{Null: true}
 	}
+	if val, ok := props["useAlternates"]; ok {
+		plan.Git.CheckoutPolicy = types.String{Value: val}
+	} else {
+		plan.Git.CheckoutPolicy = types.String{Null: true}
+	}
 
 	return nil
 }
@@ -430,6 +446,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.PathToGit },
 			resource: "properties/agentGitPath",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.CheckoutPolicy },
+			resource: "properties/useAlternates",
 		},
 	}
 
