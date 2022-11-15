@@ -51,6 +51,7 @@ type GitPropertiesModel struct {
 	PathToGit        types.String `tfsdk:"path_to_git"`
 	CheckoutPolicy   types.String `tfsdk:"checkout_policy"`
 	CleanPolicy      types.String `tfsdk:"clean_policy"`
+	CleanFilesPolicy types.String `tfsdk:"clean_files_policy"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -151,6 +152,13 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 							stringvalidator.OneOf([]string{"ON_BRANCH_CHANGE", "ALWAYS", "NEVER"}...),
 						},
 					},
+					"clean_files_policy": {
+						Type:     types.StringType,
+						Optional: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringvalidator.OneOf([]string{"ALL_UNTRACKED", "IGNORED_ONLY", "NON_IGNORED_ONLY"}...),
+						},
+					},
 				}),
 			},
 		},
@@ -217,6 +225,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.CleanPolicy.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "agentCleanPolicy", Value: plan.Git.CleanPolicy.Value})
+	}
+	if plan.Git.CleanFilesPolicy.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "agentCleanFilesPolicy", Value: plan.Git.CleanFilesPolicy.Value})
 	}
 
 	root := client.VcsRoot{
@@ -396,6 +407,12 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.CleanPolicy = types.String{Null: true}
 	}
 
+	if val, ok := props["agentCleanFilesPolicy"]; ok {
+		plan.Git.CleanFilesPolicy = types.String{Value: val}
+	} else {
+		plan.Git.CleanFilesPolicy = types.String{Null: true}
+	}
+
 	return nil
 }
 
@@ -472,6 +489,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.CleanPolicy },
 			resource: "properties/agentCleanPolicy",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.CleanFilesPolicy },
+			resource: "properties/agentCleanFilesPolicy",
 		},
 	}
 
