@@ -47,6 +47,7 @@ type GitPropertiesModel struct {
 	UsernameForTags types.String `tfsdk:"username_for_tags"`
 
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
+	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
 }
 
@@ -126,6 +127,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.BoolType,
 						Optional: true,
 					},
+					"convert_crlf": {
+						Type:     types.BoolType,
+						Optional: true,
+					},
 					"path_to_git": {
 						Type:     types.StringType,
 						Optional: true,
@@ -175,11 +180,19 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	if plan.Git.UsernameForTags.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "userForTags", Value: plan.Git.UsernameForTags.Value})
 	}
+
 	if plan.Git.IgnoreKnownHosts.Value == true {
 		props = append(props, client.VcsProperty{Name: "ignoreKnownHosts", Value: "true"})
 	} else if plan.Git.IgnoreKnownHosts.Value == false && plan.Git.IgnoreKnownHosts.Null == false {
 		props = append(props, client.VcsProperty{Name: "ignoreKnownHosts", Value: "false"})
 	}
+
+	if plan.Git.ConvertCrlf.Value == true {
+		props = append(props, client.VcsProperty{Name: "serverSideAutoCrlf", Value: "true"})
+	} else if plan.Git.ConvertCrlf.Value == false && plan.Git.ConvertCrlf.Null == false {
+		props = append(props, client.VcsProperty{Name: "serverSideAutoCrlf", Value: "false"})
+	}
+
 	if plan.Git.PathToGit.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "agentGitPath", Value: plan.Git.PathToGit.Value})
 	}
@@ -332,6 +345,17 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.IgnoreKnownHosts = types.Bool{Null: true}
 	}
 
+	if val, ok := props["serverSideAutoCrlf"]; ok {
+		v, err := strconv.ParseBool(val)
+		if err == nil {
+			plan.Git.ConvertCrlf = types.Bool{Value: v}
+		} else {
+			return err
+		}
+	} else {
+		plan.Git.ConvertCrlf = types.Bool{Null: true}
+	}
+
 	if val, ok := props["agentGitPath"]; ok {
 		plan.Git.PathToGit = types.String{Value: val}
 	} else {
@@ -398,6 +422,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.IgnoreKnownHosts },
 			resource: "properties/ignoreKnownHosts",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.ConvertCrlf },
+			resource: "properties/serverSideAutoCrlf",
 		},
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.PathToGit },
