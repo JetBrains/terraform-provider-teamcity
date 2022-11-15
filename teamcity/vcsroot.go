@@ -37,13 +37,14 @@ type vcsRootResourceModel struct {
 }
 
 type GitPropertiesModel struct {
-	Url            types.String `tfsdk:"url"`
-	PushUrl        types.String `tfsdk:"push_url"`
-	Branch         types.String `tfsdk:"branch"`
-	BranchSpec     types.String `tfsdk:"branch_spec"`
-	TagsAsBranches types.Bool   `tfsdk:"tags_as_branches"`
-	UsernameStyle  types.String `tfsdk:"username_style"`
-	Submodules     types.String `tfsdk:"submodules"`
+	Url             types.String `tfsdk:"url"`
+	PushUrl         types.String `tfsdk:"push_url"`
+	Branch          types.String `tfsdk:"branch"`
+	BranchSpec      types.String `tfsdk:"branch_spec"`
+	TagsAsBranches  types.Bool   `tfsdk:"tags_as_branches"`
+	UsernameStyle   types.String `tfsdk:"username_style"`
+	Submodules      types.String `tfsdk:"submodules"`
+	UsernameForTags types.String `tfsdk:"username_for_tags"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -114,6 +115,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 							stringvalidator.OneOf([]string{"IGNORE", "CHECKOUT"}...),
 						},
 					},
+					"username_for_tags": {
+						Type:     types.StringType,
+						Optional: true,
+					},
 				}),
 			},
 		},
@@ -155,6 +160,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.Submodules.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "submoduleCheckout", Value: plan.Git.Submodules.Value})
+	}
+	if plan.Git.UsernameForTags.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "userForTags", Value: plan.Git.UsernameForTags.Value})
 	}
 
 	root := client.VcsRoot{
@@ -288,6 +296,12 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.Submodules = types.String{Null: true}
 	}
 
+	if val, ok := props["userForTags"]; ok {
+		plan.Git.UsernameForTags = types.String{Value: val}
+	} else {
+		plan.Git.UsernameForTags = types.String{Null: true}
+	}
+
 	return nil
 }
 
@@ -340,6 +354,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Submodules },
 			resource: "properties/submoduleCheckout",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.UsernameForTags },
+			resource: "properties/userForTags",
 		},
 	}
 
