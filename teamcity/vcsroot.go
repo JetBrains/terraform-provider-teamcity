@@ -45,6 +45,8 @@ type GitPropertiesModel struct {
 	UsernameStyle   types.String `tfsdk:"username_style"`
 	Submodules      types.String `tfsdk:"submodules"`
 	UsernameForTags types.String `tfsdk:"username_for_tags"`
+
+	IgnoreKnownHosts types.Bool `tfsdk:"ignore_known_hosts"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -119,6 +121,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 					},
+					"ignore_known_hosts": {
+						Type:     types.BoolType,
+						Optional: true,
+					},
 				}),
 			},
 		},
@@ -163,6 +169,11 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.UsernameForTags.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "userForTags", Value: plan.Git.UsernameForTags.Value})
+	}
+	if plan.Git.IgnoreKnownHosts.Value == true {
+		props = append(props, client.VcsProperty{Name: "ignoreKnownHosts", Value: "true"})
+	} else if plan.Git.IgnoreKnownHosts.Value == false && plan.Git.IgnoreKnownHosts.Null == false {
+		props = append(props, client.VcsProperty{Name: "ignoreKnownHosts", Value: "false"})
 	}
 
 	root := client.VcsRoot{
@@ -302,6 +313,17 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.UsernameForTags = types.String{Null: true}
 	}
 
+	if val, ok := props["ignoreKnownHosts"]; ok {
+		v, err := strconv.ParseBool(val)
+		if err == nil {
+			plan.Git.IgnoreKnownHosts = types.Bool{Value: v}
+		} else {
+			return err
+		}
+	} else {
+		plan.Git.IgnoreKnownHosts = types.Bool{Null: true}
+	}
+
 	return nil
 }
 
@@ -358,6 +380,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.UsernameForTags },
 			resource: "properties/userForTags",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.IgnoreKnownHosts },
+			resource: "properties/ignoreKnownHosts",
 		},
 	}
 
