@@ -46,6 +46,7 @@ type GitPropertiesModel struct {
 	Submodules       types.String `tfsdk:"submodules"`
 	UsernameForTags  types.String `tfsdk:"username_for_tags"`
 	AuthMethod       types.String `tfsdk:"auth_method"`
+	Username         types.String `tfsdk:"username"`
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
 	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
@@ -133,6 +134,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 							stringvalidator.OneOf([]string{"ANONYMOUS", "PASSWORD"}...),
 						},
 					},
+					"username": {
+						Type:     types.StringType,
+						Optional: true,
+					},
 					"ignore_known_hosts": {
 						Type:     types.BoolType,
 						Optional: true,
@@ -214,6 +219,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 
 	if plan.Git.AuthMethod.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "authMethod", Value: plan.Git.AuthMethod.Value})
+	}
+	if plan.Git.Username.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "username", Value: plan.Git.Username.Value})
 	}
 
 	if plan.Git.IgnoreKnownHosts.Value == true {
@@ -383,6 +391,11 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 	} else {
 		plan.Git.AuthMethod = types.String{Null: true}
 	}
+	if val, ok := props["username"]; ok {
+		plan.Git.Username = types.String{Value: val}
+	} else {
+		plan.Git.Username = types.String{Null: true}
+	}
 
 	if val, ok := props["ignoreKnownHosts"]; ok {
 		v, err := strconv.ParseBool(val)
@@ -490,6 +503,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.AuthMethod },
 			resource: "properties/authMethod",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Username },
+			resource: "properties/username",
 		},
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.IgnoreKnownHosts },
