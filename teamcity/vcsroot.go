@@ -37,15 +37,15 @@ type vcsRootResourceModel struct {
 }
 
 type GitPropertiesModel struct {
-	Url             types.String `tfsdk:"url"`
-	PushUrl         types.String `tfsdk:"push_url"`
-	Branch          types.String `tfsdk:"branch"`
-	BranchSpec      types.String `tfsdk:"branch_spec"`
-	TagsAsBranches  types.Bool   `tfsdk:"tags_as_branches"`
-	UsernameStyle   types.String `tfsdk:"username_style"`
-	Submodules      types.String `tfsdk:"submodules"`
-	UsernameForTags types.String `tfsdk:"username_for_tags"`
-
+	Url              types.String `tfsdk:"url"`
+	PushUrl          types.String `tfsdk:"push_url"`
+	Branch           types.String `tfsdk:"branch"`
+	BranchSpec       types.String `tfsdk:"branch_spec"`
+	TagsAsBranches   types.Bool   `tfsdk:"tags_as_branches"`
+	UsernameStyle    types.String `tfsdk:"username_style"`
+	Submodules       types.String `tfsdk:"submodules"`
+	UsernameForTags  types.String `tfsdk:"username_for_tags"`
+	AuthMethod       types.String `tfsdk:"auth_method"`
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
 	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
@@ -126,6 +126,13 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 					},
+					"auth_method": {
+						Type:     types.StringType,
+						Optional: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringvalidator.OneOf([]string{"ANONYMOUS", "PASSWORD"}...),
+						},
+					},
 					"ignore_known_hosts": {
 						Type:     types.BoolType,
 						Optional: true,
@@ -203,6 +210,10 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.UsernameForTags.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "userForTags", Value: plan.Git.UsernameForTags.Value})
+	}
+
+	if plan.Git.AuthMethod.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "authMethod", Value: plan.Git.AuthMethod.Value})
 	}
 
 	if plan.Git.IgnoreKnownHosts.Value == true {
@@ -367,6 +378,12 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.UsernameForTags = types.String{Null: true}
 	}
 
+	if val, ok := props["authMethod"]; ok {
+		plan.Git.AuthMethod = types.String{Value: val}
+	} else {
+		plan.Git.AuthMethod = types.String{Null: true}
+	}
+
 	if val, ok := props["ignoreKnownHosts"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err == nil {
@@ -469,6 +486,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.UsernameForTags },
 			resource: "properties/userForTags",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.AuthMethod },
+			resource: "properties/authMethod",
 		},
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.IgnoreKnownHosts },
