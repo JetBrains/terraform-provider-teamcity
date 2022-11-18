@@ -47,6 +47,7 @@ type GitPropertiesModel struct {
 	UsernameForTags  types.String `tfsdk:"username_for_tags"`
 	AuthMethod       types.String `tfsdk:"auth_method"`
 	Username         types.String `tfsdk:"username"`
+	Password         types.String `tfsdk:"password"`
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
 	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
@@ -138,6 +139,11 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 					},
+					"password": {
+						Type:      types.StringType,
+						Optional:  true,
+						Sensitive: true,
+					},
 					"ignore_known_hosts": {
 						Type:     types.BoolType,
 						Optional: true,
@@ -222,6 +228,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.Username.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "username", Value: plan.Git.Username.Value})
+	}
+	if plan.Git.Password.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "secure:password", Value: plan.Git.Password.Value})
 	}
 
 	if plan.Git.IgnoreKnownHosts.Value == true {
@@ -341,9 +350,11 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 	plan.Type = types.String{Value: result.VcsName}
 	plan.ProjectId = types.String{Value: result.Project.Id}
 
+	password := plan.Git.Password
 	plan.Git = &GitPropertiesModel{
-		Url:    types.String{Value: props["url"]},
-		Branch: types.String{Value: props["branch"]},
+		Url:      types.String{Value: props["url"]},
+		Branch:   types.String{Value: props["branch"]},
+		Password: password,
 	}
 
 	if val, ok := props["push_url"]; ok {
@@ -507,6 +518,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Username },
 			resource: "properties/username",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Password },
+			resource: "properties/secure:password",
 		},
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.IgnoreKnownHosts },
