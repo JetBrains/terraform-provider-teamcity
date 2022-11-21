@@ -133,7 +133,12 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringvalidator.OneOf([]string{"ANONYMOUS", "PASSWORD", "TEAMCITY_SSH_KEY"}...),
+							stringvalidator.OneOf([]string{
+								"ANONYMOUS",
+								"PASSWORD",
+								"TEAMCITY_SSH_KEY",
+								"PRIVATE_KEY_DEFAULT",
+							}...),
 						},
 					},
 					"username": {
