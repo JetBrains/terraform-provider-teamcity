@@ -48,6 +48,7 @@ type GitPropertiesModel struct {
 	AuthMethod       types.String `tfsdk:"auth_method"`
 	Username         types.String `tfsdk:"username"`
 	Password         types.String `tfsdk:"password"`
+	UploadedKey      types.String `tfsdk:"uploaded_key"`
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
 	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
@@ -132,7 +133,7 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringvalidator.OneOf([]string{"ANONYMOUS", "PASSWORD"}...),
+							stringvalidator.OneOf([]string{"ANONYMOUS", "PASSWORD", "TEAMCITY_SSH_KEY"}...),
 						},
 					},
 					"username": {
@@ -143,6 +144,10 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:      types.StringType,
 						Optional:  true,
 						Sensitive: true,
+					},
+					"uploaded_key": {
+						Type:     types.StringType,
+						Optional: true,
 					},
 					"ignore_known_hosts": {
 						Type:     types.BoolType,
@@ -231,6 +236,9 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.Password.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "secure:password", Value: plan.Git.Password.Value})
+	}
+	if plan.Git.UploadedKey.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.Value})
 	}
 
 	if plan.Git.IgnoreKnownHosts.Value == true {
@@ -407,6 +415,11 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 	} else {
 		plan.Git.Username = types.String{Null: true}
 	}
+	if val, ok := props["teamcitySshKey"]; ok {
+		plan.Git.UploadedKey = types.String{Value: val}
+	} else {
+		plan.Git.UploadedKey = types.String{Null: true}
+	}
 
 	if val, ok := props["ignoreKnownHosts"]; ok {
 		v, err := strconv.ParseBool(val)
@@ -522,6 +535,10 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Password },
 			resource: "properties/secure:password",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.UploadedKey },
+			resource: "properties/teamcitySshKey",
 		},
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.IgnoreKnownHosts },
