@@ -49,6 +49,8 @@ type GitPropertiesModel struct {
 	Username         types.String `tfsdk:"username"`
 	Password         types.String `tfsdk:"password"`
 	UploadedKey      types.String `tfsdk:"uploaded_key"`
+	PrivateKeyPath   types.String `tfsdk:"private_key_path"`
+	Passphrase       types.String `tfsdk:"passphrase"`
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
 	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
@@ -138,6 +140,7 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 								"PASSWORD",
 								"TEAMCITY_SSH_KEY",
 								"PRIVATE_KEY_DEFAULT",
+								"PRIVATE_KEY_FILE",
 							}...),
 						},
 					},
@@ -153,6 +156,15 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 					"uploaded_key": {
 						Type:     types.StringType,
 						Optional: true,
+					},
+					"private_key_path": {
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"passphrase": {
+						Type:      types.StringType,
+						Optional:  true,
+						Sensitive: true,
 					},
 					"ignore_known_hosts": {
 						Type:     types.BoolType,
@@ -244,6 +256,12 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Git.UploadedKey.IsNull() != true {
 		props = append(props, client.VcsProperty{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.Value})
+	}
+	if plan.Git.PrivateKeyPath.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "privateKeyPath", Value: plan.Git.PrivateKeyPath.Value})
+	}
+	if plan.Git.Passphrase.IsNull() != true {
+		props = append(props, client.VcsProperty{Name: "secure:passphrase", Value: plan.Git.Passphrase.Value})
 	}
 
 	if plan.Git.IgnoreKnownHosts.Value == true {
@@ -364,10 +382,12 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 	plan.ProjectId = types.String{Value: result.Project.Id}
 
 	password := plan.Git.Password
+	passphrase := plan.Git.Passphrase
 	plan.Git = &GitPropertiesModel{
-		Url:      types.String{Value: props["url"]},
-		Branch:   types.String{Value: props["branch"]},
-		Password: password,
+		Url:        types.String{Value: props["url"]},
+		Branch:     types.String{Value: props["branch"]},
+		Password:   password,
+		Passphrase: passphrase,
 	}
 
 	if val, ok := props["push_url"]; ok {
@@ -424,6 +444,11 @@ func read(result *client.VcsRoot, plan *vcsRootResourceModel) error {
 		plan.Git.UploadedKey = types.String{Value: val}
 	} else {
 		plan.Git.UploadedKey = types.String{Null: true}
+	}
+	if val, ok := props["privateKeyPath"]; ok {
+		plan.Git.PrivateKeyPath = types.String{Value: val}
+	} else {
+		plan.Git.PrivateKeyPath = types.String{Null: true}
 	}
 
 	if val, ok := props["ignoreKnownHosts"]; ok {
@@ -544,6 +569,14 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.UploadedKey },
 			resource: "properties/teamcitySshKey",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.PrivateKeyPath },
+			resource: "properties/privateKeyPath",
+		},
+		{
+			ref:      func(a *vcsRootResourceModel) any { return &a.Git.Passphrase },
+			resource: "properties/secure:passphrase",
 		},
 		{
 			ref:      func(a *vcsRootResourceModel) any { return &a.Git.IgnoreKnownHosts },
