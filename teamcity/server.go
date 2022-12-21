@@ -23,6 +23,7 @@ type serverDataSource struct {
 	client *client.Client
 }
 type serverDataSourceModel struct {
+	ID      types.String `tfsdk:"id"`
 	Version types.String `tfsdk:"version"`
 }
 
@@ -40,6 +41,10 @@ func (d *serverDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 func (d *serverDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
+			"id": {
+				Type:     types.StringType,
+				Computed: true,
+			},
 			"version": {
 				Type:     types.StringType,
 				Computed: true,

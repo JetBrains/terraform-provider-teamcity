@@ -26,6 +26,7 @@ type cleanupResource struct {
 }
 
 type cleanupResourceModel struct {
+	ID          types.String        `tfsdk:"id"`
 	Enabled     types.Bool          `tfsdk:"enabled"`
 	MaxDuration types.Int64         `tfsdk:"max_duration"`
 	Daily       *dailyResourceModel `tfsdk:"daily"`
@@ -52,6 +53,13 @@ func (r *cleanupResource) Metadata(_ context.Context, req resource.MetadataReque
 func (r *cleanupResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
+			"id": {
+				Type:     types.StringType,
+				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					resource.UseStateForUnknown(),
+				},
+			},
 			"enabled": {
 				Type:     types.BoolType,
 				Required: true,
@@ -153,6 +161,8 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
+
+	plan.ID = types.String{Value: "placeholder"}
 
 	plan.Enabled = types.Bool{Value: result.Enabled}
 	plan.MaxDuration = types.Int64{Value: int64(result.MaxDuration)}

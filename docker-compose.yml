@@ -1,0 +1,15 @@
+version: '2'
+services:
+  teamcity-server:
+    image: registry.jetbrains.team/p/tc/docker/teamcity-server-staging:EAP-linux
+    volumes:
+      - "./testdata:/testdata"
+    environment:
+      - TEAMCITY_CONFIGURATION_PATH=/testdata/teamcity.properties
+    ports:
+      - "8111:8111"
+    healthcheck:
+      test: "curl -f http://localhost:8111/login.html"
+      timeout: 5s
+      interval: 10s
+      retries: 30
