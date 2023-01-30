@@ -156,3 +156,23 @@ func (c *Client) SetParameter(resource, id, name, value string) (*string, error)
 
 	return &result, nil
 }
+
+func (c *Client) GetParameter(resource, id, name string) (*string, error) {
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequestWithType(req, "text/plain")
+	if err != nil {
+		return nil, err
+	}
+
+	result := string(body)
+
+	return &result, nil
+}
