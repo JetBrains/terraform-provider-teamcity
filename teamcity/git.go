@@ -2,6 +2,7 @@ package teamcity
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -56,27 +57,42 @@ func (r *gitResource) Configure(_ context.Context, req resource.ConfigureRequest
 }
 
 func (r *gitResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan *GitModel
+	var plan GitModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	result, err := r.client.SetParameter(
-		"vcs-roots",
-		"Root_Reflect",
-		"properties/url",
-		plan.Url.Value,
-	)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"REST returned invalid value: ",
-			err.Error(),
+	refGitModel := reflect.TypeOf(plan)
+	fields := reflect.VisibleFields(refGitModel)
+
+	for _, field := range fields {
+		name := field.Name
+		restName := field.Tag.Get("teamcity")
+
+		refPlan := reflect.ValueOf(&plan).Elem()
+		val := refPlan.FieldByName(name).FieldByName("Value").String()
+
+		result, err := r.client.SetParameter(
+			"vcs-roots",
+			"Root_Reflect",
+			"properties/"+restName,
+			val,
 		)
-		return
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"REST returned invalid value: ",
+				err.Error(),
+			)
+			return
+		}
+
+		res := types.String{Value: *result}
+		ref := reflect.ValueOf(res)
+		fi := refPlan.FieldByName(name)
+		fi.Set(ref)
 	}
-	plan.Url = types.String{Value: *result}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
