@@ -25,7 +25,8 @@ type gitResource struct {
 }
 
 type GitModel struct {
-	Url types.String `tfsdk:"url" teamcity:"url"`
+	Url    types.String `tfsdk:"url" teamcity:"url"`
+	Branch types.String `tfsdk:"branch" teamcity:"branch"`
 }
 
 func (r *gitResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -36,6 +37,10 @@ func (r *gitResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnosti
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			"url": {
+				Type:     types.StringType,
+				Required: true,
+			},
+			"branch": {
 				Type:     types.StringType,
 				Required: true,
 			},
