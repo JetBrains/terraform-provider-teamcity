@@ -4,6 +4,7 @@ services:
     image: registry.jetbrains.team/p/tc/docker/teamcity-server-staging:EAP-linux
     volumes:
       - "./testdata:/testdata"
+      - "./testdata/plugins:/data/teamcity_server/datadir/plugins"
     environment:
       - TEAMCITY_CONFIGURATION_PATH=/testdata/teamcity.properties
     ports:
