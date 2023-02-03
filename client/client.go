@@ -72,6 +72,7 @@ func (c *Client) GetParameter(resource, id, name string) (*string, error) {
 
 func (c *Client) SetParameter(resource, id, name, value string) (*string, error) {
 	var method string
+	//TODO replace with nil pointer
 	if value == "" {
 		method = "DELETE"
 	} else {
