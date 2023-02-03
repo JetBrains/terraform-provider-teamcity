@@ -220,73 +220,73 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	props := []client.VcsProperty{
+	props := []client.Property{
 		{Name: "url", Value: plan.Git.Url.Value},
 		{Name: "branch", Value: plan.Git.Branch.Value},
 	}
 	if plan.Git.PushUrl.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "push_url", Value: plan.Git.PushUrl.Value})
+		props = append(props, client.Property{Name: "push_url", Value: plan.Git.PushUrl.Value})
 	}
 	if plan.Git.BranchSpec.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "teamcity:branchSpec", Value: plan.Git.BranchSpec.Value})
+		props = append(props, client.Property{Name: "teamcity:branchSpec", Value: plan.Git.BranchSpec.Value})
 	}
 	if plan.Git.TagsAsBranches.Value == true {
-		props = append(props, client.VcsProperty{Name: "reportTagRevisions", Value: "true"})
+		props = append(props, client.Property{Name: "reportTagRevisions", Value: "true"})
 	} else if plan.Git.TagsAsBranches.Value == false && plan.Git.TagsAsBranches.Null == false {
-		props = append(props, client.VcsProperty{Name: "reportTagRevisions", Value: "false"})
+		props = append(props, client.Property{Name: "reportTagRevisions", Value: "false"})
 	}
 	if plan.Git.UsernameStyle.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "usernameStyle", Value: plan.Git.UsernameStyle.Value})
+		props = append(props, client.Property{Name: "usernameStyle", Value: plan.Git.UsernameStyle.Value})
 	}
 	if plan.Git.Submodules.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "submoduleCheckout", Value: plan.Git.Submodules.Value})
+		props = append(props, client.Property{Name: "submoduleCheckout", Value: plan.Git.Submodules.Value})
 	}
 	if plan.Git.UsernameForTags.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "userForTags", Value: plan.Git.UsernameForTags.Value})
+		props = append(props, client.Property{Name: "userForTags", Value: plan.Git.UsernameForTags.Value})
 	}
 
 	if plan.Git.AuthMethod.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "authMethod", Value: plan.Git.AuthMethod.Value})
+		props = append(props, client.Property{Name: "authMethod", Value: plan.Git.AuthMethod.Value})
 	}
 	if plan.Git.Username.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "username", Value: plan.Git.Username.Value})
+		props = append(props, client.Property{Name: "username", Value: plan.Git.Username.Value})
 	}
 	if plan.Git.Password.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "secure:password", Value: plan.Git.Password.Value})
+		props = append(props, client.Property{Name: "secure:password", Value: plan.Git.Password.Value})
 	}
 	if plan.Git.UploadedKey.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.Value})
+		props = append(props, client.Property{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.Value})
 	}
 	if plan.Git.PrivateKeyPath.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "privateKeyPath", Value: plan.Git.PrivateKeyPath.Value})
+		props = append(props, client.Property{Name: "privateKeyPath", Value: plan.Git.PrivateKeyPath.Value})
 	}
 	if plan.Git.Passphrase.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "secure:passphrase", Value: plan.Git.Passphrase.Value})
+		props = append(props, client.Property{Name: "secure:passphrase", Value: plan.Git.Passphrase.Value})
 	}
 
 	if plan.Git.IgnoreKnownHosts.Value == true {
-		props = append(props, client.VcsProperty{Name: "ignoreKnownHosts", Value: "true"})
+		props = append(props, client.Property{Name: "ignoreKnownHosts", Value: "true"})
 	} else if plan.Git.IgnoreKnownHosts.Value == false && plan.Git.IgnoreKnownHosts.Null == false {
-		props = append(props, client.VcsProperty{Name: "ignoreKnownHosts", Value: "false"})
+		props = append(props, client.Property{Name: "ignoreKnownHosts", Value: "false"})
 	}
 
 	if plan.Git.ConvertCrlf.Value == true {
-		props = append(props, client.VcsProperty{Name: "serverSideAutoCrlf", Value: "true"})
+		props = append(props, client.Property{Name: "serverSideAutoCrlf", Value: "true"})
 	} else if plan.Git.ConvertCrlf.Value == false && plan.Git.ConvertCrlf.Null == false {
-		props = append(props, client.VcsProperty{Name: "serverSideAutoCrlf", Value: "false"})
+		props = append(props, client.Property{Name: "serverSideAutoCrlf", Value: "false"})
 	}
 
 	if plan.Git.PathToGit.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "agentGitPath", Value: plan.Git.PathToGit.Value})
+		props = append(props, client.Property{Name: "agentGitPath", Value: plan.Git.PathToGit.Value})
 	}
 	if plan.Git.CheckoutPolicy.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "useAlternates", Value: plan.Git.CheckoutPolicy.Value})
+		props = append(props, client.Property{Name: "useAlternates", Value: plan.Git.CheckoutPolicy.Value})
 	}
 	if plan.Git.CleanPolicy.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "agentCleanPolicy", Value: plan.Git.CleanPolicy.Value})
+		props = append(props, client.Property{Name: "agentCleanPolicy", Value: plan.Git.CleanPolicy.Value})
 	}
 	if plan.Git.CleanFilesPolicy.IsNull() != true {
-		props = append(props, client.VcsProperty{Name: "agentCleanFilesPolicy", Value: plan.Git.CleanFilesPolicy.Value})
+		props = append(props, client.Property{Name: "agentCleanFilesPolicy", Value: plan.Git.CleanFilesPolicy.Value})
 	}
 
 	root := client.VcsRoot{
@@ -295,7 +295,7 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		Project: client.ProjectLocator{
 			Id: plan.ProjectId.Value,
 		},
-		Properties: client.VcsProperties{
+		Properties: client.Properties{
 			Property: props,
 		},
 	}

@@ -13,16 +13,7 @@ type VcsRoot struct {
 	VcsName         string         `json:"vcsName"`
 	PollingInterval *int           `json:"modificationCheckInterval"`
 	Project         ProjectLocator `json:"project"`
-	Properties      VcsProperties  `json:"properties"`
-}
-
-type VcsProperties struct {
-	Property []VcsProperty `json:"property"`
-}
-
-type VcsProperty struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Properties      Properties     `json:"properties"`
 }
 
 func (c *Client) NewVcsRoot(p VcsRoot) (*VcsRoot, error) {
