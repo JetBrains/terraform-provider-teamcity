@@ -3,3 +3,4 @@
 *.tfstate.*
 *.log
 *.http
+/terraform-provider-teamcity
