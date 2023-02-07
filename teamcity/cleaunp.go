@@ -133,23 +133,23 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	settings := client.CleanupSettings{
-		Enabled:     plan.Enabled.Value,
-		MaxDuration: int(plan.MaxDuration.Value),
+		Enabled:     plan.Enabled.ValueBool(),
+		MaxDuration: int(plan.MaxDuration.ValueInt64()),
 	}
 
 	if plan.Daily != nil {
 		settings.Daily = &client.CleanupDaily{
-			Hour:   int(plan.Daily.Hour.Value),
-			Minute: int(plan.Daily.Minute.Value),
+			Hour:   int(plan.Daily.Hour.ValueInt64()),
+			Minute: int(plan.Daily.Minute.ValueInt64()),
 		}
 	}
 	if plan.Cron != nil {
 		settings.Cron = &client.CleanupCron{
-			Minute:  plan.Cron.Minute.Value,
-			Hour:    plan.Cron.Hour.Value,
-			Day:     plan.Cron.Day.Value,
-			Month:   plan.Cron.Month.Value,
-			DayWeek: plan.Cron.DayWeek.Value,
+			Minute:  plan.Cron.Minute.ValueString(),
+			Hour:    plan.Cron.Hour.ValueString(),
+			Day:     plan.Cron.Day.ValueString(),
+			Month:   plan.Cron.Month.ValueString(),
+			DayWeek: plan.Cron.DayWeek.ValueString(),
 		}
 	}
 
@@ -162,23 +162,23 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	plan.ID = types.String{Value: "placeholder"}
+	plan.ID = types.StringValue("placeholder")
 
-	plan.Enabled = types.Bool{Value: result.Enabled}
-	plan.MaxDuration = types.Int64{Value: int64(result.MaxDuration)}
+	plan.Enabled = types.BoolValue(result.Enabled)
+	plan.MaxDuration = types.Int64Value(int64(result.MaxDuration))
 	if result.Daily != nil {
 		plan.Daily = &dailyResourceModel{
-			Hour:   types.Int64{Value: int64(result.Daily.Hour)},
-			Minute: types.Int64{Value: int64(result.Daily.Minute)},
+			Hour:   types.Int64Value(int64(result.Daily.Hour)),
+			Minute: types.Int64Value(int64(result.Daily.Minute)),
 		}
 	}
 	if result.Cron != nil {
 		plan.Cron = &cronResourceModel{
-			Minute:  types.String{Value: result.Cron.Minute},
-			Hour:    types.String{Value: result.Cron.Hour},
-			Day:     types.String{Value: result.Cron.Day},
-			Month:   types.String{Value: result.Cron.Month},
-			DayWeek: types.String{Value: result.Cron.DayWeek},
+			Minute:  types.StringValue(result.Cron.Minute),
+			Hour:    types.StringValue(result.Cron.Hour),
+			Day:     types.StringValue(result.Cron.Day),
+			Month:   types.StringValue(result.Cron.Month),
+			DayWeek: types.StringValue(result.Cron.DayWeek),
 		}
 	}
 
@@ -206,23 +206,23 @@ func (r *cleanupResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	state.Enabled = types.Bool{Value: actual.Enabled}
-	state.MaxDuration = types.Int64{Value: int64(actual.MaxDuration)}
+	state.Enabled = types.BoolValue(actual.Enabled)
+	state.MaxDuration = types.Int64Value(int64(actual.MaxDuration))
 	if actual.Daily != nil {
 		state.Daily = &dailyResourceModel{
-			Hour:   types.Int64{Value: int64(actual.Daily.Hour)},
-			Minute: types.Int64{Value: int64(actual.Daily.Minute)},
+			Hour:   types.Int64Value(int64(actual.Daily.Hour)),
+			Minute: types.Int64Value(int64(actual.Daily.Minute)),
 		}
 		state.Cron = nil
 	}
 
 	if actual.Cron != nil {
 		state.Cron = &cronResourceModel{
-			Minute:  types.String{Value: actual.Cron.Minute},
-			Hour:    types.String{Value: actual.Cron.Hour},
-			Day:     types.String{Value: actual.Cron.Day},
-			Month:   types.String{Value: actual.Cron.Month},
-			DayWeek: types.String{Value: actual.Cron.DayWeek},
+			Minute:  types.StringValue(actual.Cron.Minute),
+			Hour:    types.StringValue(actual.Cron.Hour),
+			Day:     types.StringValue(actual.Cron.Day),
+			Month:   types.StringValue(actual.Cron.Month),
+			DayWeek: types.StringValue(actual.Cron.DayWeek),
 		}
 		state.Daily = nil
 	}
@@ -243,23 +243,23 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	settings := client.CleanupSettings{
-		Enabled:     plan.Enabled.Value,
-		MaxDuration: int(plan.MaxDuration.Value),
+		Enabled:     plan.Enabled.ValueBool(),
+		MaxDuration: int(plan.MaxDuration.ValueInt64()),
 	}
 
 	if plan.Daily != nil {
 		settings.Daily = &client.CleanupDaily{
-			Hour:   int(plan.Daily.Hour.Value),
-			Minute: int(plan.Daily.Minute.Value),
+			Hour:   int(plan.Daily.Hour.ValueInt64()),
+			Minute: int(plan.Daily.Minute.ValueInt64()),
 		}
 	}
 	if plan.Cron != nil {
 		settings.Cron = &client.CleanupCron{
-			Minute:  plan.Cron.Minute.Value,
-			Hour:    plan.Cron.Hour.Value,
-			Day:     plan.Cron.Day.Value,
-			Month:   plan.Cron.Month.Value,
-			DayWeek: plan.Cron.DayWeek.Value,
+			Minute:  plan.Cron.Minute.ValueString(),
+			Hour:    plan.Cron.Hour.ValueString(),
+			Day:     plan.Cron.Day.ValueString(),
+			Month:   plan.Cron.Month.ValueString(),
+			DayWeek: plan.Cron.DayWeek.ValueString(),
 		}
 	}
 
@@ -272,21 +272,21 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	plan.Enabled = types.Bool{Value: result.Enabled}
-	plan.MaxDuration = types.Int64{Value: int64(result.MaxDuration)}
+	plan.Enabled = types.BoolValue(result.Enabled)
+	plan.MaxDuration = types.Int64Value(int64(result.MaxDuration))
 	if result.Daily != nil {
 		plan.Daily = &dailyResourceModel{
-			Hour:   types.Int64{Value: int64(result.Daily.Hour)},
-			Minute: types.Int64{Value: int64(result.Daily.Minute)},
+			Hour:   types.Int64Value(int64(result.Daily.Hour)),
+			Minute: types.Int64Value(int64(result.Daily.Minute)),
 		}
 	}
 	if result.Cron != nil {
 		plan.Cron = &cronResourceModel{
-			Minute:  types.String{Value: result.Cron.Minute},
-			Hour:    types.String{Value: result.Cron.Hour},
-			Day:     types.String{Value: result.Cron.Day},
-			Month:   types.String{Value: result.Cron.Month},
-			DayWeek: types.String{Value: result.Cron.DayWeek},
+			Minute:  types.StringValue(result.Cron.Minute),
+			Hour:    types.StringValue(result.Cron.Hour),
+			Day:     types.StringValue(result.Cron.Day),
+			Month:   types.StringValue(result.Cron.Month),
+			DayWeek: types.StringValue(result.Cron.DayWeek),
 		}
 	}
 

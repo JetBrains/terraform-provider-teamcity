@@ -64,7 +64,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	project := client.Project{
-		Name: plan.Name.Value,
+		Name: plan.Name.ValueString(),
 	}
 	result, err := r.client.NewProject(project)
 	if err != nil {
@@ -75,8 +75,8 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	plan.Name = types.String{Value: result.Name}
-	plan.Id = types.String{Value: *result.Id}
+	plan.Name = types.StringValue(result.Name)
+	plan.Id = types.StringValue(*result.Id)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -93,7 +93,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	actual, err := r.client.GetProject(state.Id.Value)
+	actual, err := r.client.GetProject(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading project",
@@ -102,7 +102,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	state.Name = types.String{Value: actual.Name}
+	state.Name = types.StringValue(actual.Name)
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -126,7 +126,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	result, err := r.client.RenameProject(state.Id.Value, plan.Name.Value)
+	result, err := r.client.RenameProject(state.Id.ValueString(), plan.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting project",
@@ -135,8 +135,8 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	plan.Name = types.String{Value: result.Name}
-	plan.Id = types.String{Value: *result.Id}
+	plan.Name = types.StringValue(result.Name)
+	plan.Id = types.StringValue(*result.Id)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -153,7 +153,7 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	err := r.client.DeleteProject(state.Id.Value)
+	err := r.client.DeleteProject(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting project",

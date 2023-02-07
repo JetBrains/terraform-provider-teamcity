@@ -65,7 +65,8 @@ func (d *serverDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	state.Version = types.String{Value: version}
+	state.ID = types.StringValue("placeholder")
+	state.Version = types.StringValue(version)
 
 	diags := resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

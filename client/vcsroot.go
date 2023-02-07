@@ -8,7 +8,7 @@ import (
 )
 
 type VcsRoot struct {
-	Name            *string        `json:"name"`
+	Name            string         `json:"name"`
 	Id              *string        `json:"id"`
 	VcsName         string         `json:"vcsName"`
 	PollingInterval *int           `json:"modificationCheckInterval"`

@@ -94,15 +94,15 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	root := client.VcsRoot{
-		Name:    &plan.Name.Value,
+		Name:    plan.Name.ValueString(),
 		VcsName: "jetbrains.git",
 		Project: client.ProjectLocator{
-			Id: plan.ProjectId.Value,
+			Id: plan.ProjectId.ValueString(),
 		},
 		Properties: client.Properties{
 			Property: []client.Property{
-				{Name: "url", Value: plan.Git.Url.Value},
-				{Name: "branch", Value: plan.Git.Branch.Value},
+				{Name: "url", Value: plan.Git.Url.ValueString()},
+				{Name: "branch", Value: plan.Git.Branch.ValueString()},
 			},
 		},
 	}
@@ -141,7 +141,7 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	actual, err := r.client.GetVcsRoot(state.Id.Value)
+	actual, err := r.client.GetVcsRoot(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading VCS root",
@@ -168,17 +168,17 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 }
 
 func readState(result *client.VcsRoot, state *vcsRootResourceModel) error {
-	state.Name = types.String{Value: *result.Name}
-	state.Id = types.String{Value: *result.Id}
-	state.ProjectId = types.String{Value: result.Project.Id}
+	state.Name = types.StringValue(result.Name)
+	state.Id = types.StringValue(*result.Id)
+	state.ProjectId = types.StringValue(result.Project.Id)
 
 	props := make(map[string]string)
 	for _, p := range result.Properties.Property {
 		props[p.Name] = p.Value
 	}
 	state.Git = &GitPropertiesModel{
-		Url:    types.String{Value: props["url"]},
-		Branch: types.String{Value: props["branch"]},
+		Url:    types.StringValue(props["url"]),
+		Branch: types.StringValue(props["branch"]),
 	}
 
 	return nil
@@ -212,18 +212,18 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		refPlan := reflect.ValueOf(plan.Git).Elem()
 		attr := refPlan.FieldByName(tfName).Interface().(types.String)
 
-		result, ok := r.setParameter(plan.Id.Value, "properties/"+restName, attr, &resp.Diagnostics)
+		result, ok := r.setParameter(plan.Id.ValueString(), "properties/"+restName, attr, &resp.Diagnostics)
 		if !ok {
 			return
 		}
 
 		refNewState := reflect.ValueOf(newState.Git).Elem()
 		newAttr := refNewState.FieldByName(tfName).Addr().Interface().(*types.String)
-		*newAttr = *result
+		*newAttr = result
 	}
 
-	if result, ok := r.setParameter(plan.Id.Value, "name", plan.Name, &resp.Diagnostics); ok {
-		newState.Name = *result
+	if result, ok := r.setParameter(plan.Id.ValueString(), "name", plan.Name, &resp.Diagnostics); ok {
+		newState.Name = result
 	} else {
 		return
 	}
@@ -239,17 +239,17 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 }
 
-func (r *vcsRootResource) setParameter(id string, name string, value types.String, diag *diag.Diagnostics) (*types.String, bool) {
+func (r *vcsRootResource) setParameter(id string, name string, value types.String, diag *diag.Diagnostics) (types.String, bool) {
 	//TODO check Null
-	result, err := r.client.SetParameter("vcs-roots", id, name, value.Value)
+	result, err := r.client.SetParameter("vcs-roots", id, name, value.ValueString())
 	if err != nil {
 		diag.AddError(
 			"Error setting VCS root field",
 			err.Error(),
 		)
-		return nil, false
+		return types.StringUnknown(), false
 	}
-	return &types.String{Value: *result}, true
+	return types.StringValue(*result), true
 }
 
 func (r *vcsRootResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -260,7 +260,7 @@ func (r *vcsRootResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	err := r.client.DeleteVcsRoot(state.Id.Value)
+	err := r.client.DeleteVcsRoot(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting VCS root",

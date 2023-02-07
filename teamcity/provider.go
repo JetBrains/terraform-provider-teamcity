@@ -78,10 +78,10 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 	host := os.Getenv("TEAMCITY_HOST")
 	token := os.Getenv("TEAMCITY_TOKEN")
 	if !config.Host.IsNull() {
-		host = config.Host.Value
+		host = config.Host.ValueString()
 	}
 	if !config.Token.IsNull() {
-		token = config.Token.Value
+		token = config.Token.ValueString()
 	}
 
 	if host == "" {
