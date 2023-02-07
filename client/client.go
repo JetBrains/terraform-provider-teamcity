@@ -50,7 +50,7 @@ func (c *Client) doRequestWithType(req *http.Request, ct string) ([]byte, error)
 	return body, err
 }
 
-func (c *Client) GetParameter(resource, id, name string) (*string, error) {
+func (c *Client) GetField(resource, id, name string) (*string, error) {
 	req, err := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
@@ -70,32 +70,33 @@ func (c *Client) GetParameter(resource, id, name string) (*string, error) {
 	return &result, nil
 }
 
-func (c *Client) SetParameter(resource, id, name, value string) (*string, error) {
-	var method string
-	//TODO replace with nil pointer
-	if value == "" {
+// TODO return value without pointer
+func (c *Client) SetField(resource, id, name string, value *string) (*string, error) {
+	var method, body string
+	if value == nil {
 		method = "DELETE"
+		body = ""
 	} else {
 		method = "PUT"
+		body = *value
 	}
 
 	req, err := http.NewRequest(
 		method,
 		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
-		strings.NewReader(value),
+		strings.NewReader(body),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := c.doRequestWithType(req, "text/plain")
+	result, err := c.doRequestWithType(req, "text/plain")
 	if err != nil {
 		return nil, err
 	}
 
-	result := string(body)
-
-	return &result, nil
+	val := string(result)
+	return &val, nil
 }
 
 type Properties struct {

@@ -31,16 +31,20 @@ resource "teamcity_vcsroot" "test" {
 			{
 				Config: providerConfig + `
 resource "teamcity_vcsroot" "test" {
-	name = "test"
+	name = "test1"
+	id = "test1"
 	project_id = "_Root"
 	git = {
-		url = "git@github.com:mkuzmin/test.git"
+		url = "git@github.com:mkuzmin/test1.git"
 		branch = "main"	
 	}
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "git.url", "git@github.com:mkuzmin/test.git"),
+					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "name", "test1"),
+					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "id", "test1"),
+					//resource.TestCheckResourceAttr("teamcity_vcsroot.test", "project_id", "_Root"),
+					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "git.url", "git@github.com:mkuzmin/test1.git"),
 					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "git.branch", "main"),
 				),
 			},
