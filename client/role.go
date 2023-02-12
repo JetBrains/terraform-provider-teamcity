@@ -1,10 +1,10 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 type Role struct {
@@ -15,62 +15,60 @@ type Role struct {
 }
 
 type Included struct {
-	Role []*Role `json:"role,omitempty"`
+	Role []Role `json:"role"`
 }
 
 type Permissions struct {
-	Permission []*Permission `json:"permission,omitempty"`
+	Permission []Permission `json:"permission"`
 }
 
 type Permission struct {
-	Id     *string `json:"id,omitempty"`
-	Name   *string `json:"name,omitempty"`
-	Global bool    `json:"global,omitempty"`
+	Id string `json:"id"`
 }
 
-func (c *Client) NewRole(role Role) (*Role, error) {
+func (c *Client) NewRole(role Role) (Role, error) {
 	body, err := json.Marshal(role)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/roles", c.HostURL), strings.NewReader(string(body)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/roles", c.HostURL), bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	result, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	actual := Role{}
 	err = json.Unmarshal(result, &actual)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
-func (c *Client) GetRole(id string) (*Role, error) {
+func (c *Client) GetRole(id string) (Role, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/roles/id:%s", c.HostURL, id), nil)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	result, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	actual := Role{}
 	err = json.Unmarshal(result, &actual)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
 func (c *Client) DeleteRole(id string) error {
@@ -87,82 +85,82 @@ func (c *Client) DeleteRole(id string) error {
 	return nil
 }
 
-func (c *Client) AddIncludedRole(roleId, includedId string) (*Role, error) {
+func (c *Client) AddIncludedRole(roleId, includedId string) (Role, error) {
 	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/roles/id:%s/included/%s", c.HostURL, roleId, includedId), nil)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	result, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	actual := Role{}
 	err = json.Unmarshal(result, &actual)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
-func (c *Client) RemoveIncludedRole(roleId, includedId string) (*Role, error) {
+func (c *Client) RemoveIncludedRole(roleId, includedId string) (Role, error) {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s/included/%s", c.HostURL, roleId, includedId), nil)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	result, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	actual := Role{}
 	err = json.Unmarshal(result, &actual)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
-func (c *Client) AddPermission(roleId, permId string) (*Role, error) {
+func (c *Client) AddPermission(roleId, permId string) (Role, error) {
 	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/roles/id:%s/permissions/%s", c.HostURL, roleId, permId), nil)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	result, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	actual := Role{}
 	err = json.Unmarshal(result, &actual)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
-func (c *Client) RemovePermission(roleId, permId string) (*Role, error) {
+func (c *Client) RemovePermission(roleId, permId string) (Role, error) {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s/permissions/%s", c.HostURL, roleId, permId), nil)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	result, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
 	actual := Role{}
 	err = json.Unmarshal(result, &actual)
 	if err != nil {
-		return nil, err
+		return Role{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }

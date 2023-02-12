@@ -1,10 +1,10 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 type CleanupSettings struct {
@@ -27,47 +27,47 @@ type CleanupCron struct {
 	DayWeek string `json:"dayWeek"`
 }
 
-func (c *Client) GetCleanup() (*CleanupSettings, error) {
+func (c *Client) GetCleanup() (CleanupSettings, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/cleanup", c.HostURL), nil)
 	if err != nil {
-		return nil, err
+		return CleanupSettings{}, err
 	}
 
 	body, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return CleanupSettings{}, err
 	}
 
 	actual := CleanupSettings{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
-		return nil, err
+		return CleanupSettings{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
-func (c *Client) SetCleanup(settings CleanupSettings) (*CleanupSettings, error) {
+func (c *Client) SetCleanup(settings CleanupSettings) (CleanupSettings, error) {
 	rb, err := json.Marshal(settings)
 	if err != nil {
-		return nil, err
+		return CleanupSettings{}, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/cleanup", c.HostURL), strings.NewReader(string(rb)))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/cleanup", c.HostURL), bytes.NewReader(rb))
 	if err != nil {
-		return nil, err
+		return CleanupSettings{}, err
 	}
 
 	body, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return CleanupSettings{}, err
 	}
 
 	actual := CleanupSettings{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
-		return nil, err
+		return CleanupSettings{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }

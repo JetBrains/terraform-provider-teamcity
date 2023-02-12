@@ -14,13 +14,13 @@ type Client struct {
 	HTTPClient *http.Client
 }
 
-func NewClient(host, token *string) (*Client, error) {
-	c := Client{
-		HostURL:    *host + "/app/rest",
-		Token:      *token,
+func NewClient(host, token string) Client {
+	client := Client{
+		HostURL:    host + "/app/rest",
+		Token:      token,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 	}
-	return &c, nil
+	return client
 }
 
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
@@ -50,28 +50,25 @@ func (c *Client) doRequestWithType(req *http.Request, ct string) ([]byte, error)
 	return body, err
 }
 
-func (c *Client) GetField(resource, id, name string) (*string, error) {
+func (c *Client) GetField(resource, id, name string) (string, error) {
 	req, err := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
 		nil,
 	)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	body, err := c.doRequestWithType(req, "text/plain")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	result := string(body)
-
-	return &result, nil
+	return string(body), nil
 }
 
-// TODO return value without pointer
-func (c *Client) SetField(resource, id, name string, value *string) (*string, error) {
+func (c *Client) SetField(resource, id, name string, value *string) (string, error) {
 	var method, body string
 	if value == nil {
 		method = "DELETE"
@@ -87,16 +84,15 @@ func (c *Client) SetField(resource, id, name string, value *string) (*string, er
 		strings.NewReader(body),
 	)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	result, err := c.doRequestWithType(req, "text/plain")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	val := string(result)
-	return &val, nil
+	return string(result), nil
 }
 
 type Properties struct {

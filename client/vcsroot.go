@@ -1,64 +1,64 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 type VcsRoot struct {
 	Name            string         `json:"name"`
 	Id              *string        `json:"id"`
 	VcsName         string         `json:"vcsName"`
-	PollingInterval *int           `json:"modificationCheckInterval"`
+	PollingInterval *int           `json:"modificationCheckInterval,omitempty"`
 	Project         ProjectLocator `json:"project"`
 	Properties      Properties     `json:"properties"`
 }
 
-func (c *Client) NewVcsRoot(p VcsRoot) (*VcsRoot, error) {
+func (c *Client) NewVcsRoot(p VcsRoot) (VcsRoot, error) {
 	rb, err := json.Marshal(p)
 	if err != nil {
-		return nil, err
+		return VcsRoot{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/vcs-roots", c.HostURL), strings.NewReader(string(rb)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/vcs-roots", c.HostURL), bytes.NewReader(rb))
 	if err != nil {
-		return nil, err
+		return VcsRoot{}, err
 	}
 
 	body, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return VcsRoot{}, err
 	}
 
 	actual := VcsRoot{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
-		return nil, err
+		return VcsRoot{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
-func (c *Client) GetVcsRoot(id string) (*VcsRoot, error) {
+func (c *Client) GetVcsRoot(id string) (VcsRoot, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/vcs-roots/id:%s", c.HostURL, id), nil)
 	if err != nil {
-		return nil, err
+		return VcsRoot{}, err
 	}
 
 	body, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return VcsRoot{}, err
 	}
 
 	actual := VcsRoot{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
-		return nil, err
+		return VcsRoot{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
 func (c *Client) DeleteVcsRoot(id string) error {

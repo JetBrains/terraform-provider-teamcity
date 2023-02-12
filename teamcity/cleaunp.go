@@ -132,28 +132,7 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	settings := client.CleanupSettings{
-		Enabled:     plan.Enabled.ValueBool(),
-		MaxDuration: int(plan.MaxDuration.ValueInt64()),
-	}
-
-	if plan.Daily != nil {
-		settings.Daily = &client.CleanupDaily{
-			Hour:   int(plan.Daily.Hour.ValueInt64()),
-			Minute: int(plan.Daily.Minute.ValueInt64()),
-		}
-	}
-	if plan.Cron != nil {
-		settings.Cron = &client.CleanupCron{
-			Minute:  plan.Cron.Minute.ValueString(),
-			Hour:    plan.Cron.Hour.ValueString(),
-			Day:     plan.Cron.Day.ValueString(),
-			Month:   plan.Cron.Month.ValueString(),
-			DayWeek: plan.Cron.DayWeek.ValueString(),
-		}
-	}
-
-	result, err := r.client.SetCleanup(settings)
+	newState, err := r.update(plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting cleanup",
@@ -162,42 +141,15 @@ func (r *cleanupResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	plan.ID = types.StringValue("placeholder")
-
-	plan.Enabled = types.BoolValue(result.Enabled)
-	plan.MaxDuration = types.Int64Value(int64(result.MaxDuration))
-	if result.Daily != nil {
-		plan.Daily = &dailyResourceModel{
-			Hour:   types.Int64Value(int64(result.Daily.Hour)),
-			Minute: types.Int64Value(int64(result.Daily.Minute)),
-		}
-	}
-	if result.Cron != nil {
-		plan.Cron = &cronResourceModel{
-			Minute:  types.StringValue(result.Cron.Minute),
-			Hour:    types.StringValue(result.Cron.Hour),
-			Day:     types.StringValue(result.Cron.Day),
-			Month:   types.StringValue(result.Cron.Month),
-			DayWeek: types.StringValue(result.Cron.DayWeek),
-		}
-	}
-
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 }
 
-func (r *cleanupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state cleanupResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	actual, err := r.client.GetCleanup()
+func (r *cleanupResource) Read(ctx context.Context, _ resource.ReadRequest, resp *resource.ReadResponse) {
+	result, err := r.client.GetCleanup()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Cleanup",
@@ -206,28 +158,8 @@ func (r *cleanupResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	state.Enabled = types.BoolValue(actual.Enabled)
-	state.MaxDuration = types.Int64Value(int64(actual.MaxDuration))
-	if actual.Daily != nil {
-		state.Daily = &dailyResourceModel{
-			Hour:   types.Int64Value(int64(actual.Daily.Hour)),
-			Minute: types.Int64Value(int64(actual.Daily.Minute)),
-		}
-		state.Cron = nil
-	}
-
-	if actual.Cron != nil {
-		state.Cron = &cronResourceModel{
-			Minute:  types.StringValue(actual.Cron.Minute),
-			Hour:    types.StringValue(actual.Cron.Hour),
-			Day:     types.StringValue(actual.Cron.Day),
-			Month:   types.StringValue(actual.Cron.Month),
-			DayWeek: types.StringValue(actual.Cron.DayWeek),
-		}
-		state.Daily = nil
-	}
-
-	diags = resp.State.Set(ctx, &state)
+	newState := r.readState(result)
+	diags := resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -242,6 +174,26 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	newState, err := r.update(plan)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error setting cleanup",
+			"Cannot set cleanup, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	diags = resp.State.Set(ctx, newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+}
+
+func (r *cleanupResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
+}
+
+func (r *cleanupResource) update(plan cleanupResourceModel) (cleanupResourceModel, error) {
 	settings := client.CleanupSettings{
 		Enabled:     plan.Enabled.ValueBool(),
 		MaxDuration: int(plan.MaxDuration.ValueInt64()),
@@ -265,23 +217,27 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	result, err := r.client.SetCleanup(settings)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error setting cleanup",
-			"Cannot set cleanup, unexpected error: "+err.Error(),
-		)
-		return
+		return cleanupResourceModel{}, err
 	}
 
-	plan.Enabled = types.BoolValue(result.Enabled)
-	plan.MaxDuration = types.Int64Value(int64(result.MaxDuration))
+	return r.readState(result), nil
+}
+
+func (r *cleanupResource) readState(result client.CleanupSettings) cleanupResourceModel {
+	var state cleanupResourceModel
+
+	state.ID = types.StringValue("placeholder")
+	state.Enabled = types.BoolValue(result.Enabled)
+	state.MaxDuration = types.Int64Value(int64(result.MaxDuration))
+
 	if result.Daily != nil {
-		plan.Daily = &dailyResourceModel{
+		state.Daily = &dailyResourceModel{
 			Hour:   types.Int64Value(int64(result.Daily.Hour)),
 			Minute: types.Int64Value(int64(result.Daily.Minute)),
 		}
 	}
 	if result.Cron != nil {
-		plan.Cron = &cronResourceModel{
+		state.Cron = &cronResourceModel{
 			Minute:  types.StringValue(result.Cron.Minute),
 			Hour:    types.StringValue(result.Cron.Hour),
 			Day:     types.StringValue(result.Cron.Day),
@@ -290,12 +246,5 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-}
-
-func (r *cleanupResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	return state
 }

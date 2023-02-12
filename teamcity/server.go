@@ -53,7 +53,7 @@ func (d *serverDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 	}, nil
 }
 
-func (d *serverDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *serverDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state serverDataSourceModel
 
 	version, err := d.client.GetVersion()
@@ -68,7 +68,7 @@ func (d *serverDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	state.ID = types.StringValue("placeholder")
 	state.Version = types.StringValue(version)
 
-	diags := resp.State.Set(ctx, &state)
+	diags := resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

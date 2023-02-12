@@ -26,12 +26,11 @@ type vcsRootResource struct {
 }
 
 type vcsRootResourceModel struct {
-	Name            types.String `tfsdk:"name"`
-	Id              types.String `tfsdk:"id"`
-	ProjectId       types.String `tfsdk:"project_id"`
-	PollingInterval types.Int64  `tfsdk:"polling_interval"`
-	//TODO why pointer?
-	Git *GitPropertiesModel `tfsdk:"git"`
+	Name            types.String       `tfsdk:"name"`
+	Id              types.String       `tfsdk:"id"`
+	ProjectId       types.String       `tfsdk:"project_id"`
+	PollingInterval types.Int64        `tfsdk:"polling_interval"`
+	Git             GitPropertiesModel `tfsdk:"git"`
 }
 
 type GitPropertiesModel struct {
@@ -221,8 +220,8 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 	if plan.Id.IsUnknown() {
 		id = nil
 	} else {
-		v := plan.Id.ValueString()
-		id = &v
+		val := plan.Id.ValueString()
+		id = &val
 	}
 
 	root := client.VcsRoot{
@@ -332,8 +331,7 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	var newState vcsRootResourceModel
-	err = readState(actual, &newState)
+	newState, err := r.readState(actual)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"REST returned invalid value: ",
@@ -366,8 +364,7 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	var newState vcsRootResourceModel
-	err = readState(actual, &newState)
+	newState, err := r.readState(actual)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"REST returned invalid value: ",
@@ -383,148 +380,110 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 }
 
-// TODO get rid of pointers: accept object, return new object
-func readState(result *client.VcsRoot, state *vcsRootResourceModel) error {
+func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel, error) {
+	var state vcsRootResourceModel
 	state.Name = types.StringValue(result.Name)
 	state.Id = types.StringValue(*result.Id)
 	state.ProjectId = types.StringValue(result.Project.Id)
 
 	if result.PollingInterval != nil {
 		state.PollingInterval = types.Int64Value(int64(*result.PollingInterval))
-	} else {
-		state.PollingInterval = types.Int64Null()
 	}
 
 	props := make(map[string]string)
 	for _, p := range result.Properties.Property {
 		props[p.Name] = p.Value
 	}
-	state.Git = &GitPropertiesModel{
+	state.Git = GitPropertiesModel{
 		Url:    types.StringValue(props["url"]),
 		Branch: types.StringValue(props["branch"]),
 	}
 
 	if val, ok := props["push_url"]; ok {
 		state.Git.PushUrl = types.StringValue(val)
-	} else {
-		state.Git.PushUrl = types.StringNull()
 	}
 
 	if val, ok := props["teamcity:branchSpec"]; ok {
 		state.Git.BranchSpec = types.StringValue(val)
-	} else {
-		state.Git.BranchSpec = types.StringNull()
 	}
 
 	if val, ok := props["reportTagRevisions"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return err
+			return vcsRootResourceModel{}, err
 		}
 		state.Git.TagsAsBranches = types.BoolValue(v)
-	} else {
-		state.Git.TagsAsBranches = types.BoolNull()
 	}
 
 	if val, ok := props["usernameStyle"]; ok {
 		state.Git.UsernameStyle = types.StringValue(val)
-	} else {
-		state.Git.UsernameStyle = types.StringNull()
 	}
 
 	if val, ok := props["submoduleCheckout"]; ok {
 		state.Git.Submodules = types.StringValue(val)
-	} else {
-		state.Git.Submodules = types.StringNull()
 	}
 
 	if val, ok := props["userForTags"]; ok {
 		state.Git.UsernameForTags = types.StringValue(val)
-	} else {
-		state.Git.UsernameForTags = types.StringNull()
 	}
 
 	if val, ok := props["authMethod"]; ok {
 		state.Git.AuthMethod = types.StringValue(val)
-	} else {
-		state.Git.AuthMethod = types.StringNull()
 	}
 
 	if val, ok := props["username"]; ok {
 		state.Git.Username = types.StringValue(val)
-	} else {
-		state.Git.Username = types.StringNull()
 	}
 
 	if val, ok := props["secure:password"]; ok {
 		state.Git.Password = types.StringValue(val)
-	} else {
-		state.Git.Password = types.StringNull()
 	}
 
 	if val, ok := props["teamcitySshKey"]; ok {
 		state.Git.UploadedKey = types.StringValue(val)
-	} else {
-		state.Git.UploadedKey = types.StringNull()
 	}
 
 	if val, ok := props["privateKeyPath"]; ok {
 		state.Git.PrivateKeyPath = types.StringValue(val)
-	} else {
-		state.Git.PrivateKeyPath = types.StringNull()
 	}
 
 	if val, ok := props["secure:passphrase"]; ok {
 		state.Git.Passphrase = types.StringValue(val)
-	} else {
-		state.Git.Passphrase = types.StringNull()
 	}
 
 	if val, ok := props["ignoreKnownHosts"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return err
+			return vcsRootResourceModel{}, err
 		}
 		state.Git.IgnoreKnownHosts = types.BoolValue(v)
-	} else {
-		state.Git.IgnoreKnownHosts = types.BoolNull()
 	}
 
 	if val, ok := props["serverSideAutoCrlf"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return err
+			return vcsRootResourceModel{}, err
 		}
 		state.Git.ConvertCrlf = types.BoolValue(v)
-	} else {
-		state.Git.ConvertCrlf = types.BoolNull()
 	}
 
 	if val, ok := props["agentGitPath"]; ok {
 		state.Git.PathToGit = types.StringValue(val)
-	} else {
-		state.Git.PathToGit = types.StringNull()
 	}
 
 	if val, ok := props["useAlternates"]; ok {
 		state.Git.CheckoutPolicy = types.StringValue(val)
-	} else {
-		state.Git.CheckoutPolicy = types.StringNull()
 	}
 
 	if val, ok := props["agentCleanPolicy"]; ok {
 		state.Git.CleanPolicy = types.StringValue(val)
-	} else {
-		state.Git.CleanPolicy = types.StringNull()
 	}
 
 	if val, ok := props["agentCleanFilesPolicy"]; ok {
 		state.Git.CleanFilesPolicy = types.StringValue(val)
-	} else {
-		state.Git.CleanFilesPolicy = types.StringNull()
 	}
 
-	return nil
+	return state, nil
 }
 
 func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -542,9 +501,7 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	var newState = vcsRootResourceModel{
-		Git: &GitPropertiesModel{},
-	}
+	var newState vcsRootResourceModel
 
 	resourceId := oldState.Id.ValueString()
 
@@ -721,11 +678,11 @@ func (r *vcsRootResource) setFieldString(id, name string, state, plan types.Stri
 		return types.String{}, false
 	}
 
-	if *result != "" {
-		return types.StringValue(*result), true
-	} else {
+	if result == "" {
 		return types.StringNull(), true
 	}
+
+	return types.StringValue(result), true
 }
 
 func (r *vcsRootResource) setFieldInt(id, name string, state, plan types.Int64, diag *diag.Diagnostics) (types.Int64, bool) {
@@ -735,6 +692,8 @@ func (r *vcsRootResource) setFieldInt(id, name string, state, plan types.Int64, 
 
 	var strVal *string
 	if plan.IsNull() {
+		// modificationCheckInterval is the only usage for now,
+		// and it doesn't support DELETE method
 		val := ""
 		strVal = &val
 	} else {
@@ -751,7 +710,11 @@ func (r *vcsRootResource) setFieldInt(id, name string, state, plan types.Int64, 
 		return types.Int64{}, false
 	}
 
-	intVal, err := strconv.ParseInt(*result, 10, 64)
+	if result == "" {
+		return types.Int64Null(), true
+	}
+
+	intVal, err := strconv.ParseInt(result, 10, 64)
 	if err != nil {
 		diag.AddError(
 			"Error setting VCS root field",
@@ -784,11 +747,11 @@ func (r *vcsRootResource) setFieldBool(id, name string, state, plan types.Bool, 
 		return types.Bool{}, false
 	}
 
-	if *result == "" {
+	if result == "" {
 		return types.BoolNull(), true
 	}
 
-	val, err := strconv.ParseBool(*result)
+	val, err := strconv.ParseBool(result)
 	if err != nil {
 		diag.AddError(
 			"Error setting VCS root field",

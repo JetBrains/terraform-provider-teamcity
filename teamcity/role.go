@@ -64,7 +64,7 @@ func (r *roleResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnost
 	}, nil
 }
 
-func (r *roleResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *roleResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -90,12 +90,12 @@ func (r *roleResource) Create(ctx context.Context, req resource.CreateRequest, r
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		role.Included = &client.Included{Role: []*client.Role{}}
+		role.Included = &client.Included{}
 		for _, i := range roles {
 			val := i.ValueString()
 			role.Included.Role = append(
 				role.Included.Role,
-				&client.Role{Id: &val},
+				client.Role{Id: &val},
 			)
 		}
 	}
@@ -107,12 +107,11 @@ func (r *roleResource) Create(ctx context.Context, req resource.CreateRequest, r
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		role.Permissions = &client.Permissions{Permission: []*client.Permission{}}
+		role.Permissions = &client.Permissions{}
 		for _, i := range perms {
-			v := i.ValueString()
 			role.Permissions.Permission = append(
 				role.Permissions.Permission,
-				&client.Permission{Id: &v},
+				client.Permission{Id: i.ValueString()},
 			)
 		}
 	}
@@ -126,9 +125,7 @@ func (r *roleResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	var newState roleResourceModel
-	readRoleState(&newState, actual)
-
+	newState := r.readState(actual)
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -153,9 +150,7 @@ func (r *roleResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	var newState roleResourceModel
-	readRoleState(&newState, actual)
-
+	newState := r.readState(actual)
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -171,8 +166,8 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	var state roleResourceModel
-	diags = req.State.Get(ctx, &state)
+	var oldState roleResourceModel
+	diags = req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -181,7 +176,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	var newState roleResourceModel
 
 	var stateIncluded []types.String
-	state.Included.ElementsAs(ctx, &stateIncluded, false)
+	oldState.Included.ElementsAs(ctx, &stateIncluded, false)
 	var planIncluded []types.String
 	plan.Included.ElementsAs(ctx, &planIncluded, false)
 
@@ -196,7 +191,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				)
 				return
 			}
-			readRoleState(&newState, actual)
+			newState = r.readState(actual)
 		}
 	}
 
@@ -211,12 +206,12 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				)
 				return
 			}
-			readRoleState(&newState, actual)
+			newState = r.readState(actual)
 		}
 	}
 
 	var statePerms []types.String
-	state.Permissions.ElementsAs(ctx, &statePerms, false)
+	oldState.Permissions.ElementsAs(ctx, &statePerms, false)
 	var planPerms []types.String
 	plan.Permissions.ElementsAs(ctx, &planPerms, false)
 
@@ -231,7 +226,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				)
 				return
 			}
-			readRoleState(&newState, actual)
+			newState = r.readState(actual)
 		}
 	}
 
@@ -246,7 +241,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				)
 				return
 			}
-			readRoleState(&newState, actual)
+			newState = r.readState(actual)
 		}
 	}
 
@@ -266,7 +261,8 @@ func contains(items []types.String, item types.String) bool {
 	return false
 }
 
-func readRoleState(newState *roleResourceModel, actual *client.Role) {
+func (r *roleResource) readState(actual client.Role) roleResourceModel {
+	var newState roleResourceModel
 	newState.Name = types.StringValue(*actual.Name)
 	newState.Id = types.StringValue(*actual.Id)
 
@@ -280,12 +276,14 @@ func readRoleState(newState *roleResourceModel, actual *client.Role) {
 
 	newState.Permissions = types.SetNull(types.StringType)
 	for _, i := range actual.Permissions.Permission {
-		v := strings.ToUpper(*i.Id) //TODO bug in REST
+		val := strings.ToUpper(i.Id) //TODO bug in REST
 		newState.Permissions, _ = types.SetValue(
 			types.StringType,
-			append(newState.Permissions.Elements(), types.StringValue(v)),
+			append(newState.Permissions.Elements(), types.StringValue(val)),
 		)
 	}
+
+	return newState
 }
 
 func (r *roleResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

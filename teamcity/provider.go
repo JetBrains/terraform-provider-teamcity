@@ -102,16 +102,9 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
-	cl, err := client.NewClient(&host, &token)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create TeamCity Client",
-			"Error: "+err.Error(),
-		)
-		return
-	}
-	resp.DataSourceData = cl
-	resp.ResourceData = cl
+	cl := client.NewClient(host, token)
+	resp.DataSourceData = &cl
+	resp.ResourceData = &cl
 }
 
 func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.DataSource {

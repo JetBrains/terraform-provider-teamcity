@@ -43,6 +43,9 @@ func (r *projectResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					resource.UseStateForUnknown(),
+				},
 			},
 		},
 	}, nil
@@ -66,6 +69,11 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	project := client.Project{
 		Name: plan.Name.ValueString(),
 	}
+	if !plan.Id.IsUnknown() {
+		val := plan.Id.ValueString()
+		project.Id = &val
+	}
+
 	result, err := r.client.NewProject(project)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -75,10 +83,11 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	plan.Name = types.StringValue(result.Name)
-	plan.Id = types.StringValue(*result.Id)
+	var newState projectResourceModel
+	newState.Name = types.StringValue(result.Name)
+	newState.Id = types.StringValue(*result.Id)
 
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -102,9 +111,11 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	state.Name = types.StringValue(actual.Name)
+	var newState projectResourceModel
+	newState.Name = types.StringValue(actual.Name)
+	newState.Id = types.StringValue(*actual.Id)
 
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -119,26 +130,29 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	var state projectResourceModel
-	diags = req.State.Get(ctx, &state)
+	var oldState projectResourceModel
+	diags = req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	result, err := r.client.RenameProject(state.Id.ValueString(), plan.Name.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error setting project",
-			"Cannot set project, unexpected error: "+err.Error(),
-		)
+	var newState projectResourceModel
+	resourceId := oldState.Id.ValueString()
+
+	if result, ok := r.setField(resourceId, "name", oldState.Name, plan.Name, &resp.Diagnostics); ok {
+		newState.Name = result
+	} else {
 		return
 	}
 
-	plan.Name = types.StringValue(result.Name)
-	plan.Id = types.StringValue(*result.Id)
+	if result, ok := r.setField(resourceId, "id", oldState.Id, plan.Id, &resp.Diagnostics); ok {
+		newState.Id = result
+	} else {
+		return
+	}
 
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -161,4 +175,23 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		)
 		return
 	}
+}
+
+func (r *projectResource) setField(id, name string, state, plan types.String, diag *diag.Diagnostics) (types.String, bool) {
+	if plan.Equal(state) {
+		return state, true
+	}
+
+	val := plan.ValueString()
+
+	result, err := r.client.SetField("projects", id, name, &val)
+	if err != nil {
+		diag.AddError(
+			"Error setting project field",
+			err.Error(),
+		)
+		return types.String{}, false
+	}
+
+	return types.StringValue(result), true
 }

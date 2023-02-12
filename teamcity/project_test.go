@@ -20,6 +20,27 @@ resource "teamcity_project" "test" {
 					resource.TestCheckResourceAttr("teamcity_project.test", "id", "Test"),
 				),
 			},
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "test" {
+	name = "test2"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_project.test", "name", "test2"),
+				),
+			},
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "test" {
+	name = "test2"
+	id = "new"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_project.test", "id", "new"),
+				),
+			},
 		},
 	})
 }

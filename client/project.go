@@ -1,10 +1,10 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 type Project struct {
@@ -12,72 +12,49 @@ type Project struct {
 	Id   *string `json:"id"`
 }
 
-func (c *Client) NewProject(p Project) (*Project, error) {
+func (c *Client) NewProject(p Project) (Project, error) {
 	rb, err := json.Marshal(p)
 	if err != nil {
-		return nil, err
+		return Project{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects", c.HostURL), strings.NewReader(string(rb)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects", c.HostURL), bytes.NewReader(rb))
 	if err != nil {
-		return nil, err
+		return Project{}, err
 	}
 
 	body, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Project{}, err
 	}
 
 	actual := Project{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
-		return nil, err
+		return Project{}, err
 	}
 
-	return &actual, nil
+	return actual, nil
 }
 
-func (c *Client) GetProject(id string) (*Project, error) {
+func (c *Client) GetProject(id string) (Project, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s", c.HostURL, id), nil)
 	if err != nil {
-		return nil, err
+		return Project{}, err
 	}
 
 	body, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return Project{}, err
 	}
 
 	actual := Project{}
 	err = json.Unmarshal(body, &actual)
 	if err != nil {
-		return nil, err
+		return Project{}, err
 	}
 
-	return &actual, nil
-}
-
-func (c *Client) RenameProject(id, name string) (*Project, error) {
-	req, err := http.NewRequest(
-		"PUT",
-		fmt.Sprintf("%s/projects/%s/name", c.HostURL, id),
-		strings.NewReader(name),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequestWithType(req, "text/plain")
-	if err != nil {
-		return nil, err
-	}
-
-	actual := Project{
-		Name: string(body),
-		Id:   &id,
-	}
-
-	return &actual, nil
+	return actual, nil
 }
 
 func (c *Client) DeleteProject(id string) error {
