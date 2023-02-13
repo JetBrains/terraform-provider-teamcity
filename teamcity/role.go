@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"strings"
 	"terraform-provider-teamcity/client"
 )
 
@@ -274,10 +273,9 @@ func (r *roleResource) readState(actual client.Role) roleResourceModel {
 
 	newState.Permissions = types.SetNull(types.StringType)
 	for _, i := range actual.Permissions.Permission {
-		val := strings.ToUpper(i.Id) //TODO bug in REST
 		newState.Permissions, _ = types.SetValue(
 			types.StringType,
-			append(newState.Permissions.Elements(), types.StringValue(val)),
+			append(newState.Permissions.Elements(), types.StringValue(i.Id)),
 		)
 	}
 
