@@ -2,16 +2,14 @@ package teamcity
 
 import (
 	"context"
-	"os"
-	"terraform-provider-teamcity/client"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"os"
+	"terraform-provider-teamcity/client"
 )
 
 var (
@@ -28,20 +26,18 @@ func (p *teamcityProvider) Metadata(_ context.Context, _ provider.MetadataReques
 	resp.TypeName = "teamcity"
 }
 
-func (p *teamcityProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
-			"host": {
-				Type:     types.StringType,
+func (p *teamcityProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"host": schema.StringAttribute{
 				Optional: true,
 			},
-			"token": {
-				Type:      types.StringType,
+			"token": schema.StringAttribute{
 				Optional:  true,
 				Sensitive: true,
 			},
 		},
-	}, nil
+	}
 }
 
 type teamcityProviderModel struct {

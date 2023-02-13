@@ -2,14 +2,15 @@ package teamcity
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"terraform-provider-teamcity/client"
-
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"terraform-provider-teamcity/client"
 )
 
 var (
@@ -50,71 +51,61 @@ func (r *cleanupResource) Metadata(_ context.Context, req resource.MetadataReque
 	resp.TypeName = req.ProviderTypeName + "_cleanup"
 }
 
-func (r *cleanupResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
-				Type:     types.StringType,
+func (r *cleanupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"enabled": {
-				Type:     types.BoolType,
+			"enabled": schema.BoolAttribute{
 				Required: true,
 			},
-			"max_duration": {
-				Type:     types.Int64Type,
+			"max_duration": schema.Int64Attribute{
 				Required: true,
 			},
-			"daily": {
+			"daily": schema.SingleNestedAttribute{
 				Optional: true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"hour": {
-						Type:     types.Int64Type,
+				Attributes: map[string]schema.Attribute{
+					"hour": schema.Int64Attribute{
 						Required: true,
 					},
-					"minute": {
-						Type:     types.Int64Type,
+					"minute": schema.Int64Attribute{
 						Required: true,
 					},
-				}),
+				},
 			},
-			"cron": {
+			"cron": schema.SingleNestedAttribute{
 				Optional: true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"minute": {
-						Type:     types.StringType,
+				Attributes: map[string]schema.Attribute{
+					"minute": schema.StringAttribute{
 						Required: true,
 					},
-					"hour": {
-						Type:     types.StringType,
+					"hour": schema.StringAttribute{
 						Required: true,
 					},
-					"day": {
-						Type:     types.StringType,
+					"day": schema.StringAttribute{
 						Required: true,
 					},
-					"month": {
-						Type:     types.StringType,
+					"month": schema.StringAttribute{
 						Required: true,
 					},
-					"day_week": {
-						Type:     types.StringType,
+					"day_week": schema.StringAttribute{
 						Required: true,
 					},
-				}),
+				},
 
-				Validators: []tfsdk.AttributeValidator{
-					schemavalidator.ExactlyOneOf(
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(
 						path.MatchRoot("daily"),
 						path.MatchRoot("cron"),
 					),
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 func (r *cleanupResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {

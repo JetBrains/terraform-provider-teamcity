@@ -2,14 +2,16 @@ package teamcity
 
 import (
 	"context"
-	"strconv"
-	"terraform-provider-teamcity/client"
-
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"strconv"
+	"terraform-provider-teamcity/client"
 )
 
 var (
@@ -60,76 +62,63 @@ func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataReque
 	resp.TypeName = req.ProviderTypeName + "_vcsroot"
 }
 
-func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
-			"name": {
-				Type:     types.StringType,
+func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"name": schema.StringAttribute{
 				Required: true,
 			},
-			"id": {
-				Type:     types.StringType,
+			"id": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"project_id": {
-				Type:     types.StringType,
+			"project_id": schema.StringAttribute{
 				Required: true,
 			},
-			"polling_interval": {
-				Type:     types.Int64Type,
+			"polling_interval": schema.Int64Attribute{
 				Optional: true,
 			},
-			"git": {
+			"git": schema.SingleNestedAttribute{
 				Required: true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"url": {
-						Type:     types.StringType,
+				Attributes: map[string]schema.Attribute{
+					"url": schema.StringAttribute{
 						Required: true,
 					},
-					"push_url": {
-						Type:     types.StringType,
+					"push_url": schema.StringAttribute{
 						Optional: true,
 					},
-					"branch": {
-						Type:     types.StringType,
+					"branch": schema.StringAttribute{
 						Required: true,
 					},
-					"branch_spec": {
-						Type:     types.StringType,
+					"branch_spec": schema.StringAttribute{
 						Optional: true,
 					},
-					"tags_as_branches": {
-						Type:     types.BoolType,
+					"tags_as_branches": schema.BoolAttribute{
 						Optional: true,
 					},
-					"username_style": {
-						Type:     types.StringType,
+					"username_style": schema.StringAttribute{
 						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
+						Validators: []validator.String{
 							//TODO other syntax?
 							stringvalidator.OneOf([]string{"USERID", "NAME", "EMAIL", "FULL"}...),
 						},
 					},
-					"submodules": {
-						Type:     types.StringType,
+					"submodules": schema.StringAttribute{
 						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
+						Validators: []validator.String{
 							//TODO other syntax?
 							stringvalidator.OneOf([]string{"IGNORE", "CHECKOUT"}...),
 						},
 					},
-					"username_for_tags": {
-						Type:     types.StringType,
+					"username_for_tags": schema.StringAttribute{
 						Optional: true,
 					},
-					"auth_method": {
-						Type:     types.StringType,
+					"auth_method": schema.StringAttribute{
 						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
+						Validators: []validator.String{
 							stringvalidator.OneOf([]string{
 								//TODO other syntax? alternate nested types
 								"ANONYMOUS",
@@ -140,65 +129,54 @@ func (r *vcsRootResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 							}...),
 						},
 					},
-					"username": {
-						Type:     types.StringType,
+					"username": schema.StringAttribute{
 						Optional: true,
 					},
-					"password": {
-						Type:      types.StringType,
+					"password": schema.StringAttribute{
 						Optional:  true,
 						Sensitive: true,
 					},
-					"uploaded_key": {
-						Type:     types.StringType,
+					"uploaded_key": schema.StringAttribute{
 						Optional: true,
 					},
-					"private_key_path": {
-						Type:     types.StringType,
+					"private_key_path": schema.StringAttribute{
 						Optional: true,
 					},
-					"passphrase": {
-						Type:      types.StringType,
+					"passphrase": schema.StringAttribute{
 						Optional:  true,
 						Sensitive: true,
 					},
-					"ignore_known_hosts": {
-						Type:     types.BoolType,
+					"ignore_known_hosts": schema.BoolAttribute{
 						Optional: true,
 					},
-					"convert_crlf": {
-						Type:     types.BoolType,
+					"convert_crlf": schema.BoolAttribute{
 						Optional: true,
 					},
-					"path_to_git": {
-						Type:     types.StringType,
+					"path_to_git": schema.StringAttribute{
 						Optional: true,
 					},
-					"checkout_policy": {
-						Type:     types.StringType,
+					"checkout_policy": schema.StringAttribute{
 						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
+						Validators: []validator.String{
 							stringvalidator.OneOf([]string{"AUTO", "USE_MIRRORS", "NO_MIRRORS", "SHALLOW_CLONE"}...),
 						},
 					},
-					"clean_policy": {
-						Type:     types.StringType,
+					"clean_policy": schema.StringAttribute{
 						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
+						Validators: []validator.String{
 							stringvalidator.OneOf([]string{"ON_BRANCH_CHANGE", "ALWAYS", "NEVER"}...),
 						},
 					},
-					"clean_files_policy": {
-						Type:     types.StringType,
+					"clean_files_policy": schema.StringAttribute{
 						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
+						Validators: []validator.String{
 							stringvalidator.OneOf([]string{"ALL_UNTRACKED", "IGNORED_ONLY", "NON_IGNORED_ONLY"}...),
 						},
 					},
-				}),
+				},
 			},
 		},
-	}, nil
+	}
 }
 
 func (r *vcsRootResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
