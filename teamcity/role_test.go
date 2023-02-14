@@ -28,6 +28,7 @@ resource "teamcity_role" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_role.test", "included.#", "2"),
 					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "included.*", "PROJECT_DEVELOPER"),
 					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "included.*", "AGENT_MANAGER"),
 				),
@@ -36,12 +37,26 @@ resource "teamcity_role" "test" {
 				Config: providerConfig + `
 resource "teamcity_role" "test" {
 	name = "Test Role"
-	permissions = ["VIEW_ALL_USERS", "ASSIGN_INVESTIGATION"]
+	permissions = ["view_all_users", "assign_investigation"]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "permissions.*", "VIEW_ALL_USERS"),
-					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "permissions.*", "ASSIGN_INVESTIGATION"),
+					resource.TestCheckResourceAttr("teamcity_role.test", "permissions.#", "2"),
+					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "permissions.*", "view_all_users"),
+					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "permissions.*", "assign_investigation"),
+				),
+			},
+			{
+				Config: providerConfig + `
+resource "teamcity_role" "test" {
+	name = "Test Role"
+	permissions = ["view_all_users", "view_project"]
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_role.test", "permissions.#", "2"),
+					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "permissions.*", "view_all_users"),
+					resource.TestCheckTypeSetElemAttr("teamcity_role.test", "permissions.*", "view_project"),
 				),
 			},
 		},
