@@ -10,7 +10,7 @@ services:
     ports:
       - "8111:8111"
     healthcheck:
-      test: "curl -f http://localhost:8111/login.html"
+      test: "curl -f http://localhost:8111/healthCheck/ready"
       timeout: 5s
       interval: 10s
       retries: 30
