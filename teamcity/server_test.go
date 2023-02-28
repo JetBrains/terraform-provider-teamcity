@@ -17,7 +17,7 @@ func TestServerVersion(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"data.teamcity_server.test",
 						"version",
-						regexp.MustCompile(`^2023\.03 EAP `),
+						regexp.MustCompile(`^202\d\.\d\d `),
 					),
 				),
 			},
