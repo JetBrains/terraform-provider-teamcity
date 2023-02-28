@@ -21,12 +21,12 @@ object TC_TerraformProvider_Test : BuildType({
     }
 
     dependencies {
-        dependency(AbsoluteId("TC_Trunk_DistParts_PluginRestApi")) {
-            artifacts {
-                buildRule = lastSuccessful()
-                artifactRules = "rest-api.zip => testdata/plugins/"
-            }
-        }
+//        dependency(AbsoluteId("TC_Trunk_DistParts_PluginRestApi")) {
+//            artifacts {
+//                buildRule = lastSuccessful()
+//                artifactRules = "rest-api.zip => testdata/plugins/"
+//            }
+//        }
     }
 
     features {
