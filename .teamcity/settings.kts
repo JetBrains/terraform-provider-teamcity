@@ -49,6 +49,7 @@ object TC_TerraformProvider_Test : BuildType({
         dockerCompose {
             name = "Start TeamCity"
             file = "docker-compose.yml"
+            forcePull = true
         }
 
         script {
