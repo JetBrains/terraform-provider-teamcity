@@ -80,7 +80,7 @@ func (c *Client) SetField(resource, id, name string, value *string) (string, err
 
 	req, err := http.NewRequest(
 		method,
-		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
+		fmt.Sprintf("%s/%s/id:%s/%s", c.HostURL, resource, id, name),
 		strings.NewReader(body),
 	)
 	if err != nil {

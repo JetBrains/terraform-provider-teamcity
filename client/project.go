@@ -38,7 +38,7 @@ func (c *Client) NewProject(p Project) (Project, error) {
 }
 
 func (c *Client) GetProject(id string) (Project, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s", c.HostURL, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s", c.HostURL, id), nil)
 	if err != nil {
 		return Project{}, err
 	}

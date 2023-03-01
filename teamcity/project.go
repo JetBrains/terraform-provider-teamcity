@@ -110,9 +110,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	var newState projectResourceModel
-	newState.Name = types.StringValue(actual.Name)
-	newState.Id = types.StringValue(*actual.Id)
+	newState, err := r.readState(actual)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -139,13 +137,13 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	var newState projectResourceModel
 	resourceId := oldState.Id.ValueString()
 
-	if result, ok := r.setField(resourceId, "name", oldState.Name, plan.Name, &resp.Diagnostics); ok {
+	if result, ok := r.setFieldString(resourceId, "name", oldState.Name, plan.Name, &resp.Diagnostics); ok {
 		newState.Name = result
 	} else {
 		return
 	}
 
-	if result, ok := r.setField(resourceId, "id", oldState.Id, plan.Id, &resp.Diagnostics); ok {
+	if result, ok := r.setFieldString(resourceId, "id", oldState.Id, plan.Id, &resp.Diagnostics); ok {
 		newState.Id = result
 	} else {
 		return
@@ -176,7 +174,15 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 }
 
-func (r *projectResource) setField(id, name string, state, plan types.String, diag *diag.Diagnostics) (types.String, bool) {
+func (r *projectResource) readState(result client.Project) (projectResourceModel, error) {
+	var newState projectResourceModel
+	newState.Name = types.StringValue(result.Name)
+	newState.Id = types.StringValue(*result.Id)
+
+	return newState, nil
+}
+
+func (r *projectResource) setFieldString(id, name string, state, plan types.String, diag *diag.Diagnostics) (types.String, bool) {
 	if plan.Equal(state) {
 		return state, true
 	}
