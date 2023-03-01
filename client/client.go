@@ -50,6 +50,44 @@ func (c *Client) doRequestWithType(req *http.Request, ct string) ([]byte, error)
 	return body, err
 }
 
+type Response struct {
+	StatusCode int
+	Body       []byte
+}
+
+// TODO replace other methods
+func (c *Client) request(req *http.Request) (Response, error) {
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Accept", "application/json")
+
+	res, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return Response{}, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return Response{}, err
+	}
+
+	if res.StatusCode == http.StatusNotFound {
+		return Response{
+			StatusCode: res.StatusCode,
+			Body:       body,
+		}, nil
+	}
+
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+		return Response{}, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
+	}
+
+	return Response{
+		StatusCode: res.StatusCode,
+		Body:       body,
+	}, nil
+}
+
 func (c *Client) GetField(resource, id, name string) (string, error) {
 	req, err := http.NewRequest(
 		"GET",
