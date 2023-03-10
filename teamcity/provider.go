@@ -116,5 +116,6 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 		NewSshKeyResource,
 		NewVcsRootResource,
 		NewRoleResource,
+		NewAuthResource,
 	}
 }
