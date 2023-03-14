@@ -129,21 +129,21 @@ func (r *sshKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 }
 
 func (r *sshKeyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	//var state sshKeyResourceModel
-	//diags := req.State.Get(ctx, &state)
-	//resp.Diagnostics.Append(diags...)
-	//if resp.Diagnostics.HasError() {
-	//	return
-	//}
-	//
-	//err := r.client.DeleteProject(state.Id.ValueString())
-	//if err != nil {
-	//	resp.Diagnostics.AddError(
-	//		"Error Deleting project",
-	//		"Could not delete project, unexpected error: "+err.Error(),
-	//	)
-	//	return
-	//}
+	var state sshKeyResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.client.DeleteSshKey(state.Project.ValueString(), state.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Deleting SSH key",
+			err.Error(),
+		)
+		return
+	}
 }
 
 func contains2(items []string, value string) bool {

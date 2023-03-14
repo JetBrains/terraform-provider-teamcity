@@ -33,8 +33,8 @@ func (c *Client) NewSshKey(project, name, key string) error {
 	return nil
 }
 
-func (c *Client) GetSshKeys(id string) ([]string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/sshKeys", c.HostURL, id), nil)
+func (c *Client) GetSshKeys(projectId string) ([]string, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/sshKeys", c.HostURL, projectId), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -56,4 +56,18 @@ func (c *Client) GetSshKeys(id string) ([]string, error) {
 	}
 
 	return names, nil
+}
+
+func (c *Client) DeleteSshKey(projectId, keyName string) error {
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s/sshKeys/%s", c.HostURL, projectId, keyName), nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
