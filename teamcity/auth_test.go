@@ -17,7 +17,7 @@ resource "teamcity_auth" "test" {
   welcome_text        = ""
   collapse_login_form = false
   two_factor_mode     = "OPTIONAL"
-  project_permissions = false
+  per_project_permissions = false
   email_verification  = false
 
   modules = {

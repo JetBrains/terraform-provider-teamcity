@@ -29,15 +29,15 @@ type authResource struct {
 }
 
 type authResourceModel struct {
-	ID                 types.String     `tfsdk:"id"`
-	AllowGuest         types.Bool       `tfsdk:"allow_guest"`
-	GuestUsername      types.String     `tfsdk:"guest_username"`
-	WelcomeText        types.String     `tfsdk:"welcome_text"`
-	CollapseLoginForm  types.Bool       `tfsdk:"collapse_login_form"`
-	TwoFactorMode      types.String     `tfsdk:"two_factor_mode"`
-	ProjectPermissions types.Bool       `tfsdk:"project_permissions"`
-	EmailVerification  types.Bool       `tfsdk:"email_verification"`
-	Modules            authModulesModel `tfsdk:"modules"`
+	ID                    types.String     `tfsdk:"id"`
+	AllowGuest            types.Bool       `tfsdk:"allow_guest"`
+	GuestUsername         types.String     `tfsdk:"guest_username"`
+	WelcomeText           types.String     `tfsdk:"welcome_text"`
+	CollapseLoginForm     types.Bool       `tfsdk:"collapse_login_form"`
+	TwoFactorMode         types.String     `tfsdk:"two_factor_mode"`
+	PerProjectPermissions types.Bool       `tfsdk:"per_project_permissions"`
+	EmailVerification     types.Bool       `tfsdk:"email_verification"`
+	Modules               authModulesModel `tfsdk:"modules"`
 }
 
 type authModulesModel struct {
@@ -87,7 +87,7 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 					stringvalidator.OneOf([]string{"DISABLED", "OPTIONAL", "MANDATORY"}...),
 				},
 			},
-			"project_permissions": schema.BoolAttribute{
+			"per_project_permissions": schema.BoolAttribute{
 				Required: true,
 			},
 			"email_verification": schema.BoolAttribute{
@@ -292,13 +292,13 @@ func (r *authResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *re
 
 func (r *authResource) update(plan authResourceModel) (authResourceModel, error) {
 	settings := client.AuthSettings{
-		AllowGuest:         plan.AllowGuest.ValueBool(),
-		GuestUsername:      plan.GuestUsername.ValueString(),
-		WelcomeText:        plan.WelcomeText.ValueString(),
-		CollapseLoginForm:  plan.CollapseLoginForm.ValueBool(),
-		TwoFactorMode:      plan.TwoFactorMode.ValueString(),
-		ProjectPermissions: plan.ProjectPermissions.ValueBool(),
-		EmailVerification:  plan.EmailVerification.ValueBool(),
+		AllowGuest:            plan.AllowGuest.ValueBool(),
+		GuestUsername:         plan.GuestUsername.ValueString(),
+		WelcomeText:           plan.WelcomeText.ValueString(),
+		CollapseLoginForm:     plan.CollapseLoginForm.ValueBool(),
+		TwoFactorMode:         plan.TwoFactorMode.ValueString(),
+		PerProjectPermissions: plan.PerProjectPermissions.ValueBool(),
+		EmailVerification:     plan.EmailVerification.ValueBool(),
 	}
 
 	if plan.Modules.Token != nil {
@@ -362,7 +362,7 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 	state.WelcomeText = types.StringValue(result.WelcomeText)
 	state.CollapseLoginForm = types.BoolValue(result.CollapseLoginForm)
 	state.TwoFactorMode = types.StringValue(result.TwoFactorMode)
-	state.ProjectPermissions = types.BoolValue(result.ProjectPermissions)
+	state.PerProjectPermissions = types.BoolValue(result.PerProjectPermissions)
 	state.EmailVerification = types.BoolValue(result.EmailVerification)
 
 	for _, module := range result.Modules.Module {

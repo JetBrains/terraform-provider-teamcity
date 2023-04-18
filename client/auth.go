@@ -8,14 +8,14 @@ import (
 )
 
 type AuthSettings struct {
-	AllowGuest         bool    `json:"allowGuest"`
-	GuestUsername      string  `json:"guestUsername"`
-	WelcomeText        string  `json:"welcomeText"`
-	CollapseLoginForm  bool    `json:"collapseLoginForm"`
-	TwoFactorMode      string  `json:"twoFactorMode"`
-	ProjectPermissions bool    `json:"projectPermissions"`
-	EmailVerification  bool    `json:"emailVerification"`
-	Modules            Modules `json:"modules"`
+	AllowGuest            bool    `json:"allowGuest"`
+	GuestUsername         string  `json:"guestUsername"`
+	WelcomeText           string  `json:"welcomeText"`
+	CollapseLoginForm     bool    `json:"collapseLoginForm"`
+	TwoFactorMode         string  `json:"twoFactorMode"`
+	PerProjectPermissions bool    `json:"perProjectPermissions"`
+	EmailVerification     bool    `json:"emailVerification"`
+	Modules               Modules `json:"modules"`
 }
 
 type Modules struct {
@@ -28,7 +28,7 @@ type Module struct {
 }
 
 func (c *Client) GetAuthSettings() (AuthSettings, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/auth", c.HostURL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/authSettings", c.HostURL), nil)
 	if err != nil {
 		return AuthSettings{}, err
 	}
@@ -53,7 +53,7 @@ func (c *Client) SetAuthSettings(settings AuthSettings) (AuthSettings, error) {
 		return AuthSettings{}, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/auth", c.HostURL), bytes.NewReader(rb))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/authSettings", c.HostURL), bytes.NewReader(rb))
 	if err != nil {
 		return AuthSettings{}, err
 	}
