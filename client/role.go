@@ -32,7 +32,7 @@ func (c *Client) NewRole(role Role) (Role, error) {
 		return Role{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/roles", c.HostURL), bytes.NewReader(body))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/roles", c.RestURL), bytes.NewReader(body))
 	if err != nil {
 		return Role{}, err
 	}
@@ -52,7 +52,7 @@ func (c *Client) NewRole(role Role) (Role, error) {
 }
 
 func (c *Client) GetRole(id string) (Role, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/roles/id:%s", c.HostURL, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/roles/id:%s", c.RestURL, id), nil)
 	if err != nil {
 		return Role{}, err
 	}
@@ -72,7 +72,7 @@ func (c *Client) GetRole(id string) (Role, error) {
 }
 
 func (c *Client) DeleteRole(id string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s", c.HostURL, id), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s", c.RestURL, id), nil)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (c *Client) DeleteRole(id string) error {
 }
 
 func (c *Client) AddIncludedRole(roleId, includedId string) (Role, error) {
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/roles/id:%s/included/%s", c.HostURL, roleId, includedId), nil)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/roles/id:%s/included/%s", c.RestURL, roleId, includedId), nil)
 	if err != nil {
 		return Role{}, err
 	}
@@ -106,7 +106,7 @@ func (c *Client) AddIncludedRole(roleId, includedId string) (Role, error) {
 }
 
 func (c *Client) RemoveIncludedRole(roleId, includedId string) (Role, error) {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s/included/%s", c.HostURL, roleId, includedId), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s/included/%s", c.RestURL, roleId, includedId), nil)
 	if err != nil {
 		return Role{}, err
 	}
@@ -126,7 +126,7 @@ func (c *Client) RemoveIncludedRole(roleId, includedId string) (Role, error) {
 }
 
 func (c *Client) AddPermission(roleId, permId string) (Role, error) {
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/roles/id:%s/permissions/%s", c.HostURL, roleId, permId), nil)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/roles/id:%s/permissions/%s", c.RestURL, roleId, permId), nil)
 	if err != nil {
 		return Role{}, err
 	}
@@ -146,7 +146,7 @@ func (c *Client) AddPermission(roleId, permId string) (Role, error) {
 }
 
 func (c *Client) RemovePermission(roleId, permId string) (Role, error) {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s/permissions/%s", c.HostURL, roleId, permId), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/roles/id:%s/permissions/%s", c.RestURL, roleId, permId), nil)
 	if err != nil {
 		return Role{}, err
 	}

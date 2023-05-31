@@ -1,6 +1,9 @@
 /.idea/
 *.tfstate
 *.tfstate.*
+.terraform.lock.hcl
+.terraform/
 *.log
 *.http
+http-client.private.env.json
 /terraform-provider-teamcity

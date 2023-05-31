@@ -28,7 +28,7 @@ type Module struct {
 }
 
 func (c *Client) GetAuthSettings() (AuthSettings, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/authSettings", c.HostURL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/authSettings", c.RestURL), nil)
 	if err != nil {
 		return AuthSettings{}, err
 	}
@@ -53,7 +53,7 @@ func (c *Client) SetAuthSettings(settings AuthSettings) (AuthSettings, error) {
 		return AuthSettings{}, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/authSettings", c.HostURL), bytes.NewReader(rb))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/authSettings", c.RestURL), bytes.NewReader(rb))
 	if err != nil {
 		return AuthSettings{}, err
 	}

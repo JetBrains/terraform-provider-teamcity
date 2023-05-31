@@ -18,7 +18,7 @@ type SshKey struct {
 func (c *Client) NewSshKey(project, name, key string) error {
 	req, err := http.NewRequest(
 		"POST",
-		fmt.Sprintf("%s/projects/id:%s/sshKeys?fileName=%s", c.HostURL, project, name),
+		fmt.Sprintf("%s/projects/id:%s/sshKeys?fileName=%s", c.RestURL, project, name),
 		strings.NewReader(key),
 	)
 	if err != nil {
@@ -34,7 +34,7 @@ func (c *Client) NewSshKey(project, name, key string) error {
 }
 
 func (c *Client) GetSshKeys(projectId string) ([]string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/sshKeys", c.HostURL, projectId), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/sshKeys", c.RestURL, projectId), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (c *Client) GetSshKeys(projectId string) ([]string, error) {
 }
 
 func (c *Client) DeleteSshKey(projectId, keyName string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s/sshKeys/%s", c.HostURL, projectId, keyName), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s/sshKeys/%s", c.RestURL, projectId, keyName), nil)
 	if err != nil {
 		return err
 	}

@@ -9,14 +9,16 @@ import (
 )
 
 type Client struct {
-	HostURL    string
+	AppURL     string
+	RestURL    string
 	Token      string
 	HTTPClient *http.Client
 }
 
 func NewClient(host, token string) Client {
 	client := Client{
-		HostURL:    host + "/app/rest",
+		AppURL:     host + "/app",
+		RestURL:    host + "/app/rest",
 		Token:      token,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 	}
@@ -91,7 +93,7 @@ func (c *Client) request(req *http.Request) (Response, error) {
 func (c *Client) GetField(resource, id, name string) (string, error) {
 	req, err := http.NewRequest(
 		"GET",
-		fmt.Sprintf("%s/%s/%s/%s", c.HostURL, resource, id, name),
+		fmt.Sprintf("%s/%s/%s/%s", c.RestURL, resource, id, name),
 		nil,
 	)
 	if err != nil {
@@ -118,7 +120,7 @@ func (c *Client) SetField(resource, id, name string, value *string) (string, err
 
 	req, err := http.NewRequest(
 		method,
-		fmt.Sprintf("%s/%s/id:%s/%s", c.HostURL, resource, id, name),
+		fmt.Sprintf("%s/%s/id:%s/%s", c.RestURL, resource, id, name),
 		strings.NewReader(body),
 	)
 	if err != nil {

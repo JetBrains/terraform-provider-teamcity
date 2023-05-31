@@ -39,7 +39,7 @@ func (c *Client) NewProject(p Project) (Project, error) {
 		return Project{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects", c.HostURL), bytes.NewReader(rb))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects", c.RestURL), bytes.NewReader(rb))
 	if err != nil {
 		return Project{}, err
 	}
@@ -59,7 +59,7 @@ func (c *Client) NewProject(p Project) (Project, error) {
 }
 
 func (c *Client) GetProject(id string) (Project, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s", c.HostURL, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s", c.RestURL, id), nil)
 	if err != nil {
 		return Project{}, err
 	}
@@ -79,7 +79,7 @@ func (c *Client) GetProject(id string) (Project, error) {
 }
 
 func (c *Client) DeleteProject(id string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s", c.HostURL, id), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s", c.RestURL, id), nil)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (c *Client) NewProjectFeature(id string, feature ProjectFeature) (ProjectFe
 		return ProjectFeature{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/id:%s/projectFeatures", c.HostURL, id), bytes.NewReader(rb))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/id:%s/projectFeatures", c.RestURL, id), bytes.NewReader(rb))
 	if err != nil {
 		return ProjectFeature{}, err
 	}
@@ -118,7 +118,7 @@ func (c *Client) NewProjectFeature(id string, feature ProjectFeature) (ProjectFe
 }
 
 func (c *Client) GetProjectFeature(projectId, featureId string) (*ProjectFeature, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/projectFeatures/id:%s", c.HostURL, projectId, featureId), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/projectFeatures/id:%s", c.RestURL, projectId, featureId), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (c *Client) GetProjectFeature(projectId, featureId string) (*ProjectFeature
 }
 
 func (c *Client) DeleteProjectFeature(projectId, featureId string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s/projectFeatures/id:%s", c.HostURL, projectId, featureId), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s/projectFeatures/id:%s", c.RestURL, projectId, featureId), nil)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ type ProjectLocator struct {
 }
 
 func (c *Client) GetVersionedSettings(projectId string) (*VersionedSettings, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/versionedSettings/config", c.HostURL, projectId), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/versionedSettings/config", c.RestURL, projectId), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (c *Client) SetVersionedSettings(projectId string, settings VersionedSettin
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/projects/id:%s/versionedSettings/config", c.HostURL, projectId), bytes.NewReader(rb))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/projects/id:%s/versionedSettings/config", c.RestURL, projectId), bytes.NewReader(rb))
 	if err != nil {
 		return nil, err
 	}

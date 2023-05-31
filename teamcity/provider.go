@@ -119,5 +119,6 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 		NewRoleResource,
 		NewAuthResource,
 		NewGlobalResource,
+		NewEmailResource,
 	}
 }

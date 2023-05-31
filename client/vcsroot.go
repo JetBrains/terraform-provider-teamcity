@@ -22,7 +22,7 @@ func (c *Client) NewVcsRoot(p VcsRoot) (VcsRoot, error) {
 		return VcsRoot{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/vcs-roots", c.HostURL), bytes.NewReader(rb))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/vcs-roots", c.RestURL), bytes.NewReader(rb))
 	if err != nil {
 		return VcsRoot{}, err
 	}
@@ -42,7 +42,7 @@ func (c *Client) NewVcsRoot(p VcsRoot) (VcsRoot, error) {
 }
 
 func (c *Client) GetVcsRoot(id string) (VcsRoot, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/vcs-roots/id:%s", c.HostURL, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/vcs-roots/id:%s", c.RestURL, id), nil)
 	if err != nil {
 		return VcsRoot{}, err
 	}
@@ -62,7 +62,7 @@ func (c *Client) GetVcsRoot(id string) (VcsRoot, error) {
 }
 
 func (c *Client) DeleteVcsRoot(id string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/vcs-roots/id:%s", c.HostURL, id), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/vcs-roots/id:%s", c.RestURL, id), nil)
 	if err != nil {
 		return err
 	}

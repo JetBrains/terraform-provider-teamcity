@@ -23,7 +23,7 @@ type GlobalSettings struct {
 }
 
 func (c *Client) GetGlobalSettings() (*GlobalSettings, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/globalSettings", c.HostURL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/globalSettings", c.RestURL), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *Client) SetGlobalSettings(settings GlobalSettings) (*GlobalSettings, er
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/globalSettings", c.HostURL), bytes.NewReader(rb))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/globalSettings", c.RestURL), bytes.NewReader(rb))
 	if err != nil {
 		return nil, err
 	}

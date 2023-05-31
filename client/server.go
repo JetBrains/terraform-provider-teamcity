@@ -6,7 +6,7 @@ import (
 )
 
 func (c *Client) GetVersion() (string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/version", c.HostURL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/version", c.RestURL), nil)
 	if err != nil {
 		return "", err
 	}

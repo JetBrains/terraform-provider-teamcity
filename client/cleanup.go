@@ -28,7 +28,7 @@ type CleanupCron struct {
 }
 
 func (c *Client) GetCleanup() (CleanupSettings, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/cleanup", c.HostURL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/server/cleanup", c.RestURL), nil)
 	if err != nil {
 		return CleanupSettings{}, err
 	}
@@ -53,7 +53,7 @@ func (c *Client) SetCleanup(settings CleanupSettings) (CleanupSettings, error) {
 		return CleanupSettings{}, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/cleanup", c.HostURL), bytes.NewReader(rb))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/server/cleanup", c.RestURL), bytes.NewReader(rb))
 	if err != nil {
 		return CleanupSettings{}, err
 	}
