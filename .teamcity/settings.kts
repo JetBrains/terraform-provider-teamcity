@@ -63,7 +63,7 @@ object TC_TerraformProvider_Test : BuildType({
                 echo "##teamcity[setParameter name='env.TEAMCITY_TOKEN' value='${'$'}token']"
                 echo "##teamcity[setParameter name='env.TEAMCITY_HOST' value='http://teamcity-server:8111']"
             """.trimIndent()
-            dockerImage = "registry.jetbrains.team/p/tc/docker/teamcity-server-staging:EAP-linux"
+            dockerImage = "registry.jetbrains.team/p/tc/docker/teamcity-server-staging:2023.05-linux"
             dockerImagePlatform = ScriptBuildStep.ImagePlatform.Linux
         }
 

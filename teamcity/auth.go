@@ -2,13 +2,11 @@ package teamcity
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strconv"
 	"terraform-provider-teamcity/client"
@@ -29,12 +27,12 @@ type authResource struct {
 }
 
 type authResourceModel struct {
-	ID                    types.String     `tfsdk:"id"`
-	AllowGuest            types.Bool       `tfsdk:"allow_guest"`
-	GuestUsername         types.String     `tfsdk:"guest_username"`
-	WelcomeText           types.String     `tfsdk:"welcome_text"`
-	CollapseLoginForm     types.Bool       `tfsdk:"collapse_login_form"`
-	TwoFactorMode         types.String     `tfsdk:"two_factor_mode"`
+	ID                types.String `tfsdk:"id"`
+	AllowGuest        types.Bool   `tfsdk:"allow_guest"`
+	GuestUsername     types.String `tfsdk:"guest_username"`
+	WelcomeText       types.String `tfsdk:"welcome_text"`
+	CollapseLoginForm types.Bool   `tfsdk:"collapse_login_form"`
+	//TwoFactorMode         types.String     `tfsdk:"two_factor_mode"`
 	PerProjectPermissions types.Bool       `tfsdk:"per_project_permissions"`
 	EmailVerification     types.Bool       `tfsdk:"email_verification"`
 	Modules               authModulesModel `tfsdk:"modules"`
@@ -81,12 +79,12 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			"collapse_login_form": schema.BoolAttribute{
 				Required: true,
 			},
-			"two_factor_mode": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf([]string{"DISABLED", "OPTIONAL", "MANDATORY"}...),
-				},
-			},
+			//"two_factor_mode": schema.StringAttribute{
+			//	Required: true,
+			//	Validators: []validator.String{
+			//		stringvalidator.OneOf([]string{"DISABLED", "OPTIONAL", "MANDATORY"}...),
+			//	},
+			//},
 			"per_project_permissions": schema.BoolAttribute{
 				Required: true,
 			},
@@ -292,11 +290,11 @@ func (r *authResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *re
 
 func (r *authResource) update(plan authResourceModel) (authResourceModel, error) {
 	settings := client.AuthSettings{
-		AllowGuest:            plan.AllowGuest.ValueBool(),
-		GuestUsername:         plan.GuestUsername.ValueString(),
-		WelcomeText:           plan.WelcomeText.ValueString(),
-		CollapseLoginForm:     plan.CollapseLoginForm.ValueBool(),
-		TwoFactorMode:         plan.TwoFactorMode.ValueString(),
+		AllowGuest:        plan.AllowGuest.ValueBool(),
+		GuestUsername:     plan.GuestUsername.ValueString(),
+		WelcomeText:       plan.WelcomeText.ValueString(),
+		CollapseLoginForm: plan.CollapseLoginForm.ValueBool(),
+		//TwoFactorMode:         plan.TwoFactorMode.ValueString(),
 		PerProjectPermissions: plan.PerProjectPermissions.ValueBool(),
 		EmailVerification:     plan.EmailVerification.ValueBool(),
 	}
@@ -361,7 +359,7 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 	state.GuestUsername = types.StringValue(result.GuestUsername)
 	state.WelcomeText = types.StringValue(result.WelcomeText)
 	state.CollapseLoginForm = types.BoolValue(result.CollapseLoginForm)
-	state.TwoFactorMode = types.StringValue(result.TwoFactorMode)
+	//state.TwoFactorMode = types.StringValue(result.TwoFactorMode)
 	state.PerProjectPermissions = types.BoolValue(result.PerProjectPermissions)
 	state.EmailVerification = types.BoolValue(result.EmailVerification)
 

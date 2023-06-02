@@ -16,7 +16,7 @@ resource "teamcity_auth" "test" {
   guest_username      = "guest"
   welcome_text        = ""
   collapse_login_form = false
-  two_factor_mode     = "OPTIONAL"
+  # two_factor_mode     = "OPTIONAL"
   per_project_permissions = false
   email_verification  = false
 

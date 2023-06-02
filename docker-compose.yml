@@ -1,7 +1,7 @@
 version: '2'
 services:
   teamcity-server:
-    image: registry.jetbrains.team/p/tc/docker/teamcity-server-staging:EAP-linux
+    image: registry.jetbrains.team/p/tc/docker/teamcity-server-staging:2023.05-linux
     volumes:
       - "./testdata:/testdata"
       - "./testdata/plugins:/data/teamcity_server/datadir/plugins"
