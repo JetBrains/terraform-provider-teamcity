@@ -94,4 +94,21 @@ object TC_TerraformProvider_Release : BuildType({
     vcs {
         root(DslContext.settingsRoot)
     }
+
+    params {
+        password(name = "env.GPG_PRIVATE_KEY", value = "credentialsJSON:ab4c79dc-954c-481f-8bd5-23ef5f18f8a2")
+        password(name = "env.GITHUB_TOKEN", value = "credentialsJSON:b1c8a6db-db85-4748-907b-d75c113e6f98")
+    }
+
+    steps {
+        script {
+            name = "Build & release"
+            dockerImage = "goreleaser/goreleaser:v1.18.2"
+            dockerImagePlatform = ScriptBuildStep.ImagePlatform.Linux
+            scriptContent = """
+                git config --global --add safe.directory %teamcity.build.checkoutDir%
+                ./release.sh
+            """.trimIndent()
+        }
+    }
 })

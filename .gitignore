@@ -7,3 +7,5 @@
 *.http
 http-client.private.env.json
 /terraform-provider-teamcity
+/dist/
+.DS_Store
