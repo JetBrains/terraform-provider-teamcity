@@ -85,3 +85,12 @@ object TC_TerraformProvider_Test : BuildType({
         }
     }
 })
+
+object TC_TerraformProvider_Release : BuildType({
+    id("Release")
+    name = "Build & Release"
+
+    vcs {
+        root(DslContext.settingsRoot)
+    }
+})
