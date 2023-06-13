@@ -10,6 +10,7 @@ version = "2022.10"
 
 project {
     buildType(TC_TerraformProvider_Test)
+    buildType(TC_TerraformProvider_Release)
 }
 
 object TC_TerraformProvider_Test : BuildType({
