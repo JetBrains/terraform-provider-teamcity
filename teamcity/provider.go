@@ -36,13 +36,22 @@ func (p *teamcityProvider) Schema(_ context.Context, _ provider.SchemaRequest, r
 				Optional:  true,
 				Sensitive: true,
 			},
+			"username": schema.StringAttribute{
+				Optional: true,
+			},
+			"password": schema.StringAttribute{
+				Optional:  true,
+				Sensitive: true,
+			},
 		},
 	}
 }
 
 type teamcityProviderModel struct {
-	Host  types.String `tfsdk:"host"`
-	Token types.String `tfsdk:"token"`
+	Host     types.String `tfsdk:"host"`
+	Token    types.String `tfsdk:"token"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
 }
 
 func (p *teamcityProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -67,17 +76,39 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 			"",
 		)
 	}
+	if config.Token.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Unknown TeamCity username",
+			"",
+		)
+	}
+	if config.Token.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Unknown TeamCity password",
+			"",
+		)
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	host := os.Getenv("TEAMCITY_HOST")
 	token := os.Getenv("TEAMCITY_TOKEN")
+	username := os.Getenv("TEAMCITY_USERNAME")
+	password := os.Getenv("TEAMCITY_PASSWORD")
 	if !config.Host.IsNull() {
 		host = config.Host.ValueString()
 	}
 	if !config.Token.IsNull() {
 		token = config.Token.ValueString()
+	}
+	if !config.Username.IsNull() {
+		username = config.Username.ValueString()
+	}
+	if !config.Password.IsNull() {
+		password = config.Password.ValueString()
 	}
 
 	if host == "" {
@@ -87,7 +118,7 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 			"",
 		)
 	}
-	if token == "" {
+	if token == "" && username == "" && password == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("token"),
 			"Missing TeamCity API Token",
@@ -98,7 +129,7 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
-	cl := client.NewClient(host, token)
+	cl := client.NewClient(host, token, username, password)
 	resp.DataSourceData = &cl
 	resp.ResourceData = &cl
 }

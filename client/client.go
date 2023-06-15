@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,14 +13,18 @@ type Client struct {
 	AppURL     string
 	RestURL    string
 	Token      string
+	Username   string
+	Password   string
 	HTTPClient *http.Client
 }
 
-func NewClient(host, token string) Client {
+func NewClient(host, token, username, password string) Client {
 	client := Client{
 		AppURL:     host + "/app",
 		RestURL:    host + "/app/rest",
 		Token:      token,
+		Username:   username,
+		Password:   password,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 	}
 	return client
@@ -30,7 +35,11 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 }
 
 func (c *Client) doRequestWithType(req *http.Request, ct string) ([]byte, error) {
-	req.Header.Set("Authorization", "Bearer "+c.Token)
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	} else {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(c.Username+":"+c.Password)))
+	}
 	req.Header.Set("Content-Type", ct)
 	req.Header.Set("Accept", "application/json, text/plain")
 
