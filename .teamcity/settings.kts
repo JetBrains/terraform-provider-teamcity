@@ -1,6 +1,7 @@
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerSupport
 import jetbrains.buildServer.configs.kotlin.buildFeatures.golang
+import jetbrains.buildServer.configs.kotlin.buildFeatures.sshAgent
 import jetbrains.buildServer.configs.kotlin.buildSteps.ScriptBuildStep
 import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCompose
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
@@ -93,6 +94,8 @@ object TC_TerraformProvider_Release : BuildType({
 
     vcs {
         root(DslContext.settingsRoot)
+        branchFilter = "+:main"
+        checkoutMode = CheckoutMode.ON_AGENT
     }
 
     params {
@@ -100,7 +103,20 @@ object TC_TerraformProvider_Release : BuildType({
         password(name = "env.GITHUB_TOKEN", value = "credentialsJSON:b1c8a6db-db85-4748-907b-d75c113e6f98")
     }
 
+    features {
+        sshAgent {
+            teamcitySshKey = "github-mkuzmin"
+        }
+    }
+
     steps {
+        script {
+            name = "Tag current git commit"
+            scriptContent = """
+                git tag "v0.0.%build.number%"
+                git push origin "v0.0.%build.number%"
+            """.trimIndent()
+        }
         script {
             name = "Build & release"
             dockerImage = "goreleaser/goreleaser:v1.18.2"
