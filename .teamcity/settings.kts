@@ -94,7 +94,7 @@ object TC_TerraformProvider_Release : BuildType({
 
     vcs {
         root(DslContext.settingsRoot)
-        branchFilter = "+:main"
+        branchFilter = "+:<default>"
         checkoutMode = CheckoutMode.ON_AGENT
     }
 
