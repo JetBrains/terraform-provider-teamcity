@@ -13,9 +13,8 @@ import (
 )
 
 var (
-	_ resource.Resource                   = &emailResource{}
-	_ resource.ResourceWithConfigure      = &emailResource{}
-	_ resource.ResourceWithValidateConfig = &emailResource{}
+	_ resource.Resource              = &emailResource{}
+	_ resource.ResourceWithConfigure = &emailResource{}
 )
 
 func NewEmailResource() resource.Resource {
@@ -71,16 +70,6 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 		},
 	}
-}
-
-func (r *emailResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var config emailResourceModel
-	diags := req.Config.Get(ctx, &config)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 }
 
 func (r *emailResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
