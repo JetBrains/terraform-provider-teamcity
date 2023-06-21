@@ -10,7 +10,7 @@ func TestAccEmail_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + `
+				Config: `
 resource "teamcity_email_settings" "test" {
   enabled = true
   host = "teamcity"

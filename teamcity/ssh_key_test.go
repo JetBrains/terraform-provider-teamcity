@@ -10,7 +10,7 @@ func TestAccSshKey_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + `
+				Config: `
 resource "teamcity_project" "test" {
 	name = "test"
 }

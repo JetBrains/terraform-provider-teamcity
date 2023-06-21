@@ -10,7 +10,7 @@ func TestAccRole_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + `
+				Config: `
 resource "teamcity_role" "test" {
 	name = "Test Role"
 }
@@ -21,7 +21,7 @@ resource "teamcity_role" "test" {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: `
 resource "teamcity_role" "test" {
 	name = "Test Role"
 	included = ["PROJECT_DEVELOPER", "AGENT_MANAGER"]
@@ -34,7 +34,7 @@ resource "teamcity_role" "test" {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: `
 resource "teamcity_role" "test" {
 	name = "Test Role"
 	permissions = ["view_all_users", "assign_investigation"]
@@ -47,7 +47,7 @@ resource "teamcity_role" "test" {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: `
 resource "teamcity_role" "test" {
 	name = "Test Role"
 	permissions = ["view_all_users", "view_project"]
