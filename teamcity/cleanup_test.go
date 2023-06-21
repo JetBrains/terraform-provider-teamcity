@@ -10,7 +10,7 @@ func TestAccCleanup_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_cleanup" "test" {
 	enabled = true
 	max_duration = 0
@@ -28,7 +28,7 @@ resource "teamcity_cleanup" "test" {
 				),
 			},
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_cleanup" "test" {
 	enabled = true
 	max_duration = 0

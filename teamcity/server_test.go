@@ -12,7 +12,7 @@ func TestServerVersion(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `data "teamcity_server" "test" {}`,
+				Config: providerConfig + `data "teamcity_server" "test" {}`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestMatchResourceAttr(
 						"data.teamcity_server.test",

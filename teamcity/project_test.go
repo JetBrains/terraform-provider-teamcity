@@ -10,7 +10,7 @@ func TestAccProject_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_project" "test" {
 	name = "test"
 }
@@ -21,7 +21,7 @@ resource "teamcity_project" "test" {
 				),
 			},
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_project" "test" {
 	name = "test2"
 }
@@ -31,7 +31,7 @@ resource "teamcity_project" "test" {
 				),
 			},
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_project" "test" {
 	name = "test2"
 	id = "new"

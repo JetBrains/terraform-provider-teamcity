@@ -10,7 +10,7 @@ func TestAccVcsRoot_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_vcsroot" "test" {
 	name = "test"
 	project_id = "_Root"
@@ -29,7 +29,7 @@ resource "teamcity_vcsroot" "test" {
 				),
 			},
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_vcsroot" "test" {
 	name = "test1"
 	id = "test1"
@@ -49,7 +49,7 @@ resource "teamcity_vcsroot" "test" {
 				),
 			},
 			{
-				Config: `
+				Config: providerConfig + `
 resource "teamcity_vcsroot" "test" {
 	name = "test1"
 	project_id = "_Root"
