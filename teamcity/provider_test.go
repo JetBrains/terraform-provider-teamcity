@@ -7,15 +7,7 @@ import (
 
 const (
 	providerConfig = `
-terraform {
-  required_providers {
-    teamcity = {
-      source = "jetbrains/teamcity"
-    }
-  }
-}
 provider "teamcity" {
-#	host = "http://localhost:8111"
 }
 `
 )
