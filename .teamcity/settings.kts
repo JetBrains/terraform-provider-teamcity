@@ -74,7 +74,7 @@ object TC_TerraformProvider_Test : BuildType({
             scriptContent = """
                 export CGO_ENABLED=0
                 export TF_ACC=1
-                export TF_ACC_PROVIDER_NAMESPACE=jetbrains
+                export TF_ACC_PROVIDER_NAMESPACE=mkuzmin
                 go test -json ./...
             """.trimIndent()
             dockerImage = "golang:1.19.2-alpine3.16"
