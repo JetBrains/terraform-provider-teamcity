@@ -6,8 +6,6 @@ import (
 )
 
 const providerConfig = `
-provider "teamcity" {
-}
 `
 
 var (
