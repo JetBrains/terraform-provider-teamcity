@@ -76,7 +76,7 @@ object TC_TerraformProvider_Test : BuildType({
                 export TF_ACC=1
                 export TF_ACC_PROVIDER_NAMESPACE=mkuzmin
                 export TF_LOG=TRACE
-                go test -json ./...
+                go test -v ./...
             """.trimIndent()
             dockerImage = "golang:1.19.2-alpine3.16"
             dockerImagePlatform = ScriptBuildStep.ImagePlatform.Linux
