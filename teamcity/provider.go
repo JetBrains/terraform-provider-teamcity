@@ -12,21 +12,25 @@ import (
 	"terraform-provider-teamcity/client"
 )
 
-var (
-	_ provider.Provider = &teamcityProvider{}
-)
+var _ provider.Provider = &TeamcityProvider{}
 
-func New() provider.Provider {
-	return &teamcityProvider{}
+type TeamcityProvider struct {
+	version string
 }
 
-type teamcityProvider struct{}
+type teamcityProviderModel struct {
+	Host     types.String `tfsdk:"host"`
+	Token    types.String `tfsdk:"token"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
+}
 
-func (p *teamcityProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *TeamcityProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "teamcity"
+	resp.Version = p.version
 }
 
-func (p *teamcityProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *TeamcityProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
@@ -47,14 +51,7 @@ func (p *teamcityProvider) Schema(_ context.Context, _ provider.SchemaRequest, r
 	}
 }
 
-type teamcityProviderModel struct {
-	Host     types.String `tfsdk:"host"`
-	Token    types.String `tfsdk:"token"`
-	Username types.String `tfsdk:"username"`
-	Password types.String `tfsdk:"password"`
-}
-
-func (p *teamcityProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+func (p *TeamcityProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	var config teamcityProviderModel
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
@@ -134,13 +131,7 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 	resp.ResourceData = &cl
 }
 
-func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewServerDataSource,
-	}
-}
-
-func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resource {
+func (p *TeamcityProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewCleanupResource,
 		NewProjectResource,
@@ -152,5 +143,19 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 		NewGlobalResource,
 		NewEmailResource,
 		NewUserResource,
+	}
+}
+
+func (p *TeamcityProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewServerDataSource,
+	}
+}
+
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &TeamcityProvider{
+			version: version,
+		}
 	}
 }

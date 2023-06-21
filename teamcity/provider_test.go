@@ -5,15 +5,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
 
-const (
-	providerConfig = `
+const providerConfig = `
 provider "teamcity" {
 }
 `
-)
 
 var (
 	testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-		"teamcity": providerserver.NewProtocol6WithError(New()),
+		"teamcity": providerserver.NewProtocol6WithError(New("test")()),
 	}
 )
