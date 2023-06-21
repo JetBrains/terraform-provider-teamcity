@@ -48,6 +48,27 @@ resource "teamcity_vcsroot" "test" {
 					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "git.branch", "main"),
 				),
 			},
+			{
+				Config: providerConfig + `
+resource "teamcity_vcsroot" "test" {
+	name = "test1"
+	project_id = "_Root"
+	git = {
+		url = "git@github.com:mkuzmin/test1.git"
+		branch = "main"
+		
+		auth_method = "PASSWORD"
+	    username    = "git"
+    	password    = "1234"
+	}
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "git.auth_method", "PASSWORD"),
+					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "git.username", "git"),
+					resource.TestCheckResourceAttr("teamcity_vcsroot.test", "git.password", "1234"),
+				),
+			},
 		},
 	})
 }
