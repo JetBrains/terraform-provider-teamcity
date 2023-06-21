@@ -317,6 +317,12 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
+	if newState.Git.Password.IsNull() != true {
+		newState.Git.Password = plan.Git.Password
+	}
+	if newState.Git.Passphrase.IsNull() != true {
+		newState.Git.Passphrase = plan.Git.Passphrase
+	}
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -349,6 +355,12 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 			err.Error(),
 		)
 		return
+	}
+	if newState.Git.Password.IsNull() != true {
+		newState.Git.Password = state.Git.Password
+	}
+	if newState.Git.Passphrase.IsNull() != true {
+		newState.Git.Passphrase = state.Git.Passphrase
 	}
 
 	diags = resp.State.Set(ctx, newState)
