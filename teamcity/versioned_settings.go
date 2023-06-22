@@ -28,10 +28,11 @@ type versionedSettingsResource struct {
 }
 
 type versionedSettingsModel struct {
-	ProjectId   types.String `tfsdk:"project_id"`
-	VcsRoot     types.String `tfsdk:"vcsroot_id"`
-	Settings    types.String `tfsdk:"settings"`
-	ShowChanges types.Bool   `tfsdk:"show_changes"`
+	ProjectId      types.String `tfsdk:"project_id"`
+	VcsRoot        types.String `tfsdk:"vcsroot_id"`
+	AllowUIEditing types.Bool   `tfsdk:"allow_ui_editing"`
+	Settings       types.String `tfsdk:"settings"`
+	ShowChanges    types.Bool   `tfsdk:"show_changes"`
 }
 
 func (r *versionedSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -47,7 +48,8 @@ func (r *versionedSettingsResource) Schema(_ context.Context, _ resource.SchemaR
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"vcsroot_id": schema.StringAttribute{Required: true},
+			"vcsroot_id":       schema.StringAttribute{Required: true},
+			"allow_ui_editing": schema.BoolAttribute{Required: true},
 			"settings": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
@@ -76,7 +78,7 @@ func (r *versionedSettingsResource) Create(ctx context.Context, req resource.Cre
 
 	root := plan.VcsRoot.ValueString()
 	format := "kotlin"
-	editing := false
+	editing := plan.AllowUIEditing.ValueBool()
 	secureValuesOutsideVcs := true
 	buildSettings := plan.Settings.ValueString()
 	showChanges := plan.ShowChanges.ValueBool()
@@ -174,10 +176,17 @@ func (r *versionedSettingsResource) Update(ctx context.Context, req resource.Upd
 	}
 
 	var newState versionedSettingsModel
-	projectId := oldState.ProjectId.ValueString()
+	projectId := plan.ProjectId.ValueString()
+	newState.ProjectId = plan.ProjectId
 
-	if result, ok := r.setPropertyString(projectId, "vcsRootId", oldState.VcsRoot, plan.Settings, &resp.Diagnostics); ok {
-		newState.Settings = result
+	if result, ok := r.setPropertyString(projectId, "vcsRootId", oldState.VcsRoot, plan.VcsRoot, &resp.Diagnostics); ok {
+		newState.VcsRoot = result
+	} else {
+		return
+	}
+
+	if result, ok := r.setPropertyBool(projectId, "allowUIEditing", oldState.AllowUIEditing, plan.AllowUIEditing, &resp.Diagnostics); ok {
+		newState.AllowUIEditing = result
 	} else {
 		return
 	}
@@ -226,9 +235,10 @@ func (r *versionedSettingsResource) Delete(ctx context.Context, req resource.Del
 
 func (r *versionedSettingsResource) readState(result client.VersionedSettings) (*versionedSettingsModel, error) {
 	settings := versionedSettingsModel{
-		VcsRoot:     types.StringValue(*result.VcsRootId),
-		Settings:    types.StringValue(*result.BuildSettingsMode),
-		ShowChanges: types.BoolValue(*result.ShowSettingsChanges),
+		VcsRoot:        types.StringValue(*result.VcsRootId),
+		AllowUIEditing: types.BoolValue(*result.AllowUIEditing),
+		Settings:       types.StringValue(*result.BuildSettingsMode),
+		ShowChanges:    types.BoolValue(*result.ShowSettingsChanges),
 	}
 
 	return &settings, nil
@@ -241,7 +251,7 @@ func (r *versionedSettingsResource) setPropertyString(projectId, name string, st
 
 	val := plan.ValueString()
 
-	result, err := r.client.SetField("projects", projectId, "versionedSettings/config/"+name, &val)
+	result, err := r.client.SetField("projects", projectId, "versionedSettings/config/parameters/"+name, &val)
 	if err != nil {
 		diag.AddError(
 			"Error setting project feature property",
@@ -266,7 +276,7 @@ func (r *versionedSettingsResource) setPropertyBool(projectId, name string, stat
 		strVal = &val
 	}
 
-	result, err := r.client.SetField("projects", projectId, "versionedSettings/config/"+name, strVal)
+	result, err := r.client.SetField("projects", projectId, "versionedSettings/config/parameters/"+name, strVal)
 	if err != nil {
 		diag.AddError(
 			"Error setting project feature property",
