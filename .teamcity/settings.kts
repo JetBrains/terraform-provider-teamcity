@@ -10,11 +10,12 @@ import jetbrains.buildServer.configs.kotlin.triggers.vcs
 version = "2023.05"
 
 project {
-    buildType(TC_TerraformProvider_Test)
-    buildType(TC_TerraformProvider_Release)
+    buildType(Test)
+    buildType(Release)
+    buildTypesOrder = listOf(Test, Release)
 }
 
-object TC_TerraformProvider_Test : BuildType({
+object Test : BuildType({
     id("Test")
     name = "Test"
 
@@ -88,9 +89,19 @@ object TC_TerraformProvider_Test : BuildType({
     }
 })
 
-object TC_TerraformProvider_Release : BuildType({
+object Release : BuildType({
     id("Release")
     name = "Build & Release"
+
+    type = Type.DEPLOYMENT
+    enablePersonalBuilds = false
+    maxRunningBuilds = 1
+
+    dependencies {
+        snapshot(Test) {
+            onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+    }
 
     vcs {
         root(DslContext.settingsRoot)
