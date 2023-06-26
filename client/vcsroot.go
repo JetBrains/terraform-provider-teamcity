@@ -74,3 +74,35 @@ func (c *Client) DeleteVcsRoot(id string) error {
 
 	return nil
 }
+
+func (c *Client) DetachVcsRoot(id string) error {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/buildTypes?locator=vcsRoot:%s", c.RestURL, id), nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	buildTypes := BuildTypes{}
+	err = json.Unmarshal(resp, &buildTypes)
+	if err != nil {
+		return err
+	}
+
+	for _, buildType := range buildTypes.BuildType {
+		req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/buildTypes/%s/vcs-root-entries/%s", c.RestURL, buildType.Id, id), nil)
+		if err != nil {
+			return err
+		}
+
+		_, err = c.doRequest(req)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

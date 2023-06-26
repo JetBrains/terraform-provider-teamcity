@@ -760,7 +760,15 @@ func (r *vcsRootResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	err := r.client.DeleteVcsRoot(state.Id.ValueString())
+	err := r.client.DetachVcsRoot(state.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error detaching VCS root from build configurations",
+			err.Error(),
+		)
+		return
+	}
+	err = r.client.DeleteVcsRoot(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting VCS root",
