@@ -25,7 +25,7 @@ func NewClient(host, token, username, password string) Client {
 		Token:      token,
 		Username:   username,
 		Password:   password,
-		HTTPClient: &http.Client{Timeout: 10 * time.Second},
+		HTTPClient: &http.Client{Timeout: 30 * time.Second},
 	}
 	return client
 }
