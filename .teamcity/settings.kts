@@ -111,7 +111,7 @@ object Release : BuildType({
 
     params {
         password(name = "env.GPG_PRIVATE_KEY", value = "credentialsJSON:ab4c79dc-954c-481f-8bd5-23ef5f18f8a2")
-        password(name = "env.GITHUB_TOKEN", value = "credentialsJSON:b1c8a6db-db85-4748-907b-d75c113e6f98")
+        password(name = "env.GITHUB_TOKEN", value = "credentialsJSON:449b199b-427f-49e1-95d1-8254b938f0b5")
     }
 
     features {
