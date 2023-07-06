@@ -137,6 +137,7 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewServerDataSource,
+		NewBuildConfDataSource,
 	}
 }
 
