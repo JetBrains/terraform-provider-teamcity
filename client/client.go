@@ -68,7 +68,11 @@ type Response struct {
 
 // TODO replace other methods
 func (c *Client) request(req *http.Request) (Response, error) {
-	req.Header.Set("Authorization", "Bearer "+c.Token)
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	} else {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(c.Username+":"+c.Password)))
+	}
 	req.Header.Set("Accept", "application/json")
 
 	res, err := c.HTTPClient.Do(req)

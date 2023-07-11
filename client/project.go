@@ -58,24 +58,27 @@ func (c *Client) NewProject(p Project) (Project, error) {
 	return actual, nil
 }
 
-func (c *Client) GetProject(id string) (Project, error) {
+func (c *Client) GetProject(id string) (*Project, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s", c.RestURL, id), nil)
 	if err != nil {
-		return Project{}, err
+		return nil, err
 	}
 
-	body, err := c.doRequest(req)
+	resp, err := c.request(req)
 	if err != nil {
-		return Project{}, err
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
 	}
 
 	actual := Project{}
-	err = json.Unmarshal(body, &actual)
+	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
-		return Project{}, err
+		return nil, err
 	}
 
-	return actual, nil
+	return &actual, nil
 }
 
 func (c *Client) DeleteProject(id string) error {

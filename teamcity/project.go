@@ -110,7 +110,12 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	newState, err := r.readState(actual)
+	if actual == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	newState, err := r.readState(*actual)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
