@@ -54,13 +54,16 @@ func (c *Client) GetUser(id string) (*User, error) {
 		return nil, err
 	}
 
-	result, err := c.doRequest(req)
+	resp, err := c.request(req)
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
 
 	actual := User{}
-	err = json.Unmarshal(result, &actual)
+	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
 		return nil, err
 	}

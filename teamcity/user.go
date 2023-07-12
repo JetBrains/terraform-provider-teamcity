@@ -164,6 +164,11 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
+	if actual == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	newState := r.readState(actual)
 	newState.Password = oldState.Password
 
