@@ -168,13 +168,16 @@ func (c *Client) GetVersionedSettings(projectId string) (*VersionedSettings, err
 		return nil, err
 	}
 
-	body, err := c.doRequest(req)
+	resp, err := c.request(req)
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
 
 	actual := VersionedSettings{}
-	err = json.Unmarshal(body, &actual)
+	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
 		return nil, err
 	}

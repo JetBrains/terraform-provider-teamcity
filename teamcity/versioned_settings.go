@@ -138,6 +138,10 @@ func (r *versionedSettingsResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
+	if actual == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if *actual.Format != "kotlin" {
 		resp.State.RemoveResource(ctx)
 		return
