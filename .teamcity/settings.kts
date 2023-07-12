@@ -16,6 +16,8 @@ project {
 }
 
 object Test : BuildType({
+    val dockerImageBuildConf = "TC2023_05_DockerImages_TeamCityScheduledImageBuildLinux_Baseamd64"
+
     id("Test")
     name = "Test"
 
@@ -24,10 +26,16 @@ object Test : BuildType({
     }
 
     dependencies {
-        dependency(AbsoluteId("TC_Trunk_DistParts_PluginRestApi")) {
+//        dependency(AbsoluteId("TC_Trunk_DistParts_PluginRestApi")) {
+//            artifacts {
+//                buildRule = lastSuccessful("+:mkuzmin/auth")
+//                artifactRules = "rest-api.zip => testdata/plugins/"
+//            }
+//        }
+        dependency(AbsoluteId(dockerImageBuildConf)) {
             artifacts {
-                buildRule = lastSuccessful("+:mkuzmin/auth")
-                artifactRules = "rest-api.zip => testdata/plugins/"
+                buildRule = lastSuccessful()
+                artifactRules = ".teamcity/settings/digest.txt"
             }
         }
     }
@@ -41,6 +49,10 @@ object Test : BuildType({
         golang {
             testFormat = "json"
         }
+    }
+
+    params {
+        param("env.TEAMCITY_BUILD", "%dep.$dockerImageBuildConf.tc.image.version%")
     }
 
     steps {
@@ -66,7 +78,7 @@ object Test : BuildType({
                 echo "##teamcity[setParameter name='env.TEAMCITY_TOKEN' value='${'$'}token']"
                 echo "##teamcity[setParameter name='env.TEAMCITY_HOST' value='http://teamcity-server:8111']"
             """.trimIndent()
-            dockerImage = "registry.jetbrains.team/p/tc/docker/teamcity-server-staging:2023.05.1-linux"
+            dockerImage = "registry.jetbrains.team/p/tc/docker/teamcity-nightly/teamcity-server:%dep.$dockerImageBuildConf.tc.image.version%-linux"
             dockerImagePlatform = ScriptBuildStep.ImagePlatform.Linux
         }
 
