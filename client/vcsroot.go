@@ -41,24 +41,27 @@ func (c *Client) NewVcsRoot(p VcsRoot) (VcsRoot, error) {
 	return actual, nil
 }
 
-func (c *Client) GetVcsRoot(id string) (VcsRoot, error) {
+func (c *Client) GetVcsRoot(id string) (*VcsRoot, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/vcs-roots/id:%s", c.RestURL, id), nil)
 	if err != nil {
-		return VcsRoot{}, err
+		return nil, err
 	}
 
-	body, err := c.doRequest(req)
+	resp, err := c.request(req)
 	if err != nil {
-		return VcsRoot{}, err
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
 	}
 
 	actual := VcsRoot{}
-	err = json.Unmarshal(body, &actual)
+	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
-		return VcsRoot{}, err
+		return nil, err
 	}
 
-	return actual, nil
+	return &actual, nil
 }
 
 func (c *Client) DeleteVcsRoot(id string) error {

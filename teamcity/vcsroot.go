@@ -347,8 +347,12 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
+	if actual == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 
-	newState, err := r.readState(actual)
+	newState, err := r.readState(*actual)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"REST returned invalid value: ",
