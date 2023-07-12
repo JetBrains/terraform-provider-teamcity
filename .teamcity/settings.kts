@@ -9,17 +9,32 @@ import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
 version = "2023.05"
 
+val test2305 = Test(
+    confId = "Test2305",
+    confName = "Test 2023.05",
+    dockerImageBuildConf = "TC2023_05_DockerImages_TeamCityScheduledImageBuildLinux_Baseamd64"
+)
+val testTrunk = Test(
+    confId = "TestTrunk",
+    confName = "Test Trunk",
+    dockerImageBuildConf = "TC_Trunk_DockerImages_TeamCityScheduledImageBuildLinux_Baseamd64"
+)
+val release = Release()
+
 project {
-    buildType(Test)
-    buildType(Release)
-    buildTypesOrder = listOf(Test, Release)
+    buildType(test2305)
+    buildType(testTrunk)
+    buildType(release)
+    buildTypesOrder = listOf(test2305, testTrunk, release)
 }
 
-object Test : BuildType({
-    val dockerImageBuildConf = "TC2023_05_DockerImages_TeamCityScheduledImageBuildLinux_Baseamd64"
-
-    id("Test")
-    name = "Test"
+class Test(
+    confId: String,
+    confName: String,
+    dockerImageBuildConf: String,
+) : BuildType({
+    id(confId)
+    name = confName
 
     vcs {
         root(DslContext.settingsRoot)
@@ -101,7 +116,7 @@ object Test : BuildType({
     }
 })
 
-object Release : BuildType({
+class Release : BuildType({
     id("Release")
     name = "Build & Release"
 
@@ -110,7 +125,7 @@ object Release : BuildType({
     maxRunningBuilds = 1
 
     dependencies {
-        snapshot(Test) {
+        snapshot(test2305) {
             onDependencyFailure = FailureAction.FAIL_TO_START
         }
     }
