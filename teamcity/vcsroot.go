@@ -6,7 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -101,17 +103,21 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"username_style": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							//TODO other syntax?
 							stringvalidator.OneOf([]string{"USERID", "NAME", "EMAIL", "FULL"}...),
 						},
+						Default: stringdefault.StaticString("USERID"),
 					},
 					"submodules": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							//TODO other syntax?
 							stringvalidator.OneOf([]string{"IGNORE", "CHECKOUT"}...),
 						},
+						Default: stringdefault.StaticString("CHECKOUT"),
 					},
 					"username_for_tags": schema.StringAttribute{
 						Optional: true,
@@ -148,6 +154,8 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"ignore_known_hosts": schema.BoolAttribute{
 						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(true),
 					},
 					"convert_crlf": schema.BoolAttribute{
 						Optional: true,
@@ -157,21 +165,27 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"checkout_policy": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf([]string{"AUTO", "USE_MIRRORS", "NO_MIRRORS", "SHALLOW_CLONE"}...),
 						},
+						Default: stringdefault.StaticString("AUTO"),
 					},
 					"clean_policy": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf([]string{"ON_BRANCH_CHANGE", "ALWAYS", "NEVER"}...),
 						},
+						Default: stringdefault.StaticString("ON_BRANCH_CHANGE"),
 					},
 					"clean_files_policy": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf([]string{"ALL_UNTRACKED", "IGNORED_ONLY", "NON_IGNORED_ONLY"}...),
 						},
+						Default: stringdefault.StaticString("ALL_UNTRACKED"),
 					},
 				},
 			},
