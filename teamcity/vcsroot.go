@@ -331,12 +331,8 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-	if newState.Git.Password.IsNull() != true {
-		newState.Git.Password = plan.Git.Password
-	}
-	if newState.Git.Passphrase.IsNull() != true {
-		newState.Git.Passphrase = plan.Git.Passphrase
-	}
+	newState.Git.Password = plan.Git.Password
+	newState.Git.Passphrase = plan.Git.Passphrase
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -346,14 +342,14 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 }
 
 func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state vcsRootResourceModel
-	diags := req.State.Get(ctx, &state)
+	var oldState vcsRootResourceModel
+	diags := req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	actual, err := r.client.GetVcsRoot(state.Id.ValueString())
+	actual, err := r.client.GetVcsRoot(oldState.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading VCS root",
@@ -374,12 +370,8 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
-	if newState.Git.Password.IsNull() != true {
-		newState.Git.Password = state.Git.Password
-	}
-	if newState.Git.Passphrase.IsNull() != true {
-		newState.Git.Passphrase = state.Git.Passphrase
-	}
+	newState.Git.Password = oldState.Git.Password
+	newState.Git.Passphrase = oldState.Git.Passphrase
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -443,20 +435,12 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 		state.Git.Username = types.StringValue(val)
 	}
 
-	if val, ok := props["secure:password"]; ok {
-		state.Git.Password = types.StringValue(val)
-	}
-
 	if val, ok := props["teamcitySshKey"]; ok {
 		state.Git.UploadedKey = types.StringValue(val)
 	}
 
 	if val, ok := props["privateKeyPath"]; ok {
 		state.Git.PrivateKeyPath = types.StringValue(val)
-	}
-
-	if val, ok := props["secure:passphrase"]; ok {
-		state.Git.Passphrase = types.StringValue(val)
 	}
 
 	if val, ok := props["ignoreKnownHosts"]; ok {
