@@ -2,6 +2,7 @@ package teamcity
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -48,10 +49,8 @@ type GitPropertiesModel struct {
 	UsernameStyle   types.String     `tfsdk:"username_style"`
 	Submodules      types.String     `tfsdk:"submodules"`
 	UsernameForTags types.String     `tfsdk:"username_for_tags"`
-	AuthMethods     AuthMethodsModel `tfsdk:"auth"`
+	Auth            AuthMethodsModel `tfsdk:"auth"`
 	//AuthMethod       types.String `tfsdk:"auth_method"`
-	//Username         types.String `tfsdk:"username"`
-	//Password         types.String `tfsdk:"password"`
 	//UploadedKey      types.String `tfsdk:"uploaded_key"`
 	//PrivateKeyPath   types.String `tfsdk:"private_key_path"`
 	//Passphrase       types.String `tfsdk:"passphrase"`
@@ -65,9 +64,15 @@ type GitPropertiesModel struct {
 
 type AuthMethodsModel struct {
 	Anonymous *AuthAnonymousModel `tfsdk:"anonymous"`
+	Password  *AuthPasswordModel  `tfsdk:"password"`
 }
 
 type AuthAnonymousModel struct {
+}
+
+type AuthPasswordModel struct {
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -135,7 +140,19 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Computed: true,
 						Attributes: map[string]schema.Attribute{
 							"anonymous": schema.SingleNestedAttribute{
-								Required: true,
+								Optional: true,
+							},
+							"password": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"username": schema.StringAttribute{
+										Optional: true,
+									},
+									"password": schema.StringAttribute{
+										Required:  true,
+										Sensitive: true,
+									},
+								},
 							},
 						},
 						Default: objectdefault.StaticValue(
@@ -164,13 +181,6 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					//			"PRIVATE_KEY_FILE",
 					//		}...),
 					//	},
-					//},
-					//"username": schema.StringAttribute{
-					//	Optional: true,
-					//},
-					//"password": schema.StringAttribute{
-					//	Optional:  true,
-					//	Sensitive: true,
 					//},
 					//"uploaded_key": schema.StringAttribute{
 					//	Optional: true,
@@ -285,18 +295,16 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		props = append(props, client.Property{Name: "userForTags", Value: plan.Git.UsernameForTags.ValueString()})
 	}
 
-	//if plan.Git.AuthMethod.IsNull() != true {
-	//	props = append(props, client.Property{Name: "authMethod", Value: plan.Git.AuthMethod.ValueString()})
-	//}
-	//
-	//if plan.Git.Username.IsNull() != true {
-	//	props = append(props, client.Property{Name: "username", Value: plan.Git.Username.ValueString()})
-	//}
-	//
-	//if plan.Git.Password.IsNull() != true {
-	//	props = append(props, client.Property{Name: "secure:password", Value: plan.Git.Password.ValueString()})
-	//}
-	//
+	if plan.Git.Auth.Anonymous != nil {
+		props = append(props, client.Property{Name: "authMethod", Value: "ANONYMOUS"})
+	} else if plan.Git.Auth.Password != nil {
+		props = append(props, client.Property{Name: "authMethod", Value: "PASSWORD"})
+		if plan.Git.Auth.Password.Username.IsNull() != true {
+			props = append(props, client.Property{Name: "username", Value: plan.Git.Auth.Password.Username.ValueString()})
+		}
+		props = append(props, client.Property{Name: "secure:password", Value: plan.Git.Auth.Password.Password.ValueString()})
+	}
+
 	//if plan.Git.UploadedKey.IsNull() != true {
 	//	props = append(props, client.Property{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.ValueString()})
 	//}
@@ -361,7 +369,10 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-	//newState.Git.Password = plan.Git.Password
+
+	if plan.Git.Auth.Password != nil {
+		newState.Git.Auth.Password.Password = plan.Git.Auth.Password.Password
+	}
 	//newState.Git.Passphrase = plan.Git.Passphrase
 
 	diags = resp.State.Set(ctx, newState)
@@ -400,7 +411,9 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
-	//newState.Git.Password = oldState.Git.Password
+	if newState.Git.Auth.Password != nil {
+		newState.Git.Auth.Password.Password = oldState.Git.Auth.Password.Password
+	}
 	//newState.Git.Passphrase = oldState.Git.Passphrase
 
 	diags = resp.State.Set(ctx, newState)
@@ -410,7 +423,7 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 }
 
-func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel, error) {
+func (r *vcsRootResource) readState(result client.VcsRoot) (*vcsRootResourceModel, error) {
 	var state vcsRootResourceModel
 	state.Name = types.StringValue(result.Name)
 	state.Id = types.StringValue(*result.Id)
@@ -440,7 +453,7 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 	if val, ok := props["reportTagRevisions"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return vcsRootResourceModel{}, err
+			return nil, err
 		}
 		state.Git.TagsAsBranches = types.BoolValue(v)
 	}
@@ -457,18 +470,23 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 		state.Git.UsernameForTags = types.StringValue(val)
 	}
 
-	if _, ok := props["authMethod"]; ok {
-		//state.Git.AuthMethod = types.StringValue(val)
-	} else {
-		state.Git.AuthMethods = AuthMethodsModel{
-			Anonymous: &AuthAnonymousModel{},
+	if val, ok := props["authMethod"]; ok {
+		if val == "ANONYMOUS" {
+			state.Git.Auth.Anonymous = &AuthAnonymousModel{}
+		} else if val == "PASSWORD" {
+			state.Git.Auth.Password = &AuthPasswordModel{}
+			if val, ok := props["username"]; ok {
+				state.Git.Auth.Password.Username = types.StringValue(val)
+			} else {
+				state.Git.Auth.Password.Username = types.StringNull()
+			}
+		} else {
+			return nil, fmt.Errorf("unknown auth method: '%s'", val)
 		}
+	} else {
+		state.Git.Auth.Anonymous = &AuthAnonymousModel{}
 	}
-	//
-	//if val, ok := props["username"]; ok {
-	//	state.Git.Username = types.StringValue(val)
-	//}
-	//
+
 	//if val, ok := props["teamcitySshKey"]; ok {
 	//	state.Git.UploadedKey = types.StringValue(val)
 	//}
@@ -480,7 +498,7 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 	if val, ok := props["ignoreKnownHosts"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return vcsRootResourceModel{}, err
+			return nil, err
 		}
 		state.Git.IgnoreKnownHosts = types.BoolValue(v)
 	}
@@ -488,7 +506,7 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 	if val, ok := props["serverSideAutoCrlf"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return vcsRootResourceModel{}, err
+			return nil, err
 		}
 		state.Git.ConvertCrlf = types.BoolValue(v)
 	}
@@ -509,7 +527,7 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 		state.Git.CleanFilesPolicy = types.StringValue(val)
 	}
 
-	return state, nil
+	return &state, nil
 }
 
 func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
