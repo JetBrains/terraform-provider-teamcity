@@ -369,7 +369,6 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-
 	if plan.Git.Auth.Password != nil {
 		newState.Git.Auth.Password.Password = plan.Git.Auth.Password.Password
 	}
@@ -411,7 +410,7 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
-	if newState.Git.Auth.Password != nil {
+	if oldState.Git.Auth.Password != nil {
 		newState.Git.Auth.Password.Password = oldState.Git.Auth.Password.Password
 	}
 	//newState.Git.Passphrase = oldState.Git.Passphrase
