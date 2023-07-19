@@ -3,10 +3,12 @@ package teamcity
 import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -129,12 +131,26 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional: true,
 					},
 					"auth": schema.SingleNestedAttribute{
-						Required: true,
+						Optional: true,
+						Computed: true,
 						Attributes: map[string]schema.Attribute{
 							"anonymous": schema.SingleNestedAttribute{
 								Required: true,
 							},
 						},
+						Default: objectdefault.StaticValue(
+							types.ObjectValueMust(
+								map[string]attr.Type{
+									"anonymous": types.ObjectType{},
+								},
+								map[string]attr.Value{
+									"anonymous": types.ObjectValueMust(
+										map[string]attr.Type{},
+										map[string]attr.Value{},
+									),
+								},
+							),
+						),
 					},
 					//"auth_method": schema.StringAttribute{
 					//	Optional: true,
