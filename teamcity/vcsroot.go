@@ -470,21 +470,19 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (*vcsRootResourceMode
 		state.Git.UsernameForTags = types.StringValue(val)
 	}
 
-	if val, ok := props["authMethod"]; ok {
-		if val == "ANONYMOUS" {
-			state.Git.Auth.Anonymous = &AuthAnonymousModel{}
-		} else if val == "PASSWORD" {
-			state.Git.Auth.Password = &AuthPasswordModel{}
-			if val, ok := props["username"]; ok {
-				state.Git.Auth.Password.Username = types.StringValue(val)
-			} else {
-				state.Git.Auth.Password.Username = types.StringNull()
-			}
-		} else {
-			return nil, fmt.Errorf("unknown auth method: '%s'", val)
-		}
-	} else {
+	authMethod := props["authMethod"]
+	switch authMethod {
+	case "", "ANONYMOUS":
 		state.Git.Auth.Anonymous = &AuthAnonymousModel{}
+	case "PASSWORD":
+		state.Git.Auth.Password = &AuthPasswordModel{}
+		if val, ok := props["username"]; ok {
+			state.Git.Auth.Password.Username = types.StringValue(val)
+		} else {
+			state.Git.Auth.Password.Username = types.StringNull()
+		}
+	default:
+		return nil, fmt.Errorf("unknown auth method: '%s'", authMethod)
 	}
 
 	//if val, ok := props["teamcitySshKey"]; ok {
