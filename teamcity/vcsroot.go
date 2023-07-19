@@ -38,26 +38,34 @@ type vcsRootResourceModel struct {
 }
 
 type GitPropertiesModel struct {
-	Url              types.String `tfsdk:"url" teamcity:"url"`
-	PushUrl          types.String `tfsdk:"push_url"`
-	Branch           types.String `tfsdk:"branch" teamcity:"branch"`
-	BranchSpec       types.String `tfsdk:"branch_spec"`
-	TagsAsBranches   types.Bool   `tfsdk:"tags_as_branches"`
-	UsernameStyle    types.String `tfsdk:"username_style"`
-	Submodules       types.String `tfsdk:"submodules"`
-	UsernameForTags  types.String `tfsdk:"username_for_tags"`
-	AuthMethod       types.String `tfsdk:"auth_method"`
-	Username         types.String `tfsdk:"username"`
-	Password         types.String `tfsdk:"password"`
-	UploadedKey      types.String `tfsdk:"uploaded_key"`
-	PrivateKeyPath   types.String `tfsdk:"private_key_path"`
-	Passphrase       types.String `tfsdk:"passphrase"`
+	Url             types.String     `tfsdk:"url" teamcity:"url"`
+	PushUrl         types.String     `tfsdk:"push_url"`
+	Branch          types.String     `tfsdk:"branch" teamcity:"branch"`
+	BranchSpec      types.String     `tfsdk:"branch_spec"`
+	TagsAsBranches  types.Bool       `tfsdk:"tags_as_branches"`
+	UsernameStyle   types.String     `tfsdk:"username_style"`
+	Submodules      types.String     `tfsdk:"submodules"`
+	UsernameForTags types.String     `tfsdk:"username_for_tags"`
+	AuthMethods     AuthMethodsModel `tfsdk:"auth"`
+	//AuthMethod       types.String `tfsdk:"auth_method"`
+	//Username         types.String `tfsdk:"username"`
+	//Password         types.String `tfsdk:"password"`
+	//UploadedKey      types.String `tfsdk:"uploaded_key"`
+	//PrivateKeyPath   types.String `tfsdk:"private_key_path"`
+	//Passphrase       types.String `tfsdk:"passphrase"`
 	IgnoreKnownHosts types.Bool   `tfsdk:"ignore_known_hosts"`
 	ConvertCrlf      types.Bool   `tfsdk:"convert_crlf"`
 	PathToGit        types.String `tfsdk:"path_to_git"`
 	CheckoutPolicy   types.String `tfsdk:"checkout_policy"`
 	CleanPolicy      types.String `tfsdk:"clean_policy"`
 	CleanFilesPolicy types.String `tfsdk:"clean_files_policy"`
+}
+
+type AuthMethodsModel struct {
+	Anonymous *AuthAnonymousModel `tfsdk:"anonymous"`
+}
+
+type AuthAnonymousModel struct {
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -105,7 +113,6 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional: true,
 						Computed: true,
 						Validators: []validator.String{
-							//TODO other syntax?
 							stringvalidator.OneOf([]string{"USERID", "NAME", "EMAIL", "FULL"}...),
 						},
 						Default: stringdefault.StaticString("USERID"),
@@ -114,7 +121,6 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional: true,
 						Computed: true,
 						Validators: []validator.String{
-							//TODO other syntax?
 							stringvalidator.OneOf([]string{"IGNORE", "CHECKOUT"}...),
 						},
 						Default: stringdefault.StaticString("CHECKOUT"),
@@ -122,36 +128,44 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"username_for_tags": schema.StringAttribute{
 						Optional: true,
 					},
-					"auth_method": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.OneOf([]string{
-								//TODO other syntax? alternate nested types
-								"ANONYMOUS",
-								"PASSWORD",
-								"TEAMCITY_SSH_KEY",
-								"PRIVATE_KEY_DEFAULT",
-								"PRIVATE_KEY_FILE",
-							}...),
+					"auth": schema.SingleNestedAttribute{
+						Required: true,
+						Attributes: map[string]schema.Attribute{
+							"anonymous": schema.SingleNestedAttribute{
+								Required: true,
+							},
 						},
 					},
-					"username": schema.StringAttribute{
-						Optional: true,
-					},
-					"password": schema.StringAttribute{
-						Optional:  true,
-						Sensitive: true,
-					},
-					"uploaded_key": schema.StringAttribute{
-						Optional: true,
-					},
-					"private_key_path": schema.StringAttribute{
-						Optional: true,
-					},
-					"passphrase": schema.StringAttribute{
-						Optional:  true,
-						Sensitive: true,
-					},
+					//"auth_method": schema.StringAttribute{
+					//	Optional: true,
+					//	Validators: []validator.String{
+					//		stringvalidator.OneOf([]string{
+					//			//TODO other syntax? alternate nested types
+					//			"ANONYMOUS",
+					//			"PASSWORD",
+					//			"TEAMCITY_SSH_KEY",
+					//			"PRIVATE_KEY_DEFAULT",
+					//			"PRIVATE_KEY_FILE",
+					//		}...),
+					//	},
+					//},
+					//"username": schema.StringAttribute{
+					//	Optional: true,
+					//},
+					//"password": schema.StringAttribute{
+					//	Optional:  true,
+					//	Sensitive: true,
+					//},
+					//"uploaded_key": schema.StringAttribute{
+					//	Optional: true,
+					//},
+					//"private_key_path": schema.StringAttribute{
+					//	Optional: true,
+					//},
+					//"passphrase": schema.StringAttribute{
+					//	Optional:  true,
+					//	Sensitive: true,
+					//},
 					"ignore_known_hosts": schema.BoolAttribute{
 						Optional: true,
 						Computed: true,
@@ -255,29 +269,29 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		props = append(props, client.Property{Name: "userForTags", Value: plan.Git.UsernameForTags.ValueString()})
 	}
 
-	if plan.Git.AuthMethod.IsNull() != true {
-		props = append(props, client.Property{Name: "authMethod", Value: plan.Git.AuthMethod.ValueString()})
-	}
-
-	if plan.Git.Username.IsNull() != true {
-		props = append(props, client.Property{Name: "username", Value: plan.Git.Username.ValueString()})
-	}
-
-	if plan.Git.Password.IsNull() != true {
-		props = append(props, client.Property{Name: "secure:password", Value: plan.Git.Password.ValueString()})
-	}
-
-	if plan.Git.UploadedKey.IsNull() != true {
-		props = append(props, client.Property{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.ValueString()})
-	}
-
-	if plan.Git.PrivateKeyPath.IsNull() != true {
-		props = append(props, client.Property{Name: "privateKeyPath", Value: plan.Git.PrivateKeyPath.ValueString()})
-	}
-
-	if plan.Git.Passphrase.IsNull() != true {
-		props = append(props, client.Property{Name: "secure:passphrase", Value: plan.Git.Passphrase.ValueString()})
-	}
+	//if plan.Git.AuthMethod.IsNull() != true {
+	//	props = append(props, client.Property{Name: "authMethod", Value: plan.Git.AuthMethod.ValueString()})
+	//}
+	//
+	//if plan.Git.Username.IsNull() != true {
+	//	props = append(props, client.Property{Name: "username", Value: plan.Git.Username.ValueString()})
+	//}
+	//
+	//if plan.Git.Password.IsNull() != true {
+	//	props = append(props, client.Property{Name: "secure:password", Value: plan.Git.Password.ValueString()})
+	//}
+	//
+	//if plan.Git.UploadedKey.IsNull() != true {
+	//	props = append(props, client.Property{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.ValueString()})
+	//}
+	//
+	//if plan.Git.PrivateKeyPath.IsNull() != true {
+	//	props = append(props, client.Property{Name: "privateKeyPath", Value: plan.Git.PrivateKeyPath.ValueString()})
+	//}
+	//
+	//if plan.Git.Passphrase.IsNull() != true {
+	//	props = append(props, client.Property{Name: "secure:passphrase", Value: plan.Git.Passphrase.ValueString()})
+	//}
 
 	if plan.Git.IgnoreKnownHosts.IsNull() != true {
 		val := strconv.FormatBool(plan.Git.IgnoreKnownHosts.ValueBool())
@@ -331,8 +345,8 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-	newState.Git.Password = plan.Git.Password
-	newState.Git.Passphrase = plan.Git.Passphrase
+	//newState.Git.Password = plan.Git.Password
+	//newState.Git.Passphrase = plan.Git.Passphrase
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -370,8 +384,8 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
-	newState.Git.Password = oldState.Git.Password
-	newState.Git.Passphrase = oldState.Git.Passphrase
+	//newState.Git.Password = oldState.Git.Password
+	//newState.Git.Passphrase = oldState.Git.Passphrase
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -427,21 +441,25 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 		state.Git.UsernameForTags = types.StringValue(val)
 	}
 
-	if val, ok := props["authMethod"]; ok {
-		state.Git.AuthMethod = types.StringValue(val)
+	if _, ok := props["authMethod"]; ok {
+		//state.Git.AuthMethod = types.StringValue(val)
+	} else {
+		state.Git.AuthMethods = AuthMethodsModel{
+			Anonymous: &AuthAnonymousModel{},
+		}
 	}
-
-	if val, ok := props["username"]; ok {
-		state.Git.Username = types.StringValue(val)
-	}
-
-	if val, ok := props["teamcitySshKey"]; ok {
-		state.Git.UploadedKey = types.StringValue(val)
-	}
-
-	if val, ok := props["privateKeyPath"]; ok {
-		state.Git.PrivateKeyPath = types.StringValue(val)
-	}
+	//
+	//if val, ok := props["username"]; ok {
+	//	state.Git.Username = types.StringValue(val)
+	//}
+	//
+	//if val, ok := props["teamcitySshKey"]; ok {
+	//	state.Git.UploadedKey = types.StringValue(val)
+	//}
+	//
+	//if val, ok := props["privateKeyPath"]; ok {
+	//	state.Git.PrivateKeyPath = types.StringValue(val)
+	//}
 
 	if val, ok := props["ignoreKnownHosts"]; ok {
 		v, err := strconv.ParseBool(val)
@@ -563,41 +581,41 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	if result, ok := r.setFieldString(resourceId, "properties/authMethod", oldState.Git.AuthMethod, plan.Git.AuthMethod, &resp.Diagnostics); ok {
-		newState.Git.AuthMethod = result
-	} else {
-		return
-	}
-
-	if result, ok := r.setFieldString(resourceId, "properties/username", oldState.Git.Username, plan.Git.Username, &resp.Diagnostics); ok {
-		newState.Git.Username = result
-	} else {
-		return
-	}
-
-	if result, ok := r.setFieldString(resourceId, "properties/secure:password", oldState.Git.Password, plan.Git.Password, &resp.Diagnostics); ok {
-		newState.Git.Password = result
-	} else {
-		return
-	}
-
-	if result, ok := r.setFieldString(resourceId, "properties/teamcitySshKey", oldState.Git.UploadedKey, plan.Git.UploadedKey, &resp.Diagnostics); ok {
-		newState.Git.UploadedKey = result
-	} else {
-		return
-	}
-
-	if result, ok := r.setFieldString(resourceId, "properties/privateKeyPath", oldState.Git.PrivateKeyPath, plan.Git.PrivateKeyPath, &resp.Diagnostics); ok {
-		newState.Git.PrivateKeyPath = result
-	} else {
-		return
-	}
-
-	if result, ok := r.setFieldString(resourceId, "properties/secure:passphrase", oldState.Git.Passphrase, plan.Git.Passphrase, &resp.Diagnostics); ok {
-		newState.Git.Passphrase = result
-	} else {
-		return
-	}
+	//if result, ok := r.setFieldString(resourceId, "properties/authMethod", oldState.Git.AuthMethod, plan.Git.AuthMethod, &resp.Diagnostics); ok {
+	//	newState.Git.AuthMethod = result
+	//} else {
+	//	return
+	//}
+	//
+	//if result, ok := r.setFieldString(resourceId, "properties/username", oldState.Git.Username, plan.Git.Username, &resp.Diagnostics); ok {
+	//	newState.Git.Username = result
+	//} else {
+	//	return
+	//}
+	//
+	//if result, ok := r.setFieldString(resourceId, "properties/secure:password", oldState.Git.Password, plan.Git.Password, &resp.Diagnostics); ok {
+	//	newState.Git.Password = result
+	//} else {
+	//	return
+	//}
+	//
+	//if result, ok := r.setFieldString(resourceId, "properties/teamcitySshKey", oldState.Git.UploadedKey, plan.Git.UploadedKey, &resp.Diagnostics); ok {
+	//	newState.Git.UploadedKey = result
+	//} else {
+	//	return
+	//}
+	//
+	//if result, ok := r.setFieldString(resourceId, "properties/privateKeyPath", oldState.Git.PrivateKeyPath, plan.Git.PrivateKeyPath, &resp.Diagnostics); ok {
+	//	newState.Git.PrivateKeyPath = result
+	//} else {
+	//	return
+	//}
+	//
+	//if result, ok := r.setFieldString(resourceId, "properties/secure:passphrase", oldState.Git.Passphrase, plan.Git.Passphrase, &resp.Diagnostics); ok {
+	//	newState.Git.Passphrase = result
+	//} else {
+	//	return
+	//}
 
 	if result, ok := r.setFieldBool(resourceId, "properties/ignoreKnownHosts", oldState.Git.IgnoreKnownHosts, plan.Git.IgnoreKnownHosts, &resp.Diagnostics); ok {
 		newState.Git.IgnoreKnownHosts = result
