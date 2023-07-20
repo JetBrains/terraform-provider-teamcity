@@ -3,9 +3,11 @@ package teamcity
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -168,6 +170,12 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 								},
 							),
 						),
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtName("anonymous"),
+								path.MatchRelative().AtName("password"),
+							),
+						},
 					},
 					//"auth_method": schema.StringAttribute{
 					//	Optional: true,
