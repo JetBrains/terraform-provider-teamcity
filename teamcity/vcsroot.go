@@ -173,7 +173,6 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					//	Optional: true,
 					//	Validators: []validator.String{
 					//		stringvalidator.OneOf([]string{
-					//			//TODO other syntax? alternate nested types
 					//			"ANONYMOUS",
 					//			"PASSWORD",
 					//			"TEAMCITY_SSH_KEY",
@@ -369,7 +368,7 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-	if plan.Git.Auth.Password != nil {
+	if newState.Git.Auth.Password != nil {
 		newState.Git.Auth.Password.Password = plan.Git.Auth.Password.Password
 	}
 	//newState.Git.Passphrase = plan.Git.Passphrase
@@ -410,7 +409,7 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
-	if oldState.Git.Auth.Password != nil {
+	if newState.Git.Auth.Password != nil {
 		newState.Git.Auth.Password.Password = oldState.Git.Auth.Password.Password
 	}
 	//newState.Git.Passphrase = oldState.Git.Passphrase
