@@ -2,9 +2,14 @@ package teamcity
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
@@ -66,45 +71,70 @@ func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"artifact_directories": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("system/artifacts"),
 			},
 			"root_url": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("http://localhost:8111"),
 			},
 			"max_artifact_size": schema.Int64Attribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(314572800),
 			},
 			"max_artifact_number": schema.Int64Attribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(1000),
 			},
 			"default_execution_timeout": schema.Int64Attribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(0),
 			},
 			"default_vcs_check_interval": schema.Int64Attribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(60),
 			},
 			"enforce_default_vcs_check_interval": schema.BoolAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 			},
 			"default_quiet_period": schema.Int64Attribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(60),
 			},
 			"encryption": schema.SingleNestedAttribute{
 				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"key": schema.StringAttribute{
 						Required:  true,
 						Sensitive: true,
 					},
 				},
+				Default: objectdefault.StaticValue(types.ObjectNull(
+					map[string]attr.Type{"key": types.StringType},
+				)),
 			},
 			"artifacts_domain_isolation": schema.SingleNestedAttribute{
 				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"artifacts_url": schema.StringAttribute{
 						Required: true,
 					},
 				},
+				Default: objectdefault.StaticValue(types.ObjectValueMust(
+					map[string]attr.Type{"artifacts_url": types.StringType},
+					map[string]attr.Value{"artifacts_url": types.StringValue("")},
+				)),
 			},
 		},
 	}
