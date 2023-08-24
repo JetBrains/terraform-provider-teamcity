@@ -3,15 +3,11 @@ package teamcity
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -43,15 +39,15 @@ type vcsRootResourceModel struct {
 }
 
 type GitPropertiesModel struct {
-	Url             types.String     `tfsdk:"url" teamcity:"url"`
-	PushUrl         types.String     `tfsdk:"push_url"`
-	Branch          types.String     `tfsdk:"branch" teamcity:"branch"`
-	BranchSpec      types.String     `tfsdk:"branch_spec"`
-	TagsAsBranches  types.Bool       `tfsdk:"tags_as_branches"`
-	UsernameStyle   types.String     `tfsdk:"username_style"`
-	Submodules      types.String     `tfsdk:"submodules"`
-	UsernameForTags types.String     `tfsdk:"username_for_tags"`
-	Auth            AuthMethodsModel `tfsdk:"auth"`
+	Url             types.String      `tfsdk:"url" teamcity:"url"`
+	PushUrl         types.String      `tfsdk:"push_url"`
+	Branch          types.String      `tfsdk:"branch" teamcity:"branch"`
+	BranchSpec      types.String      `tfsdk:"branch_spec"`
+	TagsAsBranches  types.Bool        `tfsdk:"tags_as_branches"`
+	UsernameStyle   types.String      `tfsdk:"username_style"`
+	Submodules      types.String      `tfsdk:"submodules"`
+	UsernameForTags types.String      `tfsdk:"username_for_tags"`
+	Auth            *AuthMethodsModel `tfsdk:"auth"`
 	//AuthMethod       types.String `tfsdk:"auth_method"`
 	//UploadedKey      types.String `tfsdk:"uploaded_key"`
 	//PrivateKeyPath   types.String `tfsdk:"private_key_path"`
@@ -65,11 +61,7 @@ type GitPropertiesModel struct {
 }
 
 type AuthMethodsModel struct {
-	Anonymous *AuthAnonymousModel `tfsdk:"anonymous"`
-	Password  *AuthPasswordModel  `tfsdk:"password"`
-}
-
-type AuthAnonymousModel struct {
+	Password *AuthPasswordModel `tfsdk:"password"`
 }
 
 type AuthPasswordModel struct {
@@ -139,11 +131,7 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"auth": schema.SingleNestedAttribute{
 						Optional: true,
-						Computed: true,
 						Attributes: map[string]schema.Attribute{
-							"anonymous": schema.SingleNestedAttribute{
-								Optional: true,
-							},
 							"password": schema.SingleNestedAttribute{
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
@@ -157,25 +145,12 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 								},
 							},
 						},
-						Default: objectdefault.StaticValue(
-							types.ObjectValueMust(
-								map[string]attr.Type{
-									"anonymous": types.ObjectType{},
-								},
-								map[string]attr.Value{
-									"anonymous": types.ObjectValueMust(
-										map[string]attr.Type{},
-										map[string]attr.Value{},
-									),
-								},
-							),
-						),
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
-								path.MatchRelative().AtName("anonymous"),
-								path.MatchRelative().AtName("password"),
-							),
-						},
+						//Validators: []validator.Object{
+						//	objectvalidator.ExactlyOneOf(
+						//		//path.MatchRelative().AtName("anonymous"),
+						//		path.MatchRelative().AtName("password"),
+						//	),
+						//},
 					},
 					//"auth_method": schema.StringAttribute{
 					//	Optional: true,
@@ -302,7 +277,7 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		props = append(props, client.Property{Name: "userForTags", Value: plan.Git.UsernameForTags.ValueString()})
 	}
 
-	if plan.Git.Auth.Anonymous != nil {
+	if plan.Git.Auth == nil {
 		props = append(props, client.Property{Name: "authMethod", Value: "ANONYMOUS"})
 	} else if plan.Git.Auth.Password != nil {
 		props = append(props, client.Property{Name: "authMethod", Value: "PASSWORD"})
@@ -376,8 +351,10 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-	if newState.Git.Auth.Password != nil {
-		newState.Git.Auth.Password.Password = plan.Git.Auth.Password.Password
+	if newState.Git.Auth != nil {
+		if newState.Git.Auth.Password != nil {
+			newState.Git.Auth.Password.Password = plan.Git.Auth.Password.Password
+		}
 	}
 	//newState.Git.Passphrase = plan.Git.Passphrase
 
@@ -417,8 +394,11 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
-	if newState.Git.Auth.Password != nil {
-		newState.Git.Auth.Password.Password = oldState.Git.Auth.Password.Password
+	if newState.Git.Auth != nil {
+		if newState.Git.Auth.Password != nil {
+			//TODO: npe when password is set in UI
+			newState.Git.Auth.Password.Password = oldState.Git.Auth.Password.Password
+		}
 	}
 	//newState.Git.Passphrase = oldState.Git.Passphrase
 
@@ -479,8 +459,8 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (*vcsRootResourceMode
 	authMethod := props["authMethod"]
 	switch authMethod {
 	case "", "ANONYMOUS":
-		state.Git.Auth.Anonymous = &AuthAnonymousModel{}
 	case "PASSWORD":
+		state.Git.Auth = &AuthMethodsModel{}
 		state.Git.Auth.Password = &AuthPasswordModel{}
 		if val, ok := props["username"]; ok {
 			state.Git.Auth.Password.Username = types.StringValue(val)
