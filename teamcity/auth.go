@@ -5,8 +5,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strconv"
 	"terraform-provider-teamcity/client"
@@ -27,7 +25,6 @@ type authResource struct {
 }
 
 type authResourceModel struct {
-	ID                types.String `tfsdk:"id"`
 	AllowGuest        types.Bool   `tfsdk:"allow_guest"`
 	GuestUsername     types.String `tfsdk:"guest_username"`
 	WelcomeText       types.String `tfsdk:"welcome_text"`
@@ -61,12 +58,6 @@ func (r *authResource) Metadata(_ context.Context, req resource.MetadataRequest,
 func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"allow_guest": schema.BoolAttribute{
 				Required: true,
 			},
@@ -354,7 +345,6 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 func (r *authResource) readState(result client.AuthSettings) (authResourceModel, error) {
 	var state authResourceModel
 
-	state.ID = types.StringValue("auth")
 	state.AllowGuest = types.BoolValue(result.AllowGuest)
 	state.GuestUsername = types.StringValue(result.GuestUsername)
 	state.WelcomeText = types.StringValue(result.WelcomeText)

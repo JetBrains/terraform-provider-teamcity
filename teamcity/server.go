@@ -21,7 +21,6 @@ type serverDataSource struct {
 	client *client.Client
 }
 type serverDataSourceModel struct {
-	ID      types.String `tfsdk:"id"`
 	Version types.String `tfsdk:"version"`
 }
 
@@ -39,9 +38,6 @@ func (d *serverDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 func (d *serverDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-			},
 			"version": schema.StringAttribute{
 				Computed: true,
 			},
@@ -61,7 +57,6 @@ func (d *serverDataSource) Read(ctx context.Context, _ datasource.ReadRequest, r
 		return
 	}
 
-	state.ID = types.StringValue("placeholder")
 	state.Version = types.StringValue(version)
 
 	diags := resp.State.Set(ctx, state)

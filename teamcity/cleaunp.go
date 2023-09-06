@@ -6,8 +6,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
@@ -27,7 +25,6 @@ type cleanupResource struct {
 }
 
 type cleanupResourceModel struct {
-	ID          types.String        `tfsdk:"id"`
 	Enabled     types.Bool          `tfsdk:"enabled"`
 	MaxDuration types.Int64         `tfsdk:"max_duration"`
 	Daily       *dailyResourceModel `tfsdk:"daily"`
@@ -54,12 +51,6 @@ func (r *cleanupResource) Metadata(_ context.Context, req resource.MetadataReque
 func (r *cleanupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"enabled": schema.BoolAttribute{
 				Required: true,
 			},
@@ -217,7 +208,6 @@ func (r *cleanupResource) update(plan cleanupResourceModel) (cleanupResourceMode
 func (r *cleanupResource) readState(result client.CleanupSettings) cleanupResourceModel {
 	var state cleanupResourceModel
 
-	state.ID = types.StringValue("placeholder")
 	state.Enabled = types.BoolValue(result.Enabled)
 	state.MaxDuration = types.Int64Value(int64(result.MaxDuration))
 

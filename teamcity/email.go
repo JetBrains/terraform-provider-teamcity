@@ -5,8 +5,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
@@ -26,7 +24,6 @@ type emailResource struct {
 }
 
 type emailResourceModel struct {
-	ID               types.String `tfsdk:"id"`
 	Enabled          types.Bool   `tfsdk:"enabled"`
 	Host             types.String `tfsdk:"host"`
 	Port             types.Int64  `tfsdk:"port"`
@@ -50,12 +47,6 @@ func (r *emailResource) Metadata(_ context.Context, req resource.MetadataRequest
 func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"enabled":  schema.BoolAttribute{Required: true},
 			"host":     schema.StringAttribute{Required: true},
 			"port":     schema.Int64Attribute{Required: true},
@@ -182,7 +173,6 @@ func (r *emailResource) update(plan emailResourceModel) (*emailResourceModel, er
 func (r *emailResource) readState(result client.EmailSettings) (*emailResourceModel, error) {
 	var state emailResourceModel
 
-	state.ID = types.StringValue("email")
 	state.Enabled = types.BoolValue(result.Enabled)
 	state.Host = types.StringValue(result.Host)
 	state.Port = types.Int64Value(int64(result.Port))

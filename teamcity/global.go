@@ -8,9 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
 )
@@ -29,7 +27,6 @@ type globalResource struct {
 }
 
 type globalResourceModel struct {
-	ID                             types.String            `tfsdk:"id"`
 	ArtifactDirectories            types.String            `tfsdk:"artifact_directories"`
 	RootUrl                        types.String            `tfsdk:"root_url"`
 	MaxArtifactSize                types.Int64             `tfsdk:"max_artifact_size"`
@@ -64,12 +61,6 @@ func (r *globalResource) Metadata(_ context.Context, req resource.MetadataReques
 func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"artifact_directories": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -272,7 +263,6 @@ func (r *globalResource) update(plan globalResourceModel) (*globalResourceModel,
 func (r *globalResource) readState(result client.GlobalSettings) (*globalResourceModel, error) {
 	var state globalResourceModel
 
-	state.ID = types.StringValue("global")
 	state.ArtifactDirectories = types.StringValue(result.ArtifactDirectories)
 	state.RootUrl = types.StringValue(result.RootUrl)
 	state.MaxArtifactSize = types.Int64Value(result.MaxArtifactSize)
