@@ -159,3 +159,57 @@ func (c *Client) SetGroupParents(groupId string, parents []string) error {
 
 	return nil
 }
+
+func (c *Client) AddGroupMember(groupId, userId string) error {
+	group := Group{
+		Key: groupId,
+	}
+
+	rb, err := json.Marshal(group)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/users/username:%s/groups", c.RestURL, userId), bytes.NewReader(rb))
+	if err != nil {
+		return err
+	}
+
+	_, err = c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) CheckGroupMember(groupId, userId string) (bool, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/users/username:%s/groups/%s", c.RestURL, userId, groupId), nil)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := c.request(req)
+	if err != nil {
+		return false, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (c *Client) DeleteGroupMember(groupId, userId string) error {
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/users/username:%s/groups/%s", c.RestURL, userId, groupId), nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.request(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
