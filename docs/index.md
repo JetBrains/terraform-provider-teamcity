@@ -6,7 +6,7 @@ description: |-
   
 ---
 
-# teamcity Provider
+# TeamCity Provider
 
 
 
@@ -17,7 +17,5 @@ description: |-
 
 ### Optional
 
-- `host` (String)
-- `password` (String, Sensitive)
-- `token` (String, Sensitive)
-- `username` (String)
+- `host` (String) TeamCity server URL. Can be set by `TEAMCITY_HOST` environment variable.
+- `token` (String, Sensitive) REST API access token. Can be set by `TEAMCITY_TOKEN` environment variable.
