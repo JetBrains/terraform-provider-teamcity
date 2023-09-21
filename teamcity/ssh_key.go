@@ -106,6 +106,11 @@ func (r *sshKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	if actual == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	if !contains2(actual, state.Name.ValueString()) {
 		resp.State.RemoveResource(ctx)
 		return

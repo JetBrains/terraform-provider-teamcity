@@ -39,13 +39,16 @@ func (c *Client) GetSshKeys(projectId string) ([]string, error) {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req)
+	resp, err := c.request(req)
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
 
 	actual := SshKeys{}
-	err = json.Unmarshal(body, &actual)
+	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
 		return nil, err
 	}
