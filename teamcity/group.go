@@ -319,7 +319,7 @@ func scope(i roleAssignment) string {
 
 func contains3(items []roleAssignment, item roleAssignment) bool {
 	for _, i := range items {
-		if i.Id == item.Id {
+		if i == item {
 			return true
 		}
 	}
