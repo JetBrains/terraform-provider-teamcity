@@ -24,8 +24,8 @@ type memberResource struct {
 }
 
 type memberResourceModel struct {
-	GroupId types.String `tfsdk:"group_id"`
-	UserId  types.String `tfsdk:"user_id"`
+	GroupId  types.String `tfsdk:"group_id"`
+	Username types.String `tfsdk:"username"`
 }
 
 func (r *memberResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -41,7 +41,7 @@ func (r *memberResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"user_id": schema.StringAttribute{
+			"username": schema.StringAttribute{
 				Required: true,
 			},
 		},
@@ -63,7 +63,7 @@ func (r *memberResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	err := r.client.AddGroupMember(plan.GroupId.ValueString(), plan.UserId.ValueString())
+	err := r.client.AddGroupMember(plan.GroupId.ValueString(), plan.Username.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error adding group member",
@@ -74,7 +74,7 @@ func (r *memberResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	var newState memberResourceModel
 	newState.GroupId = plan.GroupId
-	newState.UserId = plan.UserId
+	newState.Username = plan.Username
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -91,7 +91,7 @@ func (r *memberResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	ok, err := r.client.CheckGroupMember(oldState.GroupId.ValueString(), oldState.UserId.ValueString())
+	ok, err := r.client.CheckGroupMember(oldState.GroupId.ValueString(), oldState.Username.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading group member",
@@ -107,7 +107,7 @@ func (r *memberResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	var newState memberResourceModel
 	newState.GroupId = oldState.GroupId
-	newState.UserId = oldState.UserId
+	newState.Username = oldState.Username
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -127,7 +127,7 @@ func (r *memberResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	err := r.client.DeleteGroupMember(state.GroupId.ValueString(), state.UserId.ValueString())
+	err := r.client.DeleteGroupMember(state.GroupId.ValueString(), state.Username.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting group member",
