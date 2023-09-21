@@ -265,9 +265,9 @@ func (r *userResource) readState(actual *client.User) userResourceModel {
 	var newState userResourceModel
 	newState.Id = types.StringValue(strconv.FormatInt(*actual.Id, 10))
 	newState.Username = types.StringValue(actual.Username)
-	newState.Roles = []roleAssignment{}
 
-	if actual.Roles != nil {
+	if actual.Roles != nil && len(actual.Roles.RoleAssignment) > 0 {
+		newState.Roles = []roleAssignment{}
 		for _, role := range actual.Roles.RoleAssignment {
 			assignment := roleAssignment{
 				Id: types.StringValue(role.Id),
