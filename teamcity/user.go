@@ -34,6 +34,7 @@ type userResourceModel struct {
 	Id       types.String     `tfsdk:"id"`
 	Username types.String     `tfsdk:"username"`
 	Password types.String     `tfsdk:"password"`
+	Github   types.String     `tfsdk:"github_username"`
 	Roles    []roleAssignment `tfsdk:"roles"`
 }
 
@@ -56,8 +57,11 @@ func (r *userResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Required: true,
 			},
 			"password": schema.StringAttribute{
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
+			},
+			"github_username": schema.StringAttribute{
+				Optional: true,
 			},
 			"roles": schema.SetNestedAttribute{
 				Optional: true,
@@ -218,11 +222,26 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 }
 
 func (r *userResource) update(plan userResourceModel) client.User {
-	password := plan.Password.ValueString()
 	user := client.User{
 		Username: plan.Username.ValueString(),
-		Password: &password,
 	}
+
+	if plan.Password.IsNull() != true {
+		password := plan.Password.ValueString()
+		user.Password = &password
+	}
+
+	if plan.Github.IsNull() != true {
+		user.Properties = &client.Properties{
+			Property: []client.Property{
+				{
+					Name:  "plugin:auth:GitHubApp-oauth:userName",
+					Value: plan.Github.ValueString(),
+				},
+			},
+		}
+	}
+
 	user.Roles = &client.RoleAssignments{
 		RoleAssignment: []client.RoleAssignment{},
 	}
@@ -265,6 +284,13 @@ func (r *userResource) readState(actual *client.User) userResourceModel {
 	var newState userResourceModel
 	newState.Id = types.StringValue(strconv.FormatInt(*actual.Id, 10))
 	newState.Username = types.StringValue(actual.Username)
+
+	for _, p := range actual.Properties.Property {
+		if p.Name == "plugin:auth:GitHubApp-oauth:userName" {
+			newState.Github = types.StringValue(p.Value)
+			break
+		}
+	}
 
 	if actual.Roles != nil && len(actual.Roles.RoleAssignment) > 0 {
 		newState.Roles = []roleAssignment{}
