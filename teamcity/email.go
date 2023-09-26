@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &emailResource{}
-	_ resource.ResourceWithConfigure = &emailResource{}
+	_ resource.Resource                = &emailResource{}
+	_ resource.ResourceWithConfigure   = &emailResource{}
+	_ resource.ResourceWithImportState = &emailResource{}
 )
 
 func NewEmailResource() resource.Resource {
@@ -148,6 +149,10 @@ func (r *emailResource) Update(ctx context.Context, req resource.UpdateRequest, 
 }
 
 func (r *emailResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
+}
+
+func (r *emailResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.State.Set(ctx, emailResourceModel{})
 }
 
 func (r *emailResource) update(plan emailResourceModel) (*emailResourceModel, error) {

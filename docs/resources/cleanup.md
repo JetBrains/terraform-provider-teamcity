@@ -64,3 +64,12 @@ Required:
 - `day` (String) Day of month
 - `month` (String) Month
 - `day_week` (String) Day of week
+
+## Import
+
+```terraform
+import {
+  to = teamcity_cleanup.settings
+  id = "any value"
+}
+```

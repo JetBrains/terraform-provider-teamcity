@@ -69,3 +69,12 @@ Optional:
 
 - `global` (Boolean)
 - `project` (String)
+
+## Import
+
+```terraform
+import {
+  to = teamcity_group.project1
+  id = "PROJECT_1_ADMINS"
+}
+```

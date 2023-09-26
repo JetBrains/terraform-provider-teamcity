@@ -109,3 +109,12 @@ Optional:
 Required:
 
 - `create_new_users` (Boolean)  Allow creating new users on the first login
+
+## Import
+
+```terraform
+import {
+  to = teamcity_auth.settings
+  id = "any value"
+}
+```

@@ -33,3 +33,12 @@ resource "teamcity_email_settings" "email" {
 - `login` (String)
 - `password` (String, Sensitive)
 - `secure_connection` (String) Values: `NONE`, `STARTTLS`, `SSL`
+
+## Import
+
+```terraform
+import {
+  to = teamcity_email_settings.email
+  id = "any value"
+}
+```

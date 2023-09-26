@@ -16,6 +16,7 @@ var (
 	_ resource.Resource                   = &userResource{}
 	_ resource.ResourceWithConfigure      = &userResource{}
 	_ resource.ResourceWithValidateConfig = &userResource{}
+	_ resource.ResourceWithImportState    = &userResource{}
 )
 
 type userResource struct {
@@ -159,7 +160,13 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	actual, err := r.client.GetUser(oldState.Id.ValueString())
+	var actual *client.User
+	var err error
+	if oldState.Id.IsNull() != true {
+		actual, err = r.client.GetUser(oldState.Id.ValueString())
+	} else {
+		actual, err = r.client.GetUserByName(oldState.Username.ValueString())
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading user",
@@ -278,6 +285,10 @@ func (r *userResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		)
 		return
 	}
+}
+
+func (r *userResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("username"), req, resp)
 }
 
 func (r *userResource) readState(actual *client.User) userResourceModel {

@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &cleanupResource{}
-	_ resource.ResourceWithConfigure = &cleanupResource{}
+	_ resource.Resource                = &cleanupResource{}
+	_ resource.ResourceWithConfigure   = &cleanupResource{}
+	_ resource.ResourceWithImportState = &cleanupResource{}
 )
 
 func NewCleanupResource() resource.Resource {
@@ -173,6 +174,10 @@ func (r *cleanupResource) Update(ctx context.Context, req resource.UpdateRequest
 }
 
 func (r *cleanupResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
+}
+
+func (r *cleanupResource) ImportState(ctx context.Context, _ resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.State.Set(ctx, cleanupResourceModel{})
 }
 
 func (r *cleanupResource) update(plan cleanupResourceModel) (cleanupResourceModel, error) {

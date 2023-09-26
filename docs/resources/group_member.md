@@ -23,3 +23,12 @@ resource "teamcity_group_member" "developer_bob" {
 
 - `group_id` (String)
 - `user_id` (String)
+
+## Import
+
+```terraform
+import {
+  to = teamcity_group_member.project1_user
+  id = "PROJECT_1_ADMINS/user"
+}
+```

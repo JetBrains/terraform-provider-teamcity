@@ -50,3 +50,12 @@ Optional:
 
 - `global` (Boolean)
 - `project` (String)
+
+## Import
+
+```terraform
+import {
+  to = teamcity_user.user
+  id = "username"
+}
+```

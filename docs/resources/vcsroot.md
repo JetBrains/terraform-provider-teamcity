@@ -68,3 +68,12 @@ Optional:
 - `username` (String)
 - `username_for_tags` (String)
 - `username_style` (String)
+
+## Import
+
+```terraform
+import {
+  to = teamcity_vcsroot.root
+  id = "Project1_root1"
+}
+```

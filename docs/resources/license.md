@@ -21,3 +21,12 @@ resource "teamcity_license" "key" {
 ### Required
 
 - `key` (String, Sensitive)
+
+## Import
+
+```terraform
+import {
+  to = teamcity_license.license
+  id = "12345-67890-12345-67890-12345"
+}
+```

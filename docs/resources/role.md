@@ -110,3 +110,12 @@ resource "teamcity_role" "tag" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+```terraform
+import {
+  to = teamcity_role.project_admin
+  id = "PROJECT_ADMIN"
+}
+```

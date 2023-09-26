@@ -14,6 +14,7 @@ var (
 	_ resource.Resource                   = &authResource{}
 	_ resource.ResourceWithConfigure      = &authResource{}
 	_ resource.ResourceWithValidateConfig = &authResource{}
+	_ resource.ResourceWithImportState    = &authResource{}
 )
 
 func NewAuthResource() resource.Resource {
@@ -277,6 +278,10 @@ func (r *authResource) Update(ctx context.Context, req resource.UpdateRequest, r
 }
 
 func (r *authResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
+}
+
+func (r *authResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.State.Set(ctx, authResourceModel{})
 }
 
 func (r *authResource) update(plan authResourceModel) (authResourceModel, error) {

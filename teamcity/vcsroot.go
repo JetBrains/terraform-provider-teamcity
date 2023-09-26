@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -17,8 +18,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &vcsRootResource{}
-	_ resource.ResourceWithConfigure = &vcsRootResource{}
+	_ resource.Resource                = &vcsRootResource{}
+	_ resource.ResourceWithConfigure   = &vcsRootResource{}
+	_ resource.ResourceWithImportState = &vcsRootResource{}
 )
 
 func NewVcsRootResource() resource.Resource {
@@ -30,11 +32,11 @@ type vcsRootResource struct {
 }
 
 type vcsRootResourceModel struct {
-	Name            types.String       `tfsdk:"name"`
-	Id              types.String       `tfsdk:"id"`
-	ProjectId       types.String       `tfsdk:"project_id"`
-	PollingInterval types.Int64        `tfsdk:"polling_interval"`
-	Git             GitPropertiesModel `tfsdk:"git"`
+	Name            types.String        `tfsdk:"name"`
+	Id              types.String        `tfsdk:"id"`
+	ProjectId       types.String        `tfsdk:"project_id"`
+	PollingInterval types.Int64         `tfsdk:"polling_interval"`
+	Git             *GitPropertiesModel `tfsdk:"git"`
 }
 
 type GitPropertiesModel struct {
@@ -370,8 +372,10 @@ func (r *vcsRootResource) Read(ctx context.Context, req resource.ReadRequest, re
 		)
 		return
 	}
-	newState.Git.Password = oldState.Git.Password
-	newState.Git.Passphrase = oldState.Git.Passphrase
+	if oldState.Git != nil {
+		newState.Git.Password = oldState.Git.Password
+		newState.Git.Passphrase = oldState.Git.Passphrase
+	}
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -394,7 +398,7 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 	for _, p := range result.Properties.Property {
 		props[p.Name] = p.Value
 	}
-	state.Git = GitPropertiesModel{
+	state.Git = &GitPropertiesModel{
 		Url:    types.StringValue(props["url"]),
 		Branch: types.StringValue(props["branch"]),
 	}
@@ -494,6 +498,7 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	var newState vcsRootResourceModel
+	newState.Git = &GitPropertiesModel{}
 
 	resourceId := oldState.Id.ValueString()
 
@@ -778,4 +783,8 @@ func (r *vcsRootResource) Delete(ctx context.Context, req resource.DeleteRequest
 		)
 		return
 	}
+}
+
+func (r *vcsRootResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

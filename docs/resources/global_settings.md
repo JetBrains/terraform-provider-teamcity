@@ -49,3 +49,12 @@ Required:
 Required:
 
 - `artifacts_url` (String) a URL to serve build artifacts from. The URL must be different from the Server URL
+
+## Import
+
+```terraform
+import {
+  to = teamcity_global_settings.global
+  id = "any value"
+}
+```

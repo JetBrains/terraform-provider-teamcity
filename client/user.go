@@ -72,6 +72,29 @@ func (c *Client) GetUser(id string) (*User, error) {
 	return &actual, nil
 }
 
+func (c *Client) GetUserByName(username string) (*User, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/users/username:%s", c.RestURL, username), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.request(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+
+	actual := User{}
+	err = json.Unmarshal(resp.Body, &actual)
+	if err != nil {
+		return nil, err
+	}
+
+	return &actual, nil
+}
+
 func (c *Client) SetUser(user User) (*User, error) {
 	rb, err := json.Marshal(user)
 	if err != nil {

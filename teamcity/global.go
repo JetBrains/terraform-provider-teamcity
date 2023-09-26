@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &globalResource{}
-	_ resource.ResourceWithConfigure = &globalResource{}
+	_ resource.Resource                = &globalResource{}
+	_ resource.ResourceWithConfigure   = &globalResource{}
+	_ resource.ResourceWithImportState = &globalResource{}
 )
 
 func NewGlobalResource() resource.Resource {
@@ -222,6 +223,10 @@ func (r *globalResource) Update(ctx context.Context, req resource.UpdateRequest,
 }
 
 func (r *globalResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
+}
+
+func (r *globalResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.State.Set(ctx, globalResourceModel{})
 }
 
 func (r *globalResource) update(plan globalResourceModel) (*globalResourceModel, error) {

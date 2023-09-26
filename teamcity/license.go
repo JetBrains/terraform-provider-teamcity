@@ -2,6 +2,7 @@ package teamcity
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -11,8 +12,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &licenseResource{}
-	_ resource.ResourceWithConfigure = &licenseResource{}
+	_ resource.Resource                = &licenseResource{}
+	_ resource.ResourceWithConfigure   = &licenseResource{}
+	_ resource.ResourceWithImportState = &licenseResource{}
 )
 
 type licenseResource struct {
@@ -130,4 +132,8 @@ func (r *licenseResource) Delete(ctx context.Context, req resource.DeleteRequest
 		)
 		return
 	}
+}
+
+func (r *licenseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("key"), req, resp)
 }
