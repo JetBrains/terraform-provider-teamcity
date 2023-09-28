@@ -159,5 +159,6 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 		NewMemberResource,
 		NewLicenseResource,
 		NewParamResource,
+		NewConnectionResource,
 	}
 }
