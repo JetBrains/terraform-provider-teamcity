@@ -37,12 +37,13 @@ type authResourceModel struct {
 }
 
 type authModulesModel struct {
-	Token            *authModuleTokenModel   `tfsdk:"token"`
-	BuiltIn          *authModuleBuiltInModel `tfsdk:"built_in"`
-	Google           *authModuleGoogleModel  `tfsdk:"google"`
-	GithubCom        *authModuleGithubModel  `tfsdk:"github"`
-	GithubEnterprise *authModuleGithubModel  `tfsdk:"github_enterprise"`
-	Space            *authModuleSpaceModel   `tfsdk:"jetbrains_space"`
+	Token            *authModuleTokenModel     `tfsdk:"token"`
+	BuiltIn          *authModuleBuiltInModel   `tfsdk:"built_in"`
+	Google           *authModuleGoogleModel    `tfsdk:"google"`
+	GithubApp        *authModuleGithubAppModel `tfsdk:"github_app"`
+	GithubCom        *authModuleGithubModel    `tfsdk:"github"`
+	GithubEnterprise *authModuleGithubModel    `tfsdk:"github_enterprise"`
+	Space            *authModuleSpaceModel     `tfsdk:"jetbrains_space"`
 }
 
 func (r *authResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
@@ -114,6 +115,17 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 							},
 							"domains": schema.StringAttribute{
 								Optional: true,
+							},
+						},
+					},
+					"github_app": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"create_new_users": schema.BoolAttribute{
+								Required: true,
+							},
+							"organizations": schema.StringAttribute{
+								Required: true,
 							},
 						},
 					},
@@ -314,6 +326,14 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 			},
 		})
 	}
+	if plan.Modules.GithubApp != nil {
+		settings.Modules.Module = append(settings.Modules.Module, client.Module{
+			Name: "GitHubApp-oauth",
+			Properties: &client.Properties{
+				Property: plan.Modules.GithubApp.getProperties(),
+			},
+		})
+	}
 	if plan.Modules.GithubCom != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "GitHub-oauth",
@@ -387,6 +407,15 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 			continue
 		}
 
+		if module.Name == "GitHubApp-oauth" {
+			state.Modules.GithubApp = &authModuleGithubAppModel{}
+			err := state.Modules.GithubApp.setFields(props)
+			if err != nil {
+				return authResourceModel{}, err
+			}
+			continue
+		}
+
 		if module.Name == "GitHub-oauth" {
 			state.Modules.GithubCom = &authModuleGithubModel{}
 			err := state.Modules.GithubCom.setFields(props)
@@ -434,6 +463,11 @@ type authModuleGoogleModel struct {
 }
 
 type authModuleGithubModel struct {
+	CreateNewUsers types.Bool   `tfsdk:"create_new_users"`
+	Organizations  types.String `tfsdk:"organizations"`
+}
+
+type authModuleGithubAppModel struct {
 	CreateNewUsers types.Bool   `tfsdk:"create_new_users"`
 	Organizations  types.String `tfsdk:"organizations"`
 }
@@ -514,6 +548,24 @@ func (m *authModuleGoogleModel) setFields(props map[string]string) error {
 		m.Domains = types.StringValue(props["domains"])
 	}
 
+	return nil
+}
+
+func (m *authModuleGithubAppModel) getProperties() []client.Property {
+	return []client.Property{
+		{Name: "allowCreatingNewUsersByLogin", Value: strconv.FormatBool(m.CreateNewUsers.ValueBool())},
+		{Name: "organisation", Value: m.Organizations.ValueString()},
+	}
+}
+
+func (m *authModuleGithubAppModel) setFields(props map[string]string) error {
+	creating, err := strconv.ParseBool(props["allowCreatingNewUsersByLogin"])
+	if err != nil {
+		return err
+	}
+
+	m.CreateNewUsers = types.BoolValue(creating)
+	m.Organizations = types.StringValue(props["organisation"])
 	return nil
 }
 
