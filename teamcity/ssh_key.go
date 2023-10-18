@@ -22,7 +22,6 @@ type sshKeyResource struct {
 }
 
 type sshKeyResourceModel struct {
-	Id      types.String `tfsdk:"id"`
 	Project types.String `tfsdk:"project_id"`
 	Name    types.String `tfsdk:"name"`
 	Key     types.String `tfsdk:"private_key"`
@@ -35,9 +34,6 @@ func (r *sshKeyResource) Metadata(_ context.Context, req resource.MetadataReques
 func (r *sshKeyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-			},
 			"project_id": schema.StringAttribute{
 				Required: true,
 			},
@@ -77,7 +73,6 @@ func (r *sshKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	var newState sshKeyResourceModel
-	newState.Id = types.StringValue("placeholder")
 	newState.Project = plan.Project
 	newState.Name = plan.Name
 	newState.Key = plan.Key
@@ -117,7 +112,6 @@ func (r *sshKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	newState := sshKeyResourceModel{
-		Id:      state.Id,
 		Project: state.Project,
 		Name:    state.Name,
 		Key:     state.Key,
