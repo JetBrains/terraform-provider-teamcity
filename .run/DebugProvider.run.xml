@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="DebugProvider" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="terraform-provider-teamcity" />
+    <working_directory value="$PROJECT_DIR$" />
+    <go_parameters value="-gcflags=&quot;all=-N -l&quot;" />
+    <parameters value="--debug=true" />
+    <envs>
+      <env name="TEAMCITY_TOKEN" value="" />
+    </envs>
+    <kind value="PACKAGE" />
+    <package value="terraform-provider-teamcity" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/../terraform-provider-teamcity|$PROJECT_DIR$/main.go" />
+    <method v="2" />
+  </configuration>
+</component>
