@@ -1,0 +1,7 @@
+teamcity_url  = "https://teamcity"
+teamcity_token = "12345"
+github_ssh_private_key = <<EOT
+-----BEGIN OPENSSH PRIVATE KEY-----
+12345
+-----END OPENSSH PRIVATE KEY-----
+EOT

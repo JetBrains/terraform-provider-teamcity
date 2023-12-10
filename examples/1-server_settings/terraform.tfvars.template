@@ -1,0 +1,11 @@
+teamcity_url  = "https://teamcity"
+teamcity_token = "12345"
+
+github_client_secret = "12345"
+github_webhook_secret = "12345"
+
+github_private_key = <<EOT
+-----BEGIN RSA PRIVATE KEY-----
+12345
+-----END RSA PRIVATE KEY-----
+EOT
