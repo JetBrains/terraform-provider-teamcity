@@ -86,7 +86,7 @@ func (r *roleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 						"change_usergroup",
 						"change_vcs_username_in_project",
 						"clean_agent_sources",
-						//"clean_build_configuration_sources",
+						"clean_build_configuration_sources",
 						"comment_build",
 						"configure_server_data_cleanup",
 						"connect_to_agent",
