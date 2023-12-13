@@ -1,0 +1,4 @@
+teamcity_url  = "https://teamcity.demo.com"
+teamcity_token = "12345"
+github_organization = "teamcity-terraform-test"
+github_token = "12345"

@@ -1,0 +1,2 @@
+teamcity_url  = "https://teamcity.demo.com"
+teamcity_token = "12345"
