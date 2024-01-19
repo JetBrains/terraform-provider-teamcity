@@ -48,4 +48,7 @@ curl -s -S -o /dev/null \
   -H "Authorization: Bearer $GITHUB_TOKEN" \
   https://api.github.com/repos/$owner/$repo/releases/$id \
   -d '{"draft":false}'
+
+unset GITHUB_TOKEN
+
 echo "Done."
