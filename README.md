@@ -3,7 +3,7 @@
 
 # TeamCity Terraform Provider
 
-This provider leverages the HashiCorp Terraform infrastructure as code approach to allow DevOps engineers to initialize the [JetBrains TeamCity](www.jetbrains.com/teamcity/) server and automate its administration.
+This provider leverages the HashiCorp Terraform infrastructure as code approach to allow DevOps engineers to initialize the [JetBrains TeamCity](https://www.jetbrains.com/teamcity/) server and automate its administration.
 
 TeamCity Terraform provider supports Terraform 0.13 and newer.
 
