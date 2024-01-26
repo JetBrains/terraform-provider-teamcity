@@ -30,7 +30,7 @@ resource "teamcity_global_settings" "global" {
 #  }
 }
 
-resource "teamcity_auth" "test" {
+resource "teamcity_auth_settings" "test" {
   allow_guest             = false
   guest_username          = "guest"
   welcome_text            = ""
@@ -80,7 +80,7 @@ resource "teamcity_license" "key" {
   key = "12345-67890-12345-67890"
 }
 
-resource "teamcity_cleanup" "cleanup" {
+resource "teamcity_cleanup_settings" "cleanup" {
   enabled = true
   daily   = {
     hour   = 2

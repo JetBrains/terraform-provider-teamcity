@@ -46,7 +46,7 @@ type cronResourceModel struct {
 }
 
 func (r *cleanupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_cleanup"
+	resp.TypeName = req.ProviderTypeName + "_cleanup_settings"
 }
 
 func (r *cleanupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {

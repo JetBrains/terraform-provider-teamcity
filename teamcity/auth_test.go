@@ -11,7 +11,7 @@ func TestAccAuth_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-resource "teamcity_auth" "test" {
+resource "teamcity_auth_settings" "test" {
   allow_guest         = false
   guest_username      = "guest"
   welcome_text        = ""
@@ -26,7 +26,7 @@ resource "teamcity_auth" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("teamcity_auth.test", "allow_guest", "false"),
+					resource.TestCheckResourceAttr("teamcity_auth_settings.test", "allow_guest", "false"),
 				),
 			},
 		},

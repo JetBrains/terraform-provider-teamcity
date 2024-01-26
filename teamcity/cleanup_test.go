@@ -11,7 +11,7 @@ func TestAccCleanup_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-resource "teamcity_cleanup" "test" {
+resource "teamcity_cleanup_settings" "test" {
 	enabled = true
 	max_duration = 0
 	daily = {
@@ -21,15 +21,15 @@ resource "teamcity_cleanup" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "max_duration", "0"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "daily.hour", "2"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "daily.minute", "15"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "max_duration", "0"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "daily.hour", "2"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "daily.minute", "15"),
 				),
 			},
 			{
 				Config: providerConfig + `
-resource "teamcity_cleanup" "test" {
+resource "teamcity_cleanup_settings" "test" {
 	enabled = true
 	max_duration = 0
 	cron = {
@@ -42,13 +42,13 @@ resource "teamcity_cleanup" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "max_duration", "0"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "cron.minute", "15"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "cron.hour", "2"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "cron.day", "2"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "cron.month", "*"),
-					resource.TestCheckResourceAttr("teamcity_cleanup.test", "cron.day_week", "?"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "max_duration", "0"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "cron.minute", "15"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "cron.hour", "2"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "cron.day", "2"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "cron.month", "*"),
+					resource.TestCheckResourceAttr("teamcity_cleanup_settings.test", "cron.day_week", "?"),
 				),
 			},
 		},
