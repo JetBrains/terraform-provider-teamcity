@@ -54,7 +54,7 @@ func (r *authResource) Configure(_ context.Context, req resource.ConfigureReques
 }
 
 func (r *authResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_auth"
+	resp.TypeName = req.ProviderTypeName + "_auth_settings"
 }
 
 func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
