@@ -41,6 +41,7 @@ type roleResourceModel struct {
 
 func (r *roleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "A role is a set of permissions that can be granted to a user in one or all projects thus controlling access to the projects and various features. More details [here](https://www.jetbrains.com/help/teamcity/managing-roles-and-permissions.html#Managing+Roles)",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Required: true,

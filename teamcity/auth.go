@@ -59,6 +59,7 @@ func (r *authResource) Metadata(_ context.Context, req resource.MetadataRequest,
 
 func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "TeamCity can authenticate users via an internal database, or can integrate into your system and use external authentication sources such as Windows Domain, LDAP, or Git hosting providers. More details [here](https://www.jetbrains.com/help/teamcity/configuring-authentication-settings.html)",
 		Attributes: map[string]schema.Attribute{
 			"allow_guest": schema.BoolAttribute{
 				Required: true,

@@ -39,6 +39,7 @@ func (r *paramResource) Metadata(_ context.Context, req resource.MetadataRequest
 
 func (r *paramResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Parameters are name=value pairs that can be referenced throughout TeamCity. Project parameters are available to any Build Configuration inside corresponding project. More info [here](https://www.jetbrains.com/help/teamcity/configuring-build-parameters.html)",
 		Attributes: map[string]schema.Attribute{
 			"project_id": schema.StringAttribute{
 				Required: true,

@@ -37,6 +37,7 @@ func (d *serverDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 
 func (d *serverDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Data Source for retrieving the TeamCity server version",
 		Attributes: map[string]schema.Attribute{
 			"version": schema.StringAttribute{
 				Computed: true,

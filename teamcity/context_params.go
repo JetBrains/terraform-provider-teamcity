@@ -34,6 +34,7 @@ func (r *contextParamsResource) Metadata(_ context.Context, req resource.Metadat
 
 func (r *contextParamsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "With context parameters, it is possible to maintain a single Kotlin DSL code and use it in different projects on the same TeamCity server. Each of these projects can have own values of context parameters. More details [here](https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Use+Context+Parameters+in+DSL))",
 		Attributes: map[string]schema.Attribute{
 			"project_id": schema.StringAttribute{
 				Required: true,

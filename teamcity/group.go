@@ -38,6 +38,7 @@ type groupResourceModel struct {
 
 func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "User groups help manage user accounts more efficiently via roles and notification rules. More details [here](https://www.jetbrains.com/help/teamcity/creating-and-managing-user-groups.html).",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

@@ -47,6 +47,7 @@ func (r *emailResource) Metadata(_ context.Context, req resource.MetadataRequest
 
 func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "TeamCity can notify users about various events using email. More info [here](https://www.jetbrains.com/help/teamcity/configuring-notifications.html)",
 		Attributes: map[string]schema.Attribute{
 			"enabled":  schema.BoolAttribute{Required: true},
 			"host":     schema.StringAttribute{Required: true},

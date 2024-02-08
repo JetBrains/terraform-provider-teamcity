@@ -38,6 +38,7 @@ func (r *memberResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *memberResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Adds specified user to the group.",
 		Attributes: map[string]schema.Attribute{
 			"group_id": schema.StringAttribute{
 				Required: true,

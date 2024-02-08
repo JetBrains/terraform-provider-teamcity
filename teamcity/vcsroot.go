@@ -68,6 +68,7 @@ func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "A VCS root in TeamCity defines a connection to a version control system. More info [here](https://www.jetbrains.com/help/teamcity/vcs-root.html)",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Required: true,

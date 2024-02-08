@@ -51,6 +51,7 @@ func (d *buildConfDataSource) Metadata(_ context.Context, req datasource.Metadat
 
 func (d *buildConfDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "A build configuration is a collection of settings used to start a build and group the sequence of the builds. This is a Data Source, it is recommended to use Versioned settings for configuring individual Build Configurations inside Projects. More info [here](https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html)",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Required: true,

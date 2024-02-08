@@ -51,6 +51,7 @@ func (r *cleanupResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *cleanupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "[TeamCity clean-up](https://www.jetbrains.com/help/teamcity/teamcity-data-clean-up.html) functionality allows an automatic deletion of old and no longer necessary build data.",
 		Attributes: map[string]schema.Attribute{
 			"enabled": schema.BoolAttribute{
 				Required: true,

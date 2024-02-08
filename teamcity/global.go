@@ -61,6 +61,7 @@ func (r *globalResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "[General TeamCity configuration](https://www.jetbrains.com/help/teamcity/teamcity-configuration-and-maintenance.html#TeamCity+Configuration)",
 		Attributes: map[string]schema.Attribute{
 			"artifact_directories": schema.StringAttribute{
 				Optional: true,
