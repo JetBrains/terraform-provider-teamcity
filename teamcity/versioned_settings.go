@@ -41,6 +41,7 @@ func (r *versionedSettingsResource) Metadata(_ context.Context, req resource.Met
 
 func (r *versionedSettingsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "TeamCity allows synchronizing project settings with the version control repository (VCS). More info [here](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html)",
 		Attributes: map[string]schema.Attribute{
 			"project_id": schema.StringAttribute{
 				Required: true,

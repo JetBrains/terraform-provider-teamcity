@@ -33,6 +33,7 @@ func (r *sshKeyResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *sshKeyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "You can upload private SSH keys into TeamCity projects. Uploaded keys can be used when configuring VCS roots, and in the SSH Agent build feature. More info [here](https://www.jetbrains.com/help/teamcity/ssh-keys-management.html)",
 		Attributes: map[string]schema.Attribute{
 			"project_id": schema.StringAttribute{
 				Required: true,

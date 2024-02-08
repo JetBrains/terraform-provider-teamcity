@@ -47,6 +47,7 @@ type roleAssignment struct {
 
 func (r *userResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "User account is a combination of username and password that allows TeamCity users to sign in to the server and use its features. More info [here](https://www.jetbrains.com/help/teamcity/creating-and-managing-users.html)",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
