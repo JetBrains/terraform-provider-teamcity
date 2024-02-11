@@ -3,12 +3,12 @@
 page_title: "teamcity_build_configuration Data Source - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  A build configuration is a collection of settings used to start a build and group the sequence of the builds. This is a Data Source, it is recommended to use Versioned settings for configuring individual Build Configurations inside Projects. More info here https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html
 ---
 
 # teamcity_build_configuration (Data Source)
 
-
+A build configuration is a collection of settings used to start a build and group the sequence of the builds. This is a Data Source, it is recommended to use Versioned settings for configuring individual Build Configurations inside Projects. More info [here](https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html)
 
 
 

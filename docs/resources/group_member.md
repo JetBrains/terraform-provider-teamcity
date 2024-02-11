@@ -3,10 +3,12 @@
 page_title: "teamcity_group_member Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  Adds specified user to the group.
 ---
 
 # teamcity_group_member (Resource)
+
+Adds specified user to the group.
 
 ## Example Usage
 

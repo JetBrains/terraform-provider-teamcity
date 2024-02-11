@@ -3,10 +3,12 @@
 page_title: "teamcity_role Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  A role is a set of permissions that can be granted to a user in one or all projects thus controlling access to the projects and various features. More details here https://www.jetbrains.com/help/teamcity/managing-roles-and-permissions.html#Managing+Roles
 ---
 
 # teamcity_role (Resource)
+
+A role is a set of permissions that can be granted to a user in one or all projects thus controlling access to the projects and various features. More details [here](https://www.jetbrains.com/help/teamcity/managing-roles-and-permissions.html#Managing+Roles)
 
 ## Example Usage
 

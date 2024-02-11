@@ -3,10 +3,12 @@
 page_title: "teamcity_vcsroot Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  A VCS root in TeamCity defines a connection to a version control system. More info here https://www.jetbrains.com/help/teamcity/vcs-root.html
 ---
 
 # teamcity_vcsroot (Resource)
+
+A VCS root in TeamCity defines a connection to a version control system. More info [here](https://www.jetbrains.com/help/teamcity/vcs-root.html)
 
 ## Example Usage
 

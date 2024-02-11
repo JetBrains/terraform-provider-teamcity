@@ -3,10 +3,12 @@
 page_title: "teamcity_context_parameters Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  With context parameters, it is possible to maintain a single Kotlin DSL code and use it in different projects on the same TeamCity server. Each of these projects can have own values of context parameters. More details here https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Use+Context+Parameters+in+DSL)
 ---
 
 # teamcity_context_parameters (Resource)
+
+With context parameters, it is possible to maintain a single Kotlin DSL code and use it in different projects on the same TeamCity server. Each of these projects can have own values of context parameters. More details [here](https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Use+Context+Parameters+in+DSL))
 
 ## Example Usage
 

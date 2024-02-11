@@ -3,11 +3,12 @@
 page_title: "teamcity_project Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  A project in TeamCity is a collection of build configurations. More info here https://www.jetbrains.com/help/teamcity/project.html
 ---
 
 # teamcity_project (Resource)
 
+A project in TeamCity is a collection of build configurations. More info [here](https://www.jetbrains.com/help/teamcity/project.html)
 
 ## Example Usage
 

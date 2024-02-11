@@ -3,10 +3,12 @@
 page_title: "teamcity_ssh_key Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  You can upload private SSH keys into TeamCity projects. Uploaded keys can be used when configuring VCS roots, and in the SSH Agent build feature. More info here https://www.jetbrains.com/help/teamcity/ssh-keys-management.html
 ---
 
 # teamcity_ssh_key (Resource)
+
+You can upload private SSH keys into TeamCity projects. Uploaded keys can be used when configuring VCS roots, and in the SSH Agent build feature. More info [here](https://www.jetbrains.com/help/teamcity/ssh-keys-management.html)
 
 ## Example Usage
 

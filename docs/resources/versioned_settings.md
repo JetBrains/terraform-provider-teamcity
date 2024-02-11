@@ -3,10 +3,12 @@
 page_title: "teamcity_versioned_settings Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  TeamCity allows synchronizing project settings with the version control repository (VCS). More info here https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html
 ---
 
 # teamcity_versioned_settings (Resource)
+
+TeamCity allows synchronizing project settings with the version control repository (VCS). More info [here](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html)
 
 ## Example Usage
 
