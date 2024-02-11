@@ -3,10 +3,12 @@
 page_title: "teamcity_user Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  User account is a combination of username and password that allows TeamCity users to sign in to the server and use its features. More info here https://www.jetbrains.com/help/teamcity/creating-and-managing-users.html
 ---
 
 # teamcity_user (Resource)
+
+User account is a combination of username and password that allows TeamCity users to sign in to the server and use its features. More info [here](https://www.jetbrains.com/help/teamcity/creating-and-managing-users.html)
 
 ## Example Usage
 

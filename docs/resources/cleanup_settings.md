@@ -3,10 +3,12 @@
 page_title: "teamcity_cleanup_settings Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-
+  TeamCity clean-up https://www.jetbrains.com/help/teamcity/teamcity-data-clean-up.html functionality allows an automatic deletion of old and no longer necessary build data.
 ---
 
 # teamcity_cleanup_settings (Resource)
+
+[TeamCity clean-up](https://www.jetbrains.com/help/teamcity/teamcity-data-clean-up.html) functionality allows an automatic deletion of old and no longer necessary build data.
 
 ## Example Usage
 

@@ -3,10 +3,12 @@
 page_title: "teamcity_global_settings Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  General TeamCity configuration https://www.jetbrains.com/help/teamcity/teamcity-configuration-and-maintenance.html#TeamCity+Configuration
 ---
 
 # teamcity_global_settings (Resource)
+
+[General TeamCity configuration](https://www.jetbrains.com/help/teamcity/teamcity-configuration-and-maintenance.html#TeamCity+Configuration)
 
 ## Example Usage
 

@@ -3,12 +3,12 @@
 page_title: "teamcity_auth_settings Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-
+  TeamCity can authenticate users via an internal database, or can integrate into your system and use external authentication sources such as Windows Domain, LDAP, or Git hosting providers. More details here https://www.jetbrains.com/help/teamcity/configuring-authentication-settings.html
 ---
 
 # teamcity_auth_settings (Resource)
 
-Authentication settings
+TeamCity can authenticate users via an internal database, or can integrate into your system and use external authentication sources such as Windows Domain, LDAP, or Git hosting providers. More details [here](https://www.jetbrains.com/help/teamcity/configuring-authentication-settings.html)
 
 ## Example Usage
 

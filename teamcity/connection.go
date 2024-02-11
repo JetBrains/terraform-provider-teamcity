@@ -47,7 +47,7 @@ func (r *connectionResource) Metadata(_ context.Context, req resource.MetadataRe
 
 func (r *connectionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "TeamCity allows storing presets of connections to external services. You can reuse these presets in various places on the server: when creating projects, configuring notifications, integrating with issue trackers, and more. Details about different connection types can be found [here](https://www.jetbrains.com/help/teamcity/configuring-connections.html)",
+		Description: "TeamCity allows storing presets of connections to external services. Currently only GitHub App type is supported for adding SSO to the server. More info [here](https://www.jetbrains.com/help/teamcity/configuring-connections.html#GitHub)",
 		Attributes: map[string]schema.Attribute{
 			"project_id": schema.StringAttribute{
 				Required: true,

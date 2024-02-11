@@ -3,10 +3,12 @@
 page_title: "teamcity_secure_token Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  If you need to add a password (or other secure value) to the versioned settings, you can create a token to be used in the settings instead of this password. More info here https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Storing+Secure+Settings
 ---
 
 # teamcity_secure_token (Resource)
+
+If you need to add a password (or other secure value) to the versioned settings, you can create a token to be used in the settings instead of this password. More info [here](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Storing+Secure+Settings)
 
 ## Example Usage
 

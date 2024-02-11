@@ -3,10 +3,12 @@
 page_title: "teamcity_email_settings Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  TeamCity can notify users about various events using email. More info here https://www.jetbrains.com/help/teamcity/configuring-notifications.html
 ---
 
 # teamcity_email_settings (Resource)
+
+TeamCity can notify users about various events using email. More info [here](https://www.jetbrains.com/help/teamcity/configuring-notifications.html)
 
 ## Example Usage
 

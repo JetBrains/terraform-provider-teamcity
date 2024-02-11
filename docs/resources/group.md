@@ -3,10 +3,12 @@
 page_title: "teamcity_group Resource - terraform-provider-teamcity"
 subcategory: ""
 description: |-
-  
+  User groups help manage user accounts more efficiently via roles and notification rules. More details here https://www.jetbrains.com/help/teamcity/creating-and-managing-user-groups.html.
 ---
 
 # teamcity_group (Resource)
+
+User groups help manage user accounts more efficiently via roles and notification rules. More details [here](https://www.jetbrains.com/help/teamcity/creating-and-managing-user-groups.html).
 
 ## Example Usage
 
