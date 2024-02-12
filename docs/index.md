@@ -47,6 +47,15 @@ provider "teamcity" {
 * `host` — the URL of your TeamCity server
 * `token` — the [TeamCity Access Token](https://www.jetbrains.com/help/teamcity/configuring-your-user-profile.html#Managing+Access+Tokens) issued for a user who has sufficient permissions to manage users, projects, and the server itself. It is recommended to store this token in an environment variable instead of passing it as a plain string value.
 
+Initial [Super User](https://www.jetbrains.com/help/teamcity/super-user.html) token also can be used, but `password` should be set instead of `token`:
+
+```HCL
+provider "teamcity" {
+   host  = var.teamcity_url
+   password = var.teamcity_token
+}
+```
+
 ## Examples
 
 For more advanced examples, see the `/examples/` folder in the [GitHub repository](https://github.com/JetBrains/terraform-provider-teamcity):
