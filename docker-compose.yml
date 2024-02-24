@@ -14,3 +14,14 @@ services:
       timeout: 5s
       interval: 10s
       retries: 30
+  teamcity-server-local:
+    image: jetbrains/teamcity-server:2023.05
+    volumes:
+      - type: bind
+        source: "./testdata"
+        target:  "/testdata"
+      - type: bind
+        source: "./testdata/plugins"
+        target: "/data/teamcity_server/datadir/plugins"
+    ports:
+      - 8111:8111
