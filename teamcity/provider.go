@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"os"
 	"terraform-provider-teamcity/client"
+    "terraform-provider-teamcity/teamcity/pool"
 )
 
 var (
@@ -138,6 +139,7 @@ func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.Da
 	return []func() datasource.DataSource{
 		NewServerDataSource,
 		NewBuildConfDataSource,
+        pool.NewPoolDataSource,
 	}
 }
 
