@@ -12,7 +12,7 @@ provider "teamcity" {
 }
 
 data "teamcity_pool" "test" {
-  name = "testPool"
+  name = "Default"
 }
 
 output "test_output" {

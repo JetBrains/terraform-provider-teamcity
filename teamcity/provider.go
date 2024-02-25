@@ -1,6 +1,7 @@
 package teamcity
 
 import (
+    "fmt"
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -126,11 +127,25 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 			"",
 		)
 	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	cl := client.NewClient(host, token, username, password)
+	cl     := client.NewClient(host, token, username, password)
+    _, err := cl.VerifyConnection(ctx)    
+
+    if err != nil {
+        resp.Diagnostics.AddError(
+            "Could not verify connection to server",
+            fmt.Sprint(err),
+        )
+    }
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.DataSourceData = &cl
 	resp.ResourceData = &cl
 }

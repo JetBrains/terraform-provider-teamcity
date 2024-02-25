@@ -33,6 +33,7 @@ func NewClient(host, token, username, password string) Client {
 	return client
 }
 
+
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	return c.doRequestWithType(req, "application/json")
 }
@@ -163,6 +164,35 @@ type Properties struct {
 type Property struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+// Verify authethication and status of the REST endpoint
+func (c *Client) VerifyConnection(ctx context.Context) (Response, error) {
+    
+    // Create base address
+    addr, err := url.Parse(c.RestURL)
+    if    err != nil {
+        return Response{}, err
+    }
+
+    // Create request
+    req, err := http.NewRequestWithContext(ctx, http.MethodGet, addr.String(), nil)
+    if err != nil {
+        return Response{}, err
+    }
+
+    // Run text/plain request
+    response, err := c.requestWithType(req, "text/plain")
+    if err != nil {
+        return Response{}, err
+    }
+
+    // Verify response: defense against a non caught error when calling requestWithType
+    if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
+        return response, fmt.Errorf("Got status %d when trying connection to the server", response.StatusCode)
+    }
+    
+    return response, nil
 }
 
 // Calling http methods directly
