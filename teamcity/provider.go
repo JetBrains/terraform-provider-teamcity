@@ -1,8 +1,8 @@
 package teamcity
 
 import (
-    "fmt"
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"os"
 	"terraform-provider-teamcity/client"
-    "terraform-provider-teamcity/teamcity/pool"
+	"terraform-provider-teamcity/teamcity/pool"
 )
 
 var (
@@ -132,15 +132,15 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
-	cl     := client.NewClient(host, token, username, password)
-    _, err := cl.VerifyConnection(ctx)    
+	cl := client.NewClient(host, token, username, password)
+	_, err := cl.VerifyConnection(ctx)
 
-    if err != nil {
-        resp.Diagnostics.AddError(
-            "Could not verify connection to server",
-            fmt.Sprint(err),
-        )
-    }
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Could not verify connection to server",
+			fmt.Sprint(err),
+		)
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -154,7 +154,7 @@ func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.Da
 	return []func() datasource.DataSource{
 		NewServerDataSource,
 		NewBuildConfDataSource,
-        pool.NewPoolDataSource,
+		pool.NewPoolDataSource,
 	}
 }
 
