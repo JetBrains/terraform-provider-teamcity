@@ -1,131 +1,131 @@
 package pool
 
 import (
-    "fmt"
-    "context"
+	"context"
+	"fmt"
 
-    "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-    "github.com/hashicorp/terraform-plugin-framework/datasource"
-    "github.com/hashicorp/terraform-plugin-framework/types"
-    "github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 )
 
 var (
-    _ datasource.DataSource                 = &poolDataSource{}
-    _ datasource.DataSourceWithConfigure    = &poolDataSource{}
+	_ datasource.DataSource              = &poolDataSource{}
+	_ datasource.DataSourceWithConfigure = &poolDataSource{}
 )
 
 func NewPoolDataSource() datasource.DataSource {
-    return &poolDataSource{}
+	return &poolDataSource{}
 }
 
 type poolDataSource struct {
-    client *client.Client
+	client *client.Client
 }
-
 
 // DataSource functions implementation
 // returns the full name of the data source
 func (d *poolDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-    resp.TypeName = req.ProviderTypeName + "_pool"
+	resp.TypeName = req.ProviderTypeName + "_pool"
 }
 
 // returns the schema of the data source
 func (d *poolDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-    resp.Schema = schema.Schema {
-        Description: "A Agent Pool in TeamCity is a group of agents that can be associated to projects. More info [here](https://www.jetbrains.com/help/teamcity/configuring-agent-pools.html)",
-        Attributes: map[string]schema.Attribute{
-            "name" : schema.StringAttribute {
-                Required: true,
-            },
-            "id": schema.Int64Attribute {
-                Computed: true,
-            },
-            "size": schema.Int64Attribute {
-                Computed: true,
-                MarkdownDescription: "Agents capacity for the given pool",
-            },
-        },
-    }
+	resp.Schema = schema.Schema{
+		Description: "A Agent Pool in TeamCity is a group of agents that can be associated to projects. More info [here](https://www.jetbrains.com/help/teamcity/configuring-agent-pools.html)",
+		Attributes: map[string]schema.Attribute{
+			"name": schema.StringAttribute{
+				Required: true,
+			},
+			"id": schema.Int64Attribute{
+				Computed: true,
+			},
+			"size": schema.Int64Attribute{
+				Computed:            true,
+				MarkdownDescription: "Agents capacity for the given pool",
+			},
+		},
+	}
 }
 
 // returns the state of the data source
 func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
-    var name  types.String
+	var name types.String
 
-    diags := req.Config.GetAttribute(ctx, path.Root("name"), &name)
-    resp.Diagnostics.Append(diags...)
+	diags := req.Config.GetAttribute(ctx, path.Root("name"), &name)
+	resp.Diagnostics.Append(diags...)
 
-    if resp.Diagnostics.HasError() {
-        return
-    }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-    if name.IsUnknown() {
-        resp.Diagnostics.AddAttributeError(
-            path.Root("name"),
-            "Unknown Agent Pool name attribute",
-            "The Datasource cannot get an Agent Pool since there is an unknown configuration value for the Agent Pool name.",
-        )
-    }
+	if name.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("name"),
+			"Unknown Agent Pool name attribute",
+			"The Datasource cannot get an Agent Pool since there is an unknown configuration value for the Agent Pool name.",
+		)
+	}
 
-    if resp.Diagnostics.HasError() {
-        return
-    }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-    if name.IsNull() {
-         resp.Diagnostics.AddAttributeError(
-            path.Root("name"),
-            "Agent Pool name cannot be null",
-            "The Datasource cannot get an Agent Pool since there is an invalid configuration value for the Agent Pool name.",
-        )       
-    }
+	if name.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("name"),
+			"Agent Pool name cannot be null",
+			"The Datasource cannot get an Agent Pool since there is an invalid configuration value for the Agent Pool name.",
+		)
+	}
 
-    if resp.Diagnostics.HasError() {
-        return
-    }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-    pool, err := d.client.GetPool(name.ValueString())  
-    if pool == nil || err != nil {
-         resp.Diagnostics.AddAttributeError(
-            path.Root("name"),
-            "Agent Pool not found",
-            "The Datasource cannot get an Agent Pool since there is no Agent Pool with the provided name.",
-        )       
-    }
+	pool, err := d.client.GetPool(name.ValueString())
+	if pool == nil || err != nil {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("name"),
+			"Agent Pool not found",
+			"The Datasource cannot get an Agent Pool since there is no Agent Pool with the provided name.",
+		)
+	}
 
-    if resp.Diagnostics.HasError() {
-        return
-    }
-   
-    state := models.PoolDataModel {
-        Name: types.StringValue(string(pool.Name)),
-        Size: types.Int64Value(int64(pool.Size)),
-        Id:   types.Int64Value(int64(*(pool.Id))),
-    }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-    diags = resp.State.Set(ctx, &state)
-    resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() {
-        return
-    }
+	state := models.PoolDataModel{
+		Name: types.StringValue(string(pool.Name)),
+		Size: types.Int64Value(int64(pool.Size)),
+		Id:   types.Int64Value(int64(*(pool.Id))),
+	}
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 // DataSourceWithConfigure functions implementation
 func (d *poolDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-    if req.ProviderData == nil {
-        return
-    }
+	if req.ProviderData == nil {
+		return
+	}
 
-    client, ok := req.ProviderData.(*client.Client); if !ok {
-        resp.Diagnostics.AddError(
-            "Unexpected Data Source Configure Type",
-            fmt.Sprintf("Expected *client.Client, got: %T.", req.ProviderData),
-        )
-        return
-    }
+	client, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *client.Client, got: %T.", req.ProviderData),
+		)
+		return
+	}
 
-    d.client = client
+	d.client = client
 }
