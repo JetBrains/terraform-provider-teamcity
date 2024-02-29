@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -189,45 +188,6 @@ func (c *Client) VerifyConnection(ctx context.Context) (Response, error) {
 	// Verify response: defense against a non caught error when calling requestWithType
 	if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
 		return response, fmt.Errorf("Got status %d when trying connection to the server", response.StatusCode)
-	}
-
-	return response, nil
-}
-
-// Calling http methods directly
-// resp must be ready for json.Unmarshall
-func (c *Client) GetRequest(ctx context.Context, endpoint, query string, resp any) (Response, error) {
-
-	// Build full address and verify it
-	addr, err := url.Parse(c.RestURL)
-	if err != nil {
-		return Response{}, err
-	}
-	addr = addr.JoinPath(endpoint)
-
-	// Adding queries
-	_, err = url.ParseQuery(query)
-	if err != nil {
-		return Response{}, err
-	}
-	addr.RawQuery = query
-
-	// Create request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, addr.String(), nil)
-	if err != nil {
-		return Response{}, err
-	}
-
-	// Run request
-	response, err := c.request(req)
-	if err != nil {
-		return Response{}, err
-	}
-
-	// Unmarshal the response
-	err = json.Unmarshal(response.Body, resp)
-	if err != nil {
-		return Response{}, err
 	}
 
 	return response, nil
