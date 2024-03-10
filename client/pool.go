@@ -31,7 +31,7 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 	}
 
 	actual := models.PoolJson{}
-	err = json.Unmarshal(Body, &actual)
+	err = json.Unmarshal(body, &actual)
 	if err != nil {
 		return nil, err
 	}
