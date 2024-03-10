@@ -3,10 +3,39 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+    "bytes"
 	"net/http"
 
 	"terraform-provider-teamcity/models"
 )
+
+func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
+
+    rb, err := json.Marshal(p)
+    if err != nil {
+        return nil, err
+    }
+
+	endpoint := fmt.Sprintf("%s/agentPools", c.RestURL)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(rb))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	actual := models.PoolJson{}
+	err = json.Unmarshal(Body, &actual)
+	if err != nil {
+		return nil, err
+	}
+
+	return &actual, nil
+}
 
 func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 
