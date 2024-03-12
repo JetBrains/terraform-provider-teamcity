@@ -6,8 +6,8 @@ import (
 
 type PoolJson struct {
 	Name string `json:"name"`
-	Id   *int64 `json:"id"`
-	Size int64  `json:"maxAgents"`
+	Id   *int64 `json:"id,omitempty"`
+	Size *int64 `json:"maxAgents,omitempty"`
 }
 
 type PoolDataModel struct {
