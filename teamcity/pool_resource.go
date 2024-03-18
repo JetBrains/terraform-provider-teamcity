@@ -3,6 +3,7 @@ package teamcity
 import (
     "fmt"
     "context"
+    "strconv"
 
     "terraform-provider-teamcity/client"
     "terraform-provider-teamcity/models"
@@ -11,6 +12,8 @@ import (
     "github.com/hashicorp/terraform-plugin-framework/types/basetypes"
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 )
 
 var (
@@ -42,6 +45,9 @@ func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
             },
             "id": schema.Int64Attribute{
                 Computed: true,
+                PlanModifiers: []planmodifier.Int64{
+                    int64planmodifier.UseStateForUnknown(),
+                },
             },
             "size": schema.Int64Attribute{
                 Required: false,
@@ -127,18 +133,10 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
     // overwrite with refreshed state
-    if pool.Size == nil {
-        state = models.PoolDataModel{
-            Name: types.StringValue(string(pool.Name)),
-            Size: basetypes.NewInt64Null(),
-            Id:   types.Int64Value(int64(*(pool.Id))),
-        }
-    } else {
-        state = models.PoolDataModel{
-            Name: types.StringValue(string(pool.Name)),
-            Size: types.Int64Value(int64(*(pool.Size))),
-            Id:   types.Int64Value(int64(*(pool.Id))),
-        }
+    state = models.PoolDataModel{
+        Name: types.StringValue(string(pool.Name)),
+        Size: pool.GetSize(),
+        Id:   types.Int64Value(int64(*(pool.Id))),
     }
 
     // set state
@@ -150,8 +148,99 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 }
 
 // updates a resource and sets the latest updated terraform state
-func (r *poolResource) Update(_ context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+    // get values from plan
+    var plan models.PoolDataModel
+    diags := req.Plan.Get(ctx, &plan)
+    resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
+    // get state
+    var state models.PoolDataModel
+    diags = req.State.Get(ctx, &state)
+    resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+    var newName string
+    var newSize string
+
+    // verify plan values
+    if plan.Name.IsNull() {
+        resp.Diagnostics.AddAttributeError(
+            path.Root("name"),
+            "Agent Pool name cannot be null",
+            "The Resource cannot update an Agent Pool since there is an invalid configuration value for the Agent Pool name.",
+        )
+        return
+    }
+
+    newName = plan.Name.ValueString()
+
+    if plan.Size.IsNull() {
+        newSize = "-1" // unlimited         
+    } else {
+        newSize = strconv.FormatInt(plan.Size.ValueInt64(), 10)
+    }
+
+    // verify state id
+    if state.Id.IsNull() {
+        resp.Diagnostics.AddAttributeError(
+            path.Root("id"),
+            "Agent pool state's id cannot be null",
+            "The Resource cannot update an Agent Pool since there is an inconsistent state.",
+        )
+        return
+    }
+
+    id := state.Id.String()
+
+    // call update methods
+    // Name
+    result, err := r.client.SetField("agentPools", id, "name", &newName)
+    if err != nil {
+        resp.Diagnostics.AddError(
+            "Error setting agent pool name field",
+            err.Error(),
+        )
+        return
+    } else {
+        state.Name = types.StringValue(result)
+    }
+
+    // Size
+    result, err = r.client.SetField("agentPools", id, "maxAgents", &newSize)
+    if err != nil {
+        resp.Diagnostics.AddError(
+            "Error setting agent pool size field",
+            err.Error(),
+        )
+        return
+    } else {
+
+        if result == "" {
+            state.Size = basetypes.NewInt64Null()
+        } else {
+            i, err := strconv.ParseInt(result, 10, 64)
+            if err != nil {
+                resp.Diagnostics.AddError(
+                    "Could not parse field update response to int64",
+                    err.Error(),
+                )
+                return
+            }
+            state.Size = basetypes.NewInt64Value(i)
+        }
+    }
+
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 // deletes a resource and removes its terraform state
