@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 type PoolJson struct {
@@ -14,4 +15,12 @@ type PoolDataModel struct {
 	Name types.String `tfsdk:"name"`
 	Id   types.Int64  `tfsdk:"id"`
 	Size types.Int64  `tfsdk:"size"`
+}
+
+func (p *PoolJson) GetSize () types.Int64 {
+    if p.Size == nil {
+        return basetypes.NewInt64Null()
+    } else {
+        return types.Int64Value(int64(*(p.Size)))
+    }
 }
