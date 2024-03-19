@@ -1,19 +1,5 @@
 version: '2'
 services:
-  teamcity-server:
-    image: registry.jetbrains.team/p/tc/docker/teamcity-nightly/teamcity-server:${TEAMCITY_BUILD}-linux
-    volumes:
-      - "./testdata:/testdata"
-      - "./testdata/plugins:/data/teamcity_server/datadir/plugins"
-    environment:
-      - TEAMCITY_CONFIGURATION_PATH=/testdata/teamcity.properties
-    ports:
-      - "8111:8111"
-    healthcheck:
-      test: "curl -f http://localhost:8111/healthCheck/ready"
-      timeout: 5s
-      interval: 10s
-      retries: 30
   teamcity-server-local:
     image: jetbrains/teamcity-server:2023.05
     volumes:
