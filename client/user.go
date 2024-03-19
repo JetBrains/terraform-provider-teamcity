@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"terraform-provider-teamcity/models"
 )
 
 type User struct {
-	Id         *int64           `json:"id,omitempty"`
-	Username   string           `json:"username"`
-	Password   *string          `json:"password,omitempty"`
-	Roles      *RoleAssignments `json:"roles,omitempty"`
-	Properties *Properties      `json:"properties,omitempty"`
+	Id         *int64             `json:"id,omitempty"`
+	Username   string             `json:"username"`
+	Password   *string            `json:"password,omitempty"`
+	Roles      *RoleAssignments   `json:"roles,omitempty"`
+	Properties *models.Properties `json:"properties,omitempty"`
 }
 
 type RoleAssignments struct {

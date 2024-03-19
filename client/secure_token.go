@@ -6,16 +6,17 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"net/http"
+	"terraform-provider-teamcity/models"
 )
 
 type SecureTokens struct {
-	Tokens []Property `json:"versionedSettingsToken"`
+	Tokens []models.Property `json:"versionedSettingsToken"`
 }
 
 func (c *Client) AddSecureToken(project, value string) (*string, error) {
 	id := "credentialsJSON:" + uuid.New().String()
 	body := SecureTokens{
-		Tokens: []Property{
+		Tokens: []models.Property{
 			{
 				Name:  id,
 				Value: value,
@@ -76,7 +77,7 @@ func (c *Client) GetSecureTokens(project string) ([]string, error) {
 
 func (c *Client) DeleteSecureToken(project, id string) error {
 	body := SecureTokens{
-		Tokens: []Property{
+		Tokens: []models.Property{
 			{
 				Name: id,
 			},
