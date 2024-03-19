@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -111,8 +112,8 @@ func (r *connectionResource) Create(ctx context.Context, req resource.CreateRequ
 
 	feature := client.ProjectFeature{
 		Type: "OAuthProvider",
-		Properties: client.Properties{
-			Property: []client.Property{
+		Properties: models.Properties{
+			Property: []models.Property{
 				{
 					Name:  "providerType",
 					Value: "GitHubApp",

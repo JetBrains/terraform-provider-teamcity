@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strconv"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -314,7 +315,7 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 	if plan.Modules.BuiltIn != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "Default",
-			Properties: &client.Properties{
+			Properties: &models.Properties{
 				Property: plan.Modules.BuiltIn.getProperties(),
 			},
 		})
@@ -322,7 +323,7 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 	if plan.Modules.Google != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "Google-oauth",
-			Properties: &client.Properties{
+			Properties: &models.Properties{
 				Property: plan.Modules.Google.getProperties(),
 			},
 		})
@@ -330,7 +331,7 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 	if plan.Modules.GithubApp != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "GitHubApp-oauth",
-			Properties: &client.Properties{
+			Properties: &models.Properties{
 				Property: plan.Modules.GithubApp.getProperties(),
 			},
 		})
@@ -338,7 +339,7 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 	if plan.Modules.GithubCom != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "GitHub-oauth",
-			Properties: &client.Properties{
+			Properties: &models.Properties{
 				Property: plan.Modules.GithubCom.getProperties(),
 			},
 		})
@@ -346,7 +347,7 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 	if plan.Modules.GithubEnterprise != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "GHE-oauth",
-			Properties: &client.Properties{
+			Properties: &models.Properties{
 				Property: plan.Modules.GithubEnterprise.getProperties(),
 			},
 		})
@@ -354,7 +355,7 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 	if plan.Modules.Space != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "JetbrainsSpace-oauth",
-			Properties: &client.Properties{
+			Properties: &models.Properties{
 				Property: plan.Modules.Space.getProperties(),
 			},
 		})
@@ -477,14 +478,14 @@ type authModuleSpaceModel struct {
 	CreateNewUsers types.Bool `tfsdk:"create_new_users"`
 }
 
-func (m *authModuleBuiltInModel) getProperties() []client.Property {
-	props := []client.Property{
+func (m *authModuleBuiltInModel) getProperties() []models.Property {
+	props := []models.Property{
 		{Name: "freeRegistrationAllowed", Value: strconv.FormatBool(m.Registration.ValueBool())},
 		{Name: "usersCanChangeOwnPasswords", Value: strconv.FormatBool(m.ChangePasswords.ValueBool())},
 	}
 
 	if m.ChangePasswords.ValueBool() == true {
-		props = append(props, client.Property{
+		props = append(props, models.Property{
 			Name:  "usersCanResetOwnPasswords",
 			Value: strconv.FormatBool(m.ResetPasswords.ValueBool()),
 		})
@@ -516,14 +517,14 @@ func (m *authModuleBuiltInModel) setFields(props map[string]string) error {
 	return nil
 }
 
-func (m *authModuleGoogleModel) getProperties() []client.Property {
-	props := []client.Property{
+func (m *authModuleGoogleModel) getProperties() []models.Property {
+	props := []models.Property{
 		{Name: "allowCreatingNewUsersByLogin", Value: strconv.FormatBool(m.CreateNewUsers.ValueBool())},
 		{Name: "allowAllUsersToLogin", Value: strconv.FormatBool(m.AllDomains.ValueBool())},
 	}
 
 	if m.AllDomains.ValueBool() == false {
-		props = append(props, client.Property{
+		props = append(props, models.Property{
 			Name:  "domains",
 			Value: m.Domains.ValueString(),
 		})
@@ -552,8 +553,8 @@ func (m *authModuleGoogleModel) setFields(props map[string]string) error {
 	return nil
 }
 
-func (m *authModuleGithubAppModel) getProperties() []client.Property {
-	return []client.Property{
+func (m *authModuleGithubAppModel) getProperties() []models.Property {
+	return []models.Property{
 		{Name: "allowCreatingNewUsersByLogin", Value: strconv.FormatBool(m.CreateNewUsers.ValueBool())},
 		{Name: "organisation", Value: m.Organizations.ValueString()},
 	}
@@ -570,8 +571,8 @@ func (m *authModuleGithubAppModel) setFields(props map[string]string) error {
 	return nil
 }
 
-func (m *authModuleGithubModel) getProperties() []client.Property {
-	return []client.Property{
+func (m *authModuleGithubModel) getProperties() []models.Property {
+	return []models.Property{
 		{Name: "allowCreatingNewUsersByLogin", Value: strconv.FormatBool(m.CreateNewUsers.ValueBool())},
 		{Name: "organization", Value: m.Organizations.ValueString()},
 	}
@@ -588,8 +589,8 @@ func (m *authModuleGithubModel) setFields(props map[string]string) error {
 	return nil
 }
 
-func (m *authModuleSpaceModel) getProperties() []client.Property {
-	return []client.Property{
+func (m *authModuleSpaceModel) getProperties() []models.Property {
+	return []models.Property{
 		{Name: "allowCreatingNewUsersByLogin", Value: strconv.FormatBool(m.CreateNewUsers.ValueBool())},
 	}
 }

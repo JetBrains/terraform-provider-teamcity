@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strconv"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -228,87 +229,87 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 		},
 	}
 
-	props := []client.Property{
+	props := []models.Property{
 		{Name: "url", Value: plan.Git.Url.ValueString()},
 		{Name: "branch", Value: plan.Git.Branch.ValueString()},
 	}
 
 	if plan.Git.PushUrl.IsNull() != true {
-		props = append(props, client.Property{Name: "push_url", Value: plan.Git.PushUrl.ValueString()})
+		props = append(props, models.Property{Name: "push_url", Value: plan.Git.PushUrl.ValueString()})
 	}
 
 	if plan.Git.BranchSpec.IsNull() != true {
-		props = append(props, client.Property{Name: "teamcity:branchSpec", Value: plan.Git.BranchSpec.ValueString()})
+		props = append(props, models.Property{Name: "teamcity:branchSpec", Value: plan.Git.BranchSpec.ValueString()})
 	}
 
 	if plan.Git.TagsAsBranches.IsNull() != true {
 		val := strconv.FormatBool(plan.Git.TagsAsBranches.ValueBool())
-		props = append(props, client.Property{Name: "reportTagRevisions", Value: val})
+		props = append(props, models.Property{Name: "reportTagRevisions", Value: val})
 	}
 
 	if plan.Git.UsernameStyle.IsNull() != true {
-		props = append(props, client.Property{Name: "usernameStyle", Value: plan.Git.UsernameStyle.ValueString()})
+		props = append(props, models.Property{Name: "usernameStyle", Value: plan.Git.UsernameStyle.ValueString()})
 	}
 
 	if plan.Git.Submodules.IsNull() != true {
-		props = append(props, client.Property{Name: "submoduleCheckout", Value: plan.Git.Submodules.ValueString()})
+		props = append(props, models.Property{Name: "submoduleCheckout", Value: plan.Git.Submodules.ValueString()})
 	}
 
 	if plan.Git.UsernameForTags.IsNull() != true {
-		props = append(props, client.Property{Name: "userForTags", Value: plan.Git.UsernameForTags.ValueString()})
+		props = append(props, models.Property{Name: "userForTags", Value: plan.Git.UsernameForTags.ValueString()})
 	}
 
 	if plan.Git.AuthMethod.IsNull() != true {
-		props = append(props, client.Property{Name: "authMethod", Value: plan.Git.AuthMethod.ValueString()})
+		props = append(props, models.Property{Name: "authMethod", Value: plan.Git.AuthMethod.ValueString()})
 	}
 
 	if plan.Git.Username.IsNull() != true {
-		props = append(props, client.Property{Name: "username", Value: plan.Git.Username.ValueString()})
+		props = append(props, models.Property{Name: "username", Value: plan.Git.Username.ValueString()})
 	}
 
 	if plan.Git.Password.IsNull() != true {
-		props = append(props, client.Property{Name: "secure:password", Value: plan.Git.Password.ValueString()})
+		props = append(props, models.Property{Name: "secure:password", Value: plan.Git.Password.ValueString()})
 	}
 
 	if plan.Git.UploadedKey.IsNull() != true {
-		props = append(props, client.Property{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.ValueString()})
+		props = append(props, models.Property{Name: "teamcitySshKey", Value: plan.Git.UploadedKey.ValueString()})
 	}
 
 	if plan.Git.PrivateKeyPath.IsNull() != true {
-		props = append(props, client.Property{Name: "privateKeyPath", Value: plan.Git.PrivateKeyPath.ValueString()})
+		props = append(props, models.Property{Name: "privateKeyPath", Value: plan.Git.PrivateKeyPath.ValueString()})
 	}
 
 	if plan.Git.Passphrase.IsNull() != true {
-		props = append(props, client.Property{Name: "secure:passphrase", Value: plan.Git.Passphrase.ValueString()})
+		props = append(props, models.Property{Name: "secure:passphrase", Value: plan.Git.Passphrase.ValueString()})
 	}
 
 	if plan.Git.IgnoreKnownHosts.IsNull() != true {
 		val := strconv.FormatBool(plan.Git.IgnoreKnownHosts.ValueBool())
-		props = append(props, client.Property{Name: "ignoreKnownHosts", Value: val})
+		props = append(props, models.Property{Name: "ignoreKnownHosts", Value: val})
 	}
 
 	if plan.Git.ConvertCrlf.IsNull() != true {
 		val := strconv.FormatBool(plan.Git.ConvertCrlf.ValueBool())
-		props = append(props, client.Property{Name: "serverSideAutoCrlf", Value: val})
+		props = append(props, models.Property{Name: "serverSideAutoCrlf", Value: val})
 	}
 
 	if plan.Git.PathToGit.IsNull() != true {
-		props = append(props, client.Property{Name: "agentGitPath", Value: plan.Git.PathToGit.ValueString()})
+		props = append(props, models.Property{Name: "agentGitPath", Value: plan.Git.PathToGit.ValueString()})
 	}
 
 	if plan.Git.CheckoutPolicy.IsNull() != true {
-		props = append(props, client.Property{Name: "useAlternates", Value: plan.Git.CheckoutPolicy.ValueString()})
+		props = append(props, models.Property{Name: "useAlternates", Value: plan.Git.CheckoutPolicy.ValueString()})
 	}
 
 	if plan.Git.CleanPolicy.IsNull() != true {
-		props = append(props, client.Property{Name: "agentCleanPolicy", Value: plan.Git.CleanPolicy.ValueString()})
+		props = append(props, models.Property{Name: "agentCleanPolicy", Value: plan.Git.CleanPolicy.ValueString()})
 	}
 
 	if plan.Git.CleanFilesPolicy.IsNull() != true {
-		props = append(props, client.Property{Name: "agentCleanFilesPolicy", Value: plan.Git.CleanFilesPolicy.ValueString()})
+		props = append(props, models.Property{Name: "agentCleanFilesPolicy", Value: plan.Git.CleanFilesPolicy.ValueString()})
 	}
 
-	root.Properties = client.Properties{
+	root.Properties = models.Properties{
 		Property: props,
 	}
 
