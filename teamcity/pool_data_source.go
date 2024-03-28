@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-    "github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 )
@@ -81,7 +81,7 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			"Agent Pool name cannot be null",
 			"The Datasource cannot get an Agent Pool since there is an invalid configuration value for the Agent Pool name.",
 		)
-        return
+		return
 	}
 
 	pool, err := d.client.GetPool(name.ValueString())
@@ -91,24 +91,24 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			"Agent Pool not found",
 			"The Datasource cannot get an Agent Pool since there is no Agent Pool with the provided name.",
 		)
-        return
+		return
 	}
 
-    var state models.PoolDataModel
+	var state models.PoolDataModel
 
-    if pool.Size == nil {
-        state = models.PoolDataModel{
-            Name: types.StringValue(string(pool.Name)),
-            Size: basetypes.NewInt64Null(),
-            Id:   types.Int64Value(int64(*(pool.Id))),
-        }
-    } else {
-        state = models.PoolDataModel{
-            Name: types.StringValue(string(pool.Name)),
-            Size: types.Int64Value(int64(*(pool.Size))),
-            Id:   types.Int64Value(int64(*(pool.Id))),
-        }
-    }
+	if pool.Size == nil {
+		state = models.PoolDataModel{
+			Name: types.StringValue(string(pool.Name)),
+			Size: basetypes.NewInt64Null(),
+			Id:   types.Int64Value(int64(*(pool.Id))),
+		}
+	} else {
+		state = models.PoolDataModel{
+			Name: types.StringValue(string(pool.Name)),
+			Size: types.Int64Value(int64(*(pool.Size))),
+			Id:   types.Int64Value(int64(*(pool.Id))),
+		}
+	}
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

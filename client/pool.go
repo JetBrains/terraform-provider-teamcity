@@ -1,9 +1,9 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-    "bytes"
 	"net/http"
 
 	"terraform-provider-teamcity/models"
@@ -11,10 +11,10 @@ import (
 
 func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 
-    rb, err := json.Marshal(p)
-    if err != nil {
-        return nil, err
-    }
+	rb, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
 
 	endpoint := fmt.Sprintf("%s/agentPools", c.RestURL)
 
@@ -61,4 +61,24 @@ func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 	}
 
 	return &actual, nil
+}
+
+func (c *Client) DeletePool(id string) error {
+
+	endpoint := fmt.Sprintf("%s/agentPools/id:%s", c.RestURL, id)
+
+	req, err := http.NewRequest("DELETE", endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.request(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
+	return nil
 }

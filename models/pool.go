@@ -17,10 +17,10 @@ type PoolDataModel struct {
 	Size types.Int64  `tfsdk:"size"`
 }
 
-func (p *PoolJson) GetSize () types.Int64 {
-    if p.Size == nil {
-        return basetypes.NewInt64Null()
-    } else {
-        return types.Int64Value(int64(*(p.Size)))
-    }
+func (p *PoolJson) GetSize() types.Int64 {
+	if p.Size == nil {
+		return basetypes.NewInt64Null()
+	} else {
+		return types.Int64Value(int64(*(p.Size)))
+	}
 }
