@@ -160,7 +160,7 @@ func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.Da
 func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewCleanupResource,
-        NewPoolResource,
+		NewPoolResource,
 		NewProjectResource,
 		NewSshKeyResource,
 		NewVcsRootResource,
