@@ -5,17 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"terraform-provider-teamcity/models"
 )
 
 type ContextParams struct {
-	Params []Property `json:"versionedSettingsContextParameter"`
+	Params []models.Property `json:"versionedSettingsContextParameter"`
 }
 
 func (c *Client) SetContextParams(project string, params map[string]string) (map[string]string, error) {
 	body := ContextParams{}
-	body.Params = make([]Property, 0)
+	body.Params = make([]models.Property, 0)
 	for k, v := range params {
-		body.Params = append(body.Params, Property{
+		body.Params = append(body.Params, models.Property{
 			Name:  k,
 			Value: v,
 		})

@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"terraform-provider-teamcity/models"
 )
 
 type VcsRoot struct {
-	Name            string         `json:"name"`
-	Id              *string        `json:"id"`
-	VcsName         string         `json:"vcsName"`
-	PollingInterval *int           `json:"modificationCheckInterval,omitempty"`
-	Project         ProjectLocator `json:"project"`
-	Properties      Properties     `json:"properties"`
+	Name            string            `json:"name"`
+	Id              *string           `json:"id"`
+	VcsName         string            `json:"vcsName"`
+	PollingInterval *int              `json:"modificationCheckInterval,omitempty"`
+	Project         ProjectLocator    `json:"project"`
+	Properties      models.Properties `json:"properties"`
 }
 
 func (c *Client) NewVcsRoot(p VcsRoot) (VcsRoot, error) {

@@ -2,9 +2,11 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"terraform-provider-teamcity/models"
 )
 
 type Project struct {
@@ -17,9 +19,9 @@ type ProjectFeatures struct {
 	ProjectFeature []ProjectFeature `json:"projectFeature,omitempty"`
 }
 type ProjectFeature struct {
-	Id         *string    `json:"id,omitempty"`
-	Type       string     `json:"type"`
-	Properties Properties `json:"properties"`
+	Id         *string           `json:"id,omitempty"`
+	Type       string            `json:"type"`
+	Properties models.Properties `json:"properties"`
 }
 
 type VersionedSettings struct {
@@ -33,29 +35,21 @@ type VersionedSettings struct {
 	ImportDecision              *string `json:"importDecision"`
 }
 
+// TODO: refactor other methods in the same way
 func (c *Client) NewProject(p Project) (Project, error) {
 	rb, err := json.Marshal(p)
 	if err != nil {
 		return Project{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects", c.RestURL), bytes.NewReader(rb))
+	var newPool = Project{}
+	endpoint := "/projects"
+	err = c.PostRequest(context.Background(), endpoint, bytes.NewReader(rb), &newPool)
 	if err != nil {
 		return Project{}, err
 	}
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return Project{}, err
-	}
-
-	actual := Project{}
-	err = json.Unmarshal(body, &actual)
-	if err != nil {
-		return Project{}, err
-	}
-
-	return actual, nil
+	return newPool, nil
 }
 
 func (c *Client) GetProject(id string) (*Project, error) {

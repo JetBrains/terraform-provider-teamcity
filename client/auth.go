@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"terraform-provider-teamcity/models"
 )
 
 type AuthSettings struct {
@@ -23,8 +24,8 @@ type Modules struct {
 }
 
 type Module struct {
-	Name       string      `json:"name"`
-	Properties *Properties `json:"properties,omitempty"`
+	Name       string             `json:"name"`
+	Properties *models.Properties `json:"properties,omitempty"`
 }
 
 func (c *Client) GetAuthSettings() (AuthSettings, error) {

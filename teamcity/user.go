@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strconv"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -240,8 +241,8 @@ func (r *userResource) update(plan userResourceModel) client.User {
 	}
 
 	if plan.Github.IsNull() != true {
-		user.Properties = &client.Properties{
-			Property: []client.Property{
+		user.Properties = &models.Properties{
+			Property: []models.Property{
 				{
 					Name:  "plugin:auth:GitHubApp-oauth:userName",
 					Value: plan.Github.ValueString(),
