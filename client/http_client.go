@@ -254,6 +254,28 @@ func (c *Client) PostRequest(ctx context.Context, endpoint string, body io.Reade
 	return nil
 }
 
+// Calling http methods directly
+func (c *Client) DeleteRequest(ctx context.Context, endpoint string) error {
+	addr, err := c.verifyRequestAddr(endpoint)
+	if err != nil {
+		return err
+	}
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, addr.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	// Run request
+	_, err  = c.request(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) verifyRequestAddr(endpoint string) (*url.URL, error) {
 	// Build full address and verify it
 	addr, err := url.Parse(c.RestURL)
