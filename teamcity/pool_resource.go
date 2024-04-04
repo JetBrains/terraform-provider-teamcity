@@ -75,8 +75,6 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 			"Agent Pool name cannot be null",
 			"The Resource cannot create an Agent Pool since there is an invalid configuration value for the Agent Pool name.",
 		)
-	}
-	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -87,6 +85,15 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 	pool.Name = plan.Name.ValueString()
 	if !plan.Size.IsNull() {
 		size = plan.Size.ValueInt64()
+
+        if size < 0 {
+            resp.Diagnostics.AddAttributeError(
+                path.Root("size"),
+                "Agent Pool size cannot be negative",
+                "The Resource cannot create an Agent Pool since there is an invalid configuration value for the Agent Pool size, use 0 or positive numbers, null for unlimited.",
+            )
+            return
+        }
 		pool.Size = &size
 	}
 
@@ -189,7 +196,18 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if plan.Size.IsNull() {
 		newSize = "-1" // unlimited
 	} else {
-		newSize = strconv.FormatInt(plan.Size.ValueInt64(), 10)
+        size := plan.Size.ValueInt64()
+
+        if size < 0 {
+            resp.Diagnostics.AddAttributeError(
+                path.Root("size"),
+                "Agent Pool size cannot be negative",
+                "The Resource cannot update an Agent Pool since there is an invalid configuration value for the Agent Pool size, use 0 or positive numbers, null for unlimited.",
+            )
+            return
+        }
+
+		newSize = strconv.FormatInt(size, 10)
 	}
 
 	// verify state id
