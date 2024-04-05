@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+    "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 )
@@ -53,6 +55,9 @@ func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Required:            false,
 				Optional:            true,
 				MarkdownDescription: "Agents capacity for the given pool, don't add for unlimited",
+                Validators:     []validator.Int64 {
+                    int64validator.AtLeast(0),
+                },
 			},
 		},
 	}
@@ -85,15 +90,6 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 	pool.Name = plan.Name.ValueString()
 	if !plan.Size.IsNull() {
 		size = plan.Size.ValueInt64()
-
-        if size < 0 {
-            resp.Diagnostics.AddAttributeError(
-                path.Root("size"),
-                "Agent Pool size cannot be negative",
-                "The Resource cannot create an Agent Pool since there is an invalid configuration value for the Agent Pool size, use 0 or positive numbers, null for unlimited.",
-            )
-            return
-        }
 		pool.Size = &size
 	}
 
@@ -197,16 +193,6 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		newSize = "-1" // unlimited
 	} else {
         size := plan.Size.ValueInt64()
-
-        if size < 0 {
-            resp.Diagnostics.AddAttributeError(
-                path.Root("size"),
-                "Agent Pool size cannot be negative",
-                "The Resource cannot update an Agent Pool since there is an invalid configuration value for the Agent Pool size, use 0 or positive numbers, null for unlimited.",
-            )
-            return
-        }
-
 		newSize = strconv.FormatInt(size, 10)
 	}
 
