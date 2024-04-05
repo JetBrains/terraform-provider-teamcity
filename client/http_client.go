@@ -268,7 +268,7 @@ func (c *Client) DeleteRequest(ctx context.Context, endpoint string) error {
 	}
 
 	// Run request
-	_, err  = c.request(req)
+	_, err = c.request(req)
 	if err != nil {
 		return err
 	}

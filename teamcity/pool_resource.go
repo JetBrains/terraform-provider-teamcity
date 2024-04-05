@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-    "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 )
@@ -55,9 +55,9 @@ func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Required:            false,
 				Optional:            true,
 				MarkdownDescription: "Agents capacity for the given pool, don't add for unlimited",
-                Validators:     []validator.Int64 {
-                    int64validator.AtLeast(0),
-                },
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
 			},
 		},
 	}
@@ -192,7 +192,7 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if plan.Size.IsNull() {
 		newSize = "-1" // unlimited
 	} else {
-        size := plan.Size.ValueInt64()
+		size := plan.Size.ValueInt64()
 		newSize = strconv.FormatInt(size, 10)
 	}
 
