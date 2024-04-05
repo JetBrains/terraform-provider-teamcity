@@ -11,10 +11,19 @@ provider "teamcity" {
   token = var.teamcity_token
 }
 
-data "teamcity_pool" "test" {
+resource "teamcity_pool" "myagents" {
+  name  = "myagents_blue"
+  size  = 30
+}
+
+resource "teamcity_pool" "unlimited" {
+  name  = "unlimit"
+}
+
+data "teamcity_pool" "default" {
   name = "Default"
 }
 
-output "test_output" {
-  value = data.teamcity_pool.test
+output "test_default" {
+  value = data.teamcity_pool.default
 }
