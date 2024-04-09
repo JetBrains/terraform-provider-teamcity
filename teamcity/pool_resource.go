@@ -1,8 +1,8 @@
 package teamcity
 
 import (
-    "errors"
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -86,13 +86,13 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// Create new agent pool
 	result, err := r.client.NewPool(pool)
-    if err != nil && errors.Is(err, context.DeadlineExceeded) {
-        resp.Diagnostics.AddError(
-            "Error creating pool: Timeout",
-            err.Error(),
-        )
-        return
-    }
+	if err != nil && errors.Is(err, context.DeadlineExceeded) {
+		resp.Diagnostics.AddError(
+			"Error creating pool: Timeout",
+			err.Error(),
+		)
+		return
+	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -125,13 +125,13 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	// get refreshed pool
 	pool, err := r.client.GetPool(state.Name.ValueString())
-    if err != nil && errors.Is(err, context.DeadlineExceeded) {
-        resp.Diagnostics.AddError(
-            "Agent Pool not found: Timeout",
-            err.Error(),
-        )
-        return
-    }
+	if err != nil && errors.Is(err, context.DeadlineExceeded) {
+		resp.Diagnostics.AddError(
+			"Agent Pool not found: Timeout",
+			err.Error(),
+		)
+		return
+	}
 
 	if err != nil {
 		resp.Diagnostics.AddAttributeError(
@@ -185,15 +185,6 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	var newSize string
 
 	// verify plan values
-	if plan.Name.IsNull() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("name"),
-			"Agent Pool name cannot be null",
-			"The Resource cannot update an Agent Pool since there is an invalid configuration value for the Agent Pool name.",
-		)
-		return
-	}
-
 	newName = plan.Name.ValueString()
 
 	if plan.Size.IsNull() {
@@ -284,13 +275,13 @@ func (r *poolResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	id := state.Id.String()
 
 	err := r.client.DeletePool(id)
-    if err != nil && errors.Is(err, context.DeadlineExceeded) {
-        resp.Diagnostics.AddError(
-            "Couldn't delete agent pool: Timeout",
-            err.Error(),
-        )
-        return
-    }
+	if err != nil && errors.Is(err, context.DeadlineExceeded) {
+		resp.Diagnostics.AddError(
+			"Couldn't delete agent pool: Timeout",
+			err.Error(),
+		)
+		return
+	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
