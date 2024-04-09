@@ -1,6 +1,7 @@
 package client
 
 import (
+    "time"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -19,7 +20,10 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 		return nil, err
 	}
 
-	err = c.PostRequest(context.Background(), "/agentPools", bytes.NewReader(rb), &actual)
+    ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
+    defer cancel()
+
+	err = c.PostRequest(ctx, "/agentPools", bytes.NewReader(rb), &actual)
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +33,12 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 
 func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 	var pool models.PoolJson
-
 	endpoint := fmt.Sprintf("/agentPools/name:%s", name)
-	err := c.GetRequest(context.Background(), endpoint, "", &pool)
+
+    ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
+    defer cancel()
+
+	err := c.GetRequest(ctx, endpoint, "", &pool)
 
 	if errors.Is(err, ErrNotFound) {
 		return nil, nil
@@ -46,7 +53,10 @@ func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 func (c *Client) DeletePool(id string) error {
 	endpoint := fmt.Sprintf("/agentPools/id:%s", id)
 
-	err := c.DeleteRequest(context.Background(), endpoint)
+    ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
+    defer cancel()
+
+	err := c.DeleteRequest(ctx, endpoint)
 	if err != nil {
 		return err
 	}
