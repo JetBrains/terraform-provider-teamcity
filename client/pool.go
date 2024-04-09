@@ -1,13 +1,13 @@
 package client
 
 import (
-    "time"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"terraform-provider-teamcity/models"
+	"time"
 )
 
 func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
@@ -18,8 +18,8 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 		return nil, err
 	}
 
-    ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
+	defer cancel()
 
 	err = c.PostRequest(ctx, "/agentPools", bytes.NewReader(rb), &actual)
 	if err != nil {
@@ -33,8 +33,8 @@ func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 	var pool models.PoolJson
 	endpoint := fmt.Sprintf("/agentPools/name:%s", name)
 
-    ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
+	defer cancel()
 
 	err := c.GetRequest(ctx, endpoint, "", &pool)
 
@@ -51,8 +51,8 @@ func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 func (c *Client) DeletePool(id string) error {
 	endpoint := fmt.Sprintf("/agentPools/id:%s", id)
 
-    ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
+	defer cancel()
 
 	err := c.DeleteRequest(ctx, endpoint)
 	if err != nil {
