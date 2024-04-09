@@ -1,6 +1,7 @@
 package teamcity
 
 import (
+    "errors"
 	"context"
 	"fmt"
 	"strconv"
@@ -40,7 +41,7 @@ func (r *poolResource) Metadata(_ context.Context, req resource.MetadataRequest,
 // returns the schema of the resource
 func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "An Agent Pool in TeamCity is a group of agents that can be associated to projects. More info [here](https://www.jetbrains.com/help/teamcity/configuring-agent-pools.html)",
+		Description: "An Agent Pool in TeamCity is a group of agents that can be associated with projects. More info [here](https://www.jetbrains.com/help/teamcity/configuring-agent-pools.html)",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Required: true,
@@ -73,16 +74,6 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	// verify values
-	if plan.Name.IsNull() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("name"),
-			"Agent Pool name cannot be null",
-			"The Resource cannot create an Agent Pool since there is an invalid configuration value for the Agent Pool name.",
-		)
-		return
-	}
-
 	// Generate API request
 	var pool models.PoolJson
 	var size int64
@@ -95,6 +86,14 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// Create new agent pool
 	result, err := r.client.NewPool(pool)
+    if err != nil && errors.Is(err, context.DeadlineExceeded) {
+        resp.Diagnostics.AddError(
+            "Error creating pool: Timeout",
+            err.Error(),
+        )
+        return
+    }
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating pool",
@@ -126,6 +125,14 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	// get refreshed pool
 	pool, err := r.client.GetPool(state.Name.ValueString())
+    if err != nil && errors.Is(err, context.DeadlineExceeded) {
+        resp.Diagnostics.AddError(
+            "Agent Pool not found: Timeout",
+            err.Error(),
+        )
+        return
+    }
+
 	if err != nil {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("name"),
@@ -277,6 +284,14 @@ func (r *poolResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	id := state.Id.String()
 
 	err := r.client.DeletePool(id)
+    if err != nil && errors.Is(err, context.DeadlineExceeded) {
+        resp.Diagnostics.AddError(
+            "Couldn't delete agent pool: Timeout",
+            err.Error(),
+        )
+        return
+    }
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Could not delete pool resource with name %s", state.Name),
