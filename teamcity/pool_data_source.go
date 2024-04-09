@@ -2,7 +2,7 @@ package teamcity
 
 import (
 	"context"
-    "errors"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -70,18 +70,18 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			"Unknown Agent Pool name attribute",
 			"The Datasource cannot get an Agent Pool since there is an unknown configuration value for the Agent Pool name.",
 		)
-        return
+		return
 	}
 
 	pool, err := d.client.GetPool(name.ValueString())
 
-    if err != nil && errors.Is(err, context.DeadlineExceeded) {
-        resp.Diagnostics.AddError(
-            "Agent Pool not found: Timeout",
-            err.Error(),
-        )
-        return
-    }
+	if err != nil && errors.Is(err, context.DeadlineExceeded) {
+		resp.Diagnostics.AddError(
+			"Agent Pool not found: Timeout",
+			err.Error(),
+		)
+		return
+	}
 
 	if pool == nil || err != nil {
 		resp.Diagnostics.AddAttributeError(
