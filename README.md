@@ -90,3 +90,19 @@ Also, all used repositories are created in teamcity-terraform-test organisation.
 ## License
 
 This project is licensed under the Mozilla Public License 2.0. For more information, please see the LICENSE file.
+
+## Local development and contribution
+
+### To debug provider:
+
+1. Open the `DebugProvider` run configuration and make sure the correct module and docker run configuration are chosen:![](examples/0-empty_development/images/img.png)
+2. Execute in debug mode this `DebugProvider` run configuration. It should start a TeamCity container with pre-defined token. You will see something like:
+
+```
+Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environment variable with the following:
+
+        TF_REATTACH_PROVIDERS='...'
+```
+
+3. In the `examples/0-empty_development` folder export this `TF_REATTACH_PROVIDERS` env variable and you can use `terraform plan/apply`, you dont need to run `terraform init` because it already knows where to get the provider plugin part.
+

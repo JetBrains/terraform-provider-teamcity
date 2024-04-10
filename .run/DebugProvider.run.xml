@@ -5,12 +5,15 @@
     <go_parameters value="-gcflags=&quot;all=-N -l&quot;" />
     <parameters value="--debug=true" />
     <envs>
-      <env name="TEAMCITY_TOKEN" value="" />
+      <env name="TEAMCITY_HOST" value="http://localhost:8111" />
+      <env name="TEAMCITY_PASSWORD" value="token123" />
     </envs>
     <kind value="PACKAGE" />
     <package value="terraform-provider-teamcity" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$/../terraform-provider-teamcity|$PROJECT_DIR$/main.go" />
-    <method v="2" />
+    <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="docker-compose.yml.teamcity-server-local: Compose Deployment" run_configuration_type="docker-deploy" />
+    </method>
   </configuration>
 </component>

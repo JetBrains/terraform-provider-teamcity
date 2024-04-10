@@ -11,3 +11,10 @@ services:
         target: "/data/teamcity_server/datadir/plugins"
     ports:
       - 8111:8111
+    environment:
+      - TEAMCITY_CONFIGURATION_PATH=/testdata/teamcity.properties
+    healthcheck:
+      test: "curl -f http://localhost:8111/healthCheck/ready"
+      timeout: 5s
+      interval: 10s
+      retries: 30
