@@ -42,7 +42,7 @@ func TestHTTPClient(t *testing.T) {
 				httpClient := NewClient(server.URL, "token", "", "")
 
 				body := &struct{}{}
-				err := httpClient.GetRequest(context.Background(), "", "", body)
+				err := httpClient.GetRequest("", "", body)
 				if !errors.Is(err, ErrNotFound) {
 					t.Fatal(fmt.Errorf("got wrong error: %w", err))
 				}

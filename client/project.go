@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -44,7 +43,7 @@ func (c *Client) NewProject(p Project) (Project, error) {
 
 	var newPool = Project{}
 	endpoint := "/projects"
-	err = c.PostRequest(context.Background(), endpoint, bytes.NewReader(rb), &newPool)
+	err = c.PostRequest(endpoint, bytes.NewReader(rb), &newPool)
 	if err != nil {
 		return Project{}, err
 	}

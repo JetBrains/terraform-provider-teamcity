@@ -16,6 +16,8 @@ import (
 // ErrNotFound for special cases instead of always returning http statusCode.
 var ErrNotFound = errors.New("not found")
 
+const requestsTimeoutSec = 30
+
 type Client struct {
 	AppURL     string
 	RestURL    string
@@ -37,7 +39,7 @@ func NewClient(host, token, username, password string) Client {
 		Token:      token,
 		Username:   username,
 		Password:   password,
-		HTTPClient: &http.Client{Timeout: 30 * time.Second},
+		HTTPClient: &http.Client{Timeout: requestsTimeoutSec * time.Second},
 	}
 	return client
 }
@@ -189,8 +191,14 @@ func (c *Client) VerifyConnection(ctx context.Context) (Response, error) {
 	return response, nil
 }
 
+// Uses default Background context. Use GetRequestWithContext for custom context. resp must be ready for json.Unmarshall
+func (c *Client) GetRequest(endpoint, query string, resp any) error {
+	ctx := context.Background()
+	return c.GetRequestWithContext(ctx, endpoint, query, resp)
+}
+
 // Calling http methods directly. resp must be ready for json.Unmarshall
-func (c *Client) GetRequest(ctx context.Context, endpoint, query string, resp any) error {
+func (c *Client) GetRequestWithContext(ctx context.Context, endpoint, query string, resp any) error {
 	addr, err := c.verifyRequestAddr(endpoint)
 	if err != nil {
 		return err
@@ -224,8 +232,14 @@ func (c *Client) GetRequest(ctx context.Context, endpoint, query string, resp an
 	return nil
 }
 
+// Uses default Background context. Use PostRequestWithContext for custom context. resp must be ready for json.Unmarshall
+func (c *Client) PostRequest(endpoint string, body io.Reader, resp any) error {
+	ctx := context.Background()
+	return c.PostRequestWithContext(ctx, endpoint, body, resp)
+}
+
 // Calling http methods directly. resp must be ready for json.Unmarshall if the post request returns body
-func (c *Client) PostRequest(ctx context.Context, endpoint string, body io.Reader, resp any) error {
+func (c *Client) PostRequestWithContext(ctx context.Context, endpoint string, body io.Reader, resp any) error {
 	addr, err := c.verifyRequestAddr(endpoint)
 	if err != nil {
 		return err
@@ -254,8 +268,14 @@ func (c *Client) PostRequest(ctx context.Context, endpoint string, body io.Reade
 	return nil
 }
 
+// Uses default Background context. Use DeleteRequestWithContext for custom context. resp must be ready for json.Unmarshall
+func (c *Client) DeleteRequest(endpoint string) error {
+	ctx := context.Background()
+	return c.DeleteRequestWithContext(ctx, endpoint)
+}
+
 // Calling http methods directly
-func (c *Client) DeleteRequest(ctx context.Context, endpoint string) error {
+func (c *Client) DeleteRequestWithContext(ctx context.Context, endpoint string) error {
 	addr, err := c.verifyRequestAddr(endpoint)
 	if err != nil {
 		return err
