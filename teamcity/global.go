@@ -45,6 +45,7 @@ type EncryptionModel struct {
 }
 
 type ArtifactIsolationModel struct {
+	Enabled      types.Bool   `tfsdk:"enabled"`
 	ArtifactsUrl types.String `tfsdk:"artifacts_url"`
 }
 
@@ -120,13 +121,26 @@ func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional: true,
 				Computed: true,
 				Attributes: map[string]schema.Attribute{
+					"enabled": schema.BoolAttribute{
+						Optional:    true,
+						Computed:    true,
+						Default:     booldefault.StaticBool(true),
+						Description: "Enabled by default, set false if it needs to be disabled",
+					},
 					"artifacts_url": schema.StringAttribute{
-						Required: true,
+						Optional: true,
+						Computed: true,
 					},
 				},
 				Default: objectdefault.StaticValue(types.ObjectValueMust(
-					map[string]attr.Type{"artifacts_url": types.StringType},
-					map[string]attr.Value{"artifacts_url": types.StringValue("")},
+					map[string]attr.Type{
+						"enabled":       types.BoolType,
+						"artifacts_url": types.StringType,
+					},
+					map[string]attr.Value{
+						"enabled":       types.BoolValue(true),
+						"artifacts_url": types.StringValue(""),
+					},
 				)),
 			},
 		},
@@ -237,10 +251,11 @@ func (r *globalResource) update(plan globalResourceModel) (*globalResourceModel,
 		key = v
 	}
 
-	var url string
+	enableArtifactsDomainIsolation := true
+	var artifactsURL string
 	if plan.ArtifactIsolation != nil {
-		v := plan.ArtifactIsolation.ArtifactsUrl.ValueString()
-		url = v
+		enableArtifactsDomainIsolation = plan.ArtifactIsolation.Enabled.ValueBool()
+		artifactsURL = plan.ArtifactIsolation.ArtifactsUrl.ValueString()
 	}
 
 	settings := client.GlobalSettings{
@@ -254,8 +269,8 @@ func (r *globalResource) update(plan globalResourceModel) (*globalResourceModel,
 		DefaultQuietPeriod:             plan.DefaultQuietPeriod.ValueInt64(),
 		UseEncryption:                  plan.Encryption != nil,
 		EncryptionKey:                  key,
-		ArtifactsDomainIsolation:       plan.ArtifactIsolation != nil,
-		ArtifactsUrl:                   url,
+		ArtifactsDomainIsolation:       enableArtifactsDomainIsolation,
+		ArtifactsUrl:                   artifactsURL,
 	}
 
 	result, err := r.client.SetGlobalSettings(settings)
@@ -282,10 +297,9 @@ func (r *globalResource) readState(result client.GlobalSettings) (*globalResourc
 		state.Encryption = &EncryptionModel{}
 	}
 
-	if result.ArtifactsDomainIsolation {
-		state.ArtifactIsolation = &ArtifactIsolationModel{
-			ArtifactsUrl: types.StringValue(result.ArtifactsUrl),
-		}
+	state.ArtifactIsolation = &ArtifactIsolationModel{
+		Enabled:      types.BoolValue(result.ArtifactsDomainIsolation),
+		ArtifactsUrl: types.StringValue(result.ArtifactsUrl),
 	}
 
 	return &state, nil
