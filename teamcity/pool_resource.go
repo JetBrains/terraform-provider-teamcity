@@ -60,6 +60,12 @@ func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 					int64validator.AtLeast(0),
 				},
 			},
+			"projects": schema.ListAttribute{
+				Required:            false,
+				Optional:            true,
+				MarkdownDescription: "Projects assigned to the given pool",
+				ElementType:         types.StringType,
+			},
 		},
 	}
 }
@@ -153,6 +159,12 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		Name: types.StringValue(string(pool.Name)),
 		Size: pool.GetSize(),
 		Id:   types.Int64Value(int64(*(pool.Id))),
+	}
+
+	if pool.Projects != nil {
+		for _, project := range pool.Projects.Project {
+			state.Projects = append(state.Projects, types.StringValue(string(*project.Id)))
+		}
 	}
 
 	// set state
