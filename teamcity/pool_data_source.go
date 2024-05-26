@@ -48,6 +48,10 @@ func (d *poolDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 				Computed:            true,
 				MarkdownDescription: "Agents capacity for the given pool",
 			},
+			"projects": schema.ListAttribute{
+				Computed:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }
@@ -105,6 +109,12 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			Name: types.StringValue(string(pool.Name)),
 			Size: types.Int64Value(int64(*(pool.Size))),
 			Id:   types.Int64Value(int64(*(pool.Id))),
+		}
+	}
+
+	if pool.Projects != nil {
+		for _, project := range pool.Projects.Project {
+			state.Projects = append(state.Projects, types.StringValue(string(*project.Id)))
 		}
 	}
 
