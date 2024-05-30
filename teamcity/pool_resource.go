@@ -7,10 +7,13 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -61,10 +64,15 @@ func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				},
 			},
 			"projects": schema.ListAttribute{
+				Computed:            true,
 				Required:            false,
 				Optional:            true,
 				MarkdownDescription: "Projects assigned to the given pool",
 				ElementType:         types.StringType,
+				Default:             listdefault.StaticValue(basetypes.NewListValueMust(types.StringType, []attr.Value{})),
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -82,17 +90,10 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// Generate API request
 	var pool models.PoolJson
-    var proj models.ProjectsJson
+	proj := models.ProjectsJson{Project: make([]models.ProjectJson, 0)}
 	var size int64
 
-    // Assing projects from the plan
-    for _, project := range plan.Projects {
-        id := project.ValueString()
-        proj.Project = append(proj.Project, models.Project{Name: "-", Id: &id})
-    }
-
 	pool.Name = plan.Name.ValueString()
-    pool.Projects = &proj
 	if !plan.Size.IsNull() {
 		size = plan.Size.ValueInt64()
 		pool.Size = &size
@@ -118,6 +119,28 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// Populate computed attributes
 	plan.Id = types.Int64Value(int64(*(result.Id)))
+
+	// Two way process: setup associated projects now
+	// Assing projects from the plan
+	for _, project := range plan.Projects {
+		id := project.ValueString()
+		proj.Project = append(proj.Project, models.ProjectJson{Name: id, Id: &id})
+	}
+
+	response, err := r.client.SetPoolProjects(pool.Name, &proj)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error setting agent pool projects, please check projects IDs are correct",
+			err.Error(),
+		)
+		return
+	} else {
+		projects := []types.String{}
+		for _, p := range response.Project {
+			projects = append(projects, types.StringValue(*p.Id))
+		}
+		plan.Projects = projects
+	}
 
 	// Set state
 	diags = resp.State.Set(ctx, &plan)
@@ -203,13 +226,13 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	var newName string
 	var newSize string
-    var proj models.ProjectsJson
+	proj := models.ProjectsJson{Project: make([]models.ProjectJson, 0)}
 
-    // Assing projects from the plan
-    for _, project := range plan.Projects {
-        id := project.ValueString()
-        proj.Project = append(proj.Project, models.Project{Name: "-", Id: &id})
-    }
+	// Assing projects from the plan
+	for _, project := range plan.Projects {
+		id := project.ValueString()
+		proj.Project = append(proj.Project, models.ProjectJson{Name: "-", Id: &id})
+	}
 
 	// verify plan values
 	newName = plan.Name.ValueString()
@@ -271,19 +294,19 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-    // Projects
-    response, err := r.client.SetPoolProjects(newName, &proj)
+	// Projects
+	response, err := r.client.SetPoolProjects(newName, &proj)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error setting agent pool projects",
+			"Error setting agent pool projects, please check projects IDs are correct",
 			err.Error(),
 		)
 		return
 	} else {
-        var projects []types.String
-        for _, p := range response.Project {
-            projects = append(projects, types.StringValue(*p.Id))
-        }
+		projects := []types.String{}
+		for _, p := range response.Project {
+			projects = append(projects, types.StringValue(*p.Id))
+		}
 		state.Projects = projects
 	}
 

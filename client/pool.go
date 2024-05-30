@@ -60,12 +60,9 @@ func (c *Client) SetPoolProjects(name string, p *models.ProjectsJson) (*models.P
 		return nil, err
 	}
 
-    endpoint := fmt.Sprintf("/agentPools/name:%s/projects", name)
-    err = c.PutRequest(endpoint, bytes.NewReader(rb), &actual)
+	endpoint := fmt.Sprintf("/agentPools/name:%s/projects", name)
+	err = c.PutRequest(endpoint, bytes.NewReader(rb), &actual)
 
-	if errors.Is(err, ErrNotFound) {
-		return nil, nil
-	}
 	if err != nil {
 		return nil, err
 	}
