@@ -332,8 +332,6 @@ func (c *Client) PutRequestWithContext(ctx context.Context, endpoint string, bod
 	return nil
 }
 
-
-
 func (c *Client) verifyRequestAddr(endpoint string) (*url.URL, error) {
 	// Build full address and verify it
 	addr, err := url.Parse(c.RestURL)

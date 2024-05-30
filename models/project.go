@@ -1,10 +1,10 @@
 package models
 
-type Project struct {
+type ProjectJson struct {
 	Name string  `json:"name"`
 	Id   *string `json:"id,omitempty"`
 }
 
 type ProjectsJson struct {
-	Project []Project `json:"project,omitempty"`
+	Project []ProjectJson `json:"project,omitempty"`
 }
