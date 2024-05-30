@@ -296,6 +296,44 @@ func (c *Client) DeleteRequestWithContext(ctx context.Context, endpoint string) 
 	return nil
 }
 
+// Uses default Background context. Use PutRequestWithContext for custom context. resp must be ready for json.Unmarshall
+func (c *Client) PutRequest(endpoint string, body io.Reader, resp any) error {
+	ctx := context.Background()
+	return c.PutRequestWithContext(ctx, endpoint, body, resp)
+}
+
+// Calling http methods directly. resp must be ready for json.Unmarshall if the put request returns body
+func (c *Client) PutRequestWithContext(ctx context.Context, endpoint string, body io.Reader, resp any) error {
+	addr, err := c.verifyRequestAddr(endpoint)
+	if err != nil {
+		return err
+	}
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, addr.String(), body)
+	if err != nil {
+		return err
+	}
+
+	// Run request
+	response, err := c.request(req)
+	if err != nil {
+		return err
+	}
+
+	// Unmarshal the response if it is not empty
+	if len(response.Body) != 0 {
+		err = json.Unmarshal(response.Body, resp)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+
+
 func (c *Client) verifyRequestAddr(endpoint string) (*url.URL, error) {
 	// Build full address and verify it
 	addr, err := url.Parse(c.RestURL)

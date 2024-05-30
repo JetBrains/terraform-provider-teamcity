@@ -82,9 +82,17 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// Generate API request
 	var pool models.PoolJson
+    var proj models.ProjectsJson
 	var size int64
 
+    // Assing projects from the plan
+    for _, project := range plan.Projects {
+        id := project.ValueString()
+        proj.Project = append(proj.Project, models.Project{Name: "-", Id: &id})
+    }
+
 	pool.Name = plan.Name.ValueString()
+    pool.Projects = &proj
 	if !plan.Size.IsNull() {
 		size = plan.Size.ValueInt64()
 		pool.Size = &size
@@ -195,6 +203,13 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	var newName string
 	var newSize string
+    var proj models.ProjectsJson
+
+    // Assing projects from the plan
+    for _, project := range plan.Projects {
+        id := project.ValueString()
+        proj.Project = append(proj.Project, models.Project{Name: "-", Id: &id})
+    }
 
 	// verify plan values
 	newName = plan.Name.ValueString()
@@ -254,6 +269,22 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			}
 			state.Size = basetypes.NewInt64Value(i)
 		}
+	}
+
+    // Projects
+    response, err := r.client.SetPoolProjects(newName, &proj)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error setting agent pool projects",
+			err.Error(),
+		)
+		return
+	} else {
+        var projects []types.String
+        for _, p := range response.Project {
+            projects = append(projects, types.StringValue(*p.Id))
+        }
+		state.Projects = projects
 	}
 
 	diags = resp.State.Set(ctx, state)
