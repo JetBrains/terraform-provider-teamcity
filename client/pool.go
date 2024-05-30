@@ -51,3 +51,24 @@ func (c *Client) DeletePool(id string) error {
 
 	return nil
 }
+
+func (c *Client) SetPoolProjects(name string, p *models.ProjectsJson) (*models.ProjectsJson, error) {
+	var actual models.ProjectsJson
+
+	rb, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+
+    endpoint := fmt.Sprintf("/agentPools/name:%s/projects", name)
+    err = c.PutRequest(endpoint, bytes.NewReader(rb), &actual)
+
+	if errors.Is(err, ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &actual, nil
+}
