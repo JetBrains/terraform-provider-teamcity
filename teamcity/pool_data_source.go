@@ -103,12 +103,14 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			Name: types.StringValue(string(pool.Name)),
 			Size: basetypes.NewInt64Null(),
 			Id:   types.Int64Value(int64(*(pool.Id))),
+            Projects: make([]basetypes.StringValue, 0),
 		}
 	} else {
 		state = models.PoolDataModel{
 			Name: types.StringValue(string(pool.Name)),
 			Size: types.Int64Value(int64(*(pool.Size))),
 			Id:   types.Int64Value(int64(*(pool.Id))),
+            Projects: make([]basetypes.StringValue, 0),
 		}
 	}
 

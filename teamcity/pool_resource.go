@@ -190,6 +190,7 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		Name: types.StringValue(string(pool.Name)),
 		Size: pool.GetSize(),
 		Id:   types.Int64Value(int64(*(pool.Id))),
+        Projects: make([]basetypes.StringValue, 0),
 	}
 
 	if pool.Projects != nil {
