@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -63,15 +63,15 @@ func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 					int64validator.AtLeast(0),
 				},
 			},
-			"projects": schema.ListAttribute{
+			"projects": schema.SetAttribute{
 				Computed:            true,
 				Required:            false,
 				Optional:            true,
 				MarkdownDescription: "Projects assigned to the given pool",
 				ElementType:         types.StringType,
-				Default:             listdefault.StaticValue(basetypes.NewListValueMust(types.StringType, []attr.Value{})),
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.UseStateForUnknown(),
+				Default:             setdefault.StaticValue(basetypes.NewSetValueMust(types.StringType, []attr.Value{})),
+				PlanModifiers: []planmodifier.Set{
+                    setplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
@@ -122,9 +122,15 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// Two way process: setup associated projects now
 	// Assing projects from the plan
-	for _, project := range plan.Projects {
+    elements := make([]types.String, 0, len(plan.Projects.Elements()))
+    diags = plan.Projects.ElementsAs(ctx, &elements, false)
+    if diags.HasError() {
+        return
+    }
+
+	for _, project := range elements {
 		id := project.ValueString()
-		proj.Project = append(proj.Project, models.ProjectJson{Name: id, Id: &id})
+		proj.Project = append(proj.Project, models.ProjectJson{Name: "-", Id: &id})
 	}
 
 	response, err := r.client.SetPoolProjects(pool.Name, &proj)
@@ -135,11 +141,15 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 		)
 		return
 	} else {
-		projects := []types.String{}
+        projects := []attr.Value{}
 		for _, p := range response.Project {
-			projects = append(projects, types.StringValue(*p.Id))
+            projects = append(projects, types.StringValue(string(*p.Id)))
 		}
-		plan.Projects = projects
+
+        plan.Projects, diags = types.SetValue(types.StringType, projects)
+        if diags.HasError() {
+            return
+        }
 	}
 
 	// Set state
@@ -190,13 +200,19 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		Name: types.StringValue(string(pool.Name)),
 		Size: pool.GetSize(),
 		Id:   types.Int64Value(int64(*(pool.Id))),
-        Projects: make([]basetypes.StringValue, 0),
+        Projects: types.SetNull(types.StringType),
 	}
 
 	if pool.Projects != nil {
+        elements := []attr.Value{}
 		for _, project := range pool.Projects.Project {
-			state.Projects = append(state.Projects, types.StringValue(string(*project.Id)))
+            elements = append(elements, types.StringValue(*project.Id))
 		}
+
+        state.Projects, diags = types.SetValue(types.StringType, elements)
+        if diags.HasError() {
+            return
+        }
 	}
 
 	// set state
@@ -230,7 +246,13 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	proj := models.ProjectsJson{Project: make([]models.ProjectJson, 0)}
 
 	// Assing projects from the plan
-	for _, project := range plan.Projects {
+    elements := make([]types.String, 0, len(plan.Projects.Elements()))
+    diags = plan.Projects.ElementsAs(ctx, &elements, false)
+    if diags.HasError() {
+        return
+    }
+
+	for _, project := range elements {
 		id := project.ValueString()
 		proj.Project = append(proj.Project, models.ProjectJson{Name: "-", Id: &id})
 	}
@@ -304,11 +326,15 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		)
 		return
 	} else {
-		projects := []types.String{}
-		for _, p := range response.Project {
-			projects = append(projects, types.StringValue(*p.Id))
-		}
-		state.Projects = projects
+		projects := []attr.Value{}
+        for _, p := range response.Project {
+            projects = append(projects, types.StringValue(*p.Id))
+        }
+
+        state.Projects, diags = types.SetValue(types.StringType, projects)
+        if diags.HasError() {
+            return
+        }
 	}
 
 	diags = resp.State.Set(ctx, state)

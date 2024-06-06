@@ -16,7 +16,7 @@ type PoolDataModel struct {
 	Name     types.String   `tfsdk:"name"`
 	Id       types.Int64    `tfsdk:"id"`
 	Size     types.Int64    `tfsdk:"size"`
-	Projects []types.String `tfsdk:"projects"`
+	Projects types.Set      `tfsdk:"projects"`
 }
 
 func (p *PoolJson) GetSize() types.Int64 {
