@@ -5,13 +5,15 @@ import (
 	"errors"
 	"fmt"
 
+	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"terraform-provider-teamcity/client"
-	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -48,10 +50,10 @@ func (d *poolDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 				Computed:            true,
 				MarkdownDescription: "Agents capacity for the given pool",
 			},
-			"projects": schema.ListAttribute{
-				Computed:    true,
-				ElementType: types.StringType,
-			},
+            "projects": schema.SetAttribute{
+                Computed: true,
+                ElementType: types.StringType,
+            },
 		},
 	}
 }
@@ -103,21 +105,27 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			Name: types.StringValue(string(pool.Name)),
 			Size: basetypes.NewInt64Null(),
 			Id:   types.Int64Value(int64(*(pool.Id))),
-            Projects: make([]basetypes.StringValue, 0),
+            Projects: types.SetNull(types.StringType),
 		}
 	} else {
 		state = models.PoolDataModel{
 			Name: types.StringValue(string(pool.Name)),
 			Size: types.Int64Value(int64(*(pool.Size))),
 			Id:   types.Int64Value(int64(*(pool.Id))),
-            Projects: make([]basetypes.StringValue, 0),
+            Projects: types.SetNull(types.StringType),
 		}
 	}
 
 	if pool.Projects != nil {
+        elements := []attr.Value{}
 		for _, project := range pool.Projects.Project {
-			state.Projects = append(state.Projects, types.StringValue(string(*project.Id)))
+            elements = append(elements, types.StringValue(*project.Id))
 		}
+
+        state.Projects, diags = types.SetValue(types.StringType, elements)
+        if diags.HasError() {
+            return
+        }
 	}
 
 	diags = resp.State.Set(ctx, &state)

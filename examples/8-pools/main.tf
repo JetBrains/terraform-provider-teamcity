@@ -11,19 +11,27 @@ provider "teamcity" {
   token = var.teamcity_token
 }
 
+resource "teamcity_project" "demo" {
+  name  = "Demo Test Project"
+}
+
+resource "teamcity_project" "demo2" {
+  name  = "Demo Test Project 2"
+}
+
 resource "teamcity_pool" "testing" {
   name  = "test"
   size  = 30
-}
-
-resource "teamcity_pool" "unlimited" {
-  name  = "unlimited"
+  projects = [
+        teamcity_project.demo.id,
+        teamcity_project.demo2.id
+  ]
 }
 
 data "teamcity_pool" "default" {
   name = "Default"
 }
 
-output "test_default" {
+output "default_pool" {
   value = data.teamcity_pool.default
 }
