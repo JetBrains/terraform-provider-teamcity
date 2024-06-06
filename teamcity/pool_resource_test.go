@@ -58,9 +58,9 @@ func TestAccPoolResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("teamcity_pool.test", "size", "20"),
 				),
 			},
-            // Create pool with projects testing
-            {
-                Config: providerConfig + `
+			// Create pool with projects testing
+			{
+				Config: providerConfig + `
                     resource "teamcity_project" "demo" {
                         name = "Demo Project"
                     }
@@ -72,11 +72,11 @@ func TestAccPoolResource_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("teamcity_pool.test", "name", "Demo Pool"),
 					resource.TestCheckResourceAttr("teamcity_pool.test", "projects.0", "DemoProject"),
-                ),
-            },
-            // Update pool with projects
-            {
-                Config: providerConfig + `
+				),
+			},
+			// Update pool with projects
+			{
+				Config: providerConfig + `
                     resource "teamcity_project" "demo" {
                         name = "Demo Project"
                     }
@@ -92,8 +92,8 @@ func TestAccPoolResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("teamcity_pool.test", "name", "Demo Pool"),
 					resource.TestCheckResourceAttr("teamcity_pool.test", "projects.0", "DemoProject"),
 					resource.TestCheckResourceAttr("teamcity_pool.test", "projects.1", "DemoProject2"),
-                ),
-            },
+				),
+			},
 		},
 	})
 }

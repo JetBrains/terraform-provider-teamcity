@@ -50,10 +50,10 @@ func (d *poolDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 				Computed:            true,
 				MarkdownDescription: "Agents capacity for the given pool",
 			},
-            "projects": schema.SetAttribute{
-                Computed: true,
-                ElementType: types.StringType,
-            },
+			"projects": schema.SetAttribute{
+				Computed:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }
@@ -102,30 +102,30 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	if pool.Size == nil {
 		state = models.PoolDataModel{
-			Name: types.StringValue(string(pool.Name)),
-			Size: basetypes.NewInt64Null(),
-			Id:   types.Int64Value(int64(*(pool.Id))),
-            Projects: types.SetNull(types.StringType),
+			Name:     types.StringValue(string(pool.Name)),
+			Size:     basetypes.NewInt64Null(),
+			Id:       types.Int64Value(int64(*(pool.Id))),
+			Projects: types.SetNull(types.StringType),
 		}
 	} else {
 		state = models.PoolDataModel{
-			Name: types.StringValue(string(pool.Name)),
-			Size: types.Int64Value(int64(*(pool.Size))),
-			Id:   types.Int64Value(int64(*(pool.Id))),
-            Projects: types.SetNull(types.StringType),
+			Name:     types.StringValue(string(pool.Name)),
+			Size:     types.Int64Value(int64(*(pool.Size))),
+			Id:       types.Int64Value(int64(*(pool.Id))),
+			Projects: types.SetNull(types.StringType),
 		}
 	}
 
 	if pool.Projects != nil {
-        elements := []attr.Value{}
+		elements := []attr.Value{}
 		for _, project := range pool.Projects.Project {
-            elements = append(elements, types.StringValue(*project.Id))
+			elements = append(elements, types.StringValue(*project.Id))
 		}
 
-        state.Projects, diags = types.SetValue(types.StringType, elements)
-        if diags.HasError() {
-            return
-        }
+		state.Projects, diags = types.SetValue(types.StringType, elements)
+		if diags.HasError() {
+			return
+		}
 	}
 
 	diags = resp.State.Set(ctx, &state)
