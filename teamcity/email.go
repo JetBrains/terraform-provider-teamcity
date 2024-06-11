@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
@@ -49,14 +50,18 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	resp.Schema = schema.Schema{
 		Description: "TeamCity can notify users about various events using email. More info [here](https://www.jetbrains.com/help/teamcity/configuring-notifications.html)",
 		Attributes: map[string]schema.Attribute{
-			"enabled":  schema.BoolAttribute{Required: true},
-			"host":     schema.StringAttribute{Required: true},
-			"port":     schema.Int64Attribute{Required: true},
-			"from":     schema.StringAttribute{Required: true},
-			"login":    schema.StringAttribute{Required: true},
-			"password": schema.StringAttribute{Required: true, Sensitive: true},
+			"enabled": schema.BoolAttribute{Required: true},
+			"host":    schema.StringAttribute{Required: true},
+			"port":    schema.Int64Attribute{Required: true},
+			"from":    schema.StringAttribute{Required: true},
+			"login": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(""),
+			},
+			"password": schema.StringAttribute{Optional: true, Sensitive: true},
 			"secure_connection": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf([]string{"NONE", "STARTTLS", "SSL"}...),
 				},
