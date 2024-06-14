@@ -40,6 +40,7 @@ type authResourceModel struct {
 type authModulesModel struct {
 	Token            *authModuleTokenModel     `tfsdk:"token"`
 	BuiltIn          *authModuleBuiltInModel   `tfsdk:"built_in"`
+	BasicHTTP        *authModuleBasicHTTPModel `tfsdk:"basic_http"`
 	Google           *authModuleGoogleModel    `tfsdk:"google"`
 	GithubApp        *authModuleGithubAppModel `tfsdk:"github_app"`
 	GithubCom        *authModuleGithubModel    `tfsdk:"github"`
@@ -105,6 +106,9 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 								Optional: true,
 							},
 						},
+					},
+					"basic_http": schema.SingleNestedAttribute{
+						Optional: true,
 					},
 					"google": schema.SingleNestedAttribute{
 						Optional: true,
@@ -320,6 +324,9 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 			},
 		})
 	}
+	if plan.Modules.BasicHTTP != nil {
+		settings.Modules.Module = append(settings.Modules.Module, client.Module{Name: "HTTP-Basic"})
+	}
 	if plan.Modules.Google != nil {
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
 			Name: "Google-oauth",
@@ -400,6 +407,11 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 			continue
 		}
 
+		if module.Name == "HTTP-Basic" {
+			state.Modules.BasicHTTP = &authModuleBasicHTTPModel{}
+			continue
+		}
+
 		if module.Name == "Google-oauth" {
 			state.Modules.Google = &authModuleGoogleModel{}
 			err := state.Modules.Google.setFields(props)
@@ -456,6 +468,9 @@ type authModuleBuiltInModel struct {
 	Registration    types.Bool `tfsdk:"registration"`
 	ChangePasswords types.Bool `tfsdk:"change_passwords"`
 	ResetPasswords  types.Bool `tfsdk:"reset_passwords"`
+}
+
+type authModuleBasicHTTPModel struct {
 }
 
 type authModuleGoogleModel struct {

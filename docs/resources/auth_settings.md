@@ -23,6 +23,7 @@ resource "teamcity_auth_settings" "settings" {
 
   modules = {
     token = {}
+    basic_http = {}
 
     github = {
       create_new_users = true
@@ -56,6 +57,7 @@ Required:
 Optional:
 
 - `built_in` Authentication with TeamCity-specific credentials (see [below for nested schema](#nestedatt--modules--built_in))
+- `basic_http` Allows basic HTTP authentication using other modules
 - `github` authentication using a GitHub.com account (see [below for nested schema](#nestedatt--modules--github))
 - `github_enterprise` authentication using a GitHub Enterprise account (see [below for nested schema](#nestedatt--modules--github_enterprise))
 - `google` authentication using a Google account (see [below for nested schema](#nestedatt--modules--google))

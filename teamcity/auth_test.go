@@ -22,6 +22,7 @@ resource "teamcity_auth_settings" "test" {
 
   modules = {
     token = {}
+	basic_http = {}
   }
 }
 `,
