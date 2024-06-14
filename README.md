@@ -106,3 +106,18 @@ Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environ
 
 3. In the `examples/0-empty_development` folder export this `TF_REATTACH_PROVIDERS` env variable and you can use `terraform plan/apply`, you dont need to run `terraform init` because it already knows where to get the provider plugin part.
 
+### Run all tests:
+* `docker compose up -d --wait --wait-timeout 1000`
+```bash
+export TEAMCITY_PASSWORD=token123
+export TEAMCITY_HOST=http://localhost:8111
+export CGO_ENABLED=0
+export TF_ACC_PROVIDER_NAMESPACE=jetbrains
+export TF_ACC=1
+
+go test -count=1 -v ./...
+```
+
+### Debug some test:
+There is a GoLand run configuration where you can debug a test package or chose a specific test to run using Pattern like `^\QTestAccProject_basic\E$`:
+![](examples/0-empty_development/images/DebugTest.png)
