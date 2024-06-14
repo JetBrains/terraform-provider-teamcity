@@ -1,0 +1,20 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="debugTestPackage" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="terraform-provider-teamcity" />
+    <working_directory value="$PROJECT_DIR$" />
+    <go_parameters value="-count=1 -v" />
+    <envs>
+      <env name="CGO_ENABLED" value="0" />
+      <env name="TEAMCITY_HOST" value="http://localhost:8111" />
+      <env name="TF_ACC" value="1" />
+      <env name="TF_ACC_PROVIDER_NAMESPACE" value="jetbrains" />
+      <env name="TEAMCITY_PASSWORD" value="token123" />
+    </envs>
+    <kind value="PACKAGE" />
+    <package value="terraform-provider-teamcity/teamcity" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <framework value="gotest" />
+    <method v="2" />
+  </configuration>
+</component>
