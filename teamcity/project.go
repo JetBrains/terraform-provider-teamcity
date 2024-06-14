@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
@@ -27,8 +28,9 @@ type projectResource struct {
 }
 
 type projectResourceModel struct {
-	Name types.String `tfsdk:"name"`
-	Id   types.String `tfsdk:"id"`
+	Name            types.String `tfsdk:"name"`
+	Id              types.String `tfsdk:"id"`
+	ParentProjectId types.String `tfsdk:"parent_project_id"`
 }
 
 func (r *projectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -48,6 +50,14 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"parent_project_id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Default: stringdefault.StaticString("_Root"),
 			},
 		},
 	}
@@ -75,6 +85,10 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		val := plan.Id.ValueString()
 		project.Id = &val
 	}
+	if !plan.ParentProjectId.IsUnknown() {
+		parentProjectId := plan.ParentProjectId.ValueString()
+		project.ParentProject = &client.Project{Id: &parentProjectId}
+	}
 
 	result, err := r.client.NewProject(project)
 	if err != nil {
@@ -85,9 +99,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	var newState projectResourceModel
-	newState.Name = types.StringValue(result.Name)
-	newState.Id = types.StringValue(*result.Id)
+	newState, err := r.convertToResource(result)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -118,7 +130,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	newState, err := r.readState(*actual)
+	newState, err := r.convertToResource(*actual)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -157,6 +169,13 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	//send update request with parent project as body - TC rest API
+	if result, ok := r.updateParentProjectParam(resourceId, oldState.ParentProjectId, plan.ParentProjectId, &resp.Diagnostics); ok {
+		newState.ParentProjectId = result
+	} else {
+		return
+	}
+
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -186,10 +205,11 @@ func (r *projectResource) ImportState(ctx context.Context, req resource.ImportSt
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *projectResource) readState(result client.Project) (projectResourceModel, error) {
+func (r *projectResource) convertToResource(result client.Project) (projectResourceModel, error) {
 	var newState projectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)
+	newState.ParentProjectId = types.StringValue(*result.ParentProject.Id)
 
 	return newState, nil
 }
@@ -211,4 +231,25 @@ func (r *projectResource) setFieldString(id, name string, state, plan types.Stri
 	}
 
 	return types.StringValue(result), true
+}
+
+func (r *projectResource) updateParentProjectParam(id string, state, plan types.String, diag *diag.Diagnostics) (types.String, bool) {
+	if plan.Equal(state) {
+		return state, true
+	}
+
+	val := plan.ValueString()
+	requestBody := map[string]interface{}{
+		"id": val,
+	}
+	_, err := r.client.SetFieldJson("projects", id, "parentProject", requestBody)
+	if err != nil {
+		diag.AddError(
+			"Error updating project's parent",
+			err.Error(),
+		)
+		return types.String{}, false
+	} else {
+		return plan, true
+	}
 }

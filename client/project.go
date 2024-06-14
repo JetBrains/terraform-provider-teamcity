@@ -11,6 +11,7 @@ import (
 type Project struct {
 	Name            string           `json:"name"`
 	Id              *string          `json:"id,omitempty"`
+	ParentProject   *Project         `json:"parentProject,omitempty"`
 	ProjectFeatures *ProjectFeatures `json:"projectFeatures,omitempty"`
 }
 
