@@ -110,7 +110,7 @@ func (r *connectionResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	feature := models.ProjectFeature{
+	feature := models.ProjectFeatureJson{
 		Type: "OAuthProvider",
 		Properties: models.Properties{
 			Property: []models.Property{
@@ -291,7 +291,7 @@ func (r *connectionResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 }
 
-func (r *connectionResource) readState(result models.ProjectFeature, plan connectionResourceModel) connectionResourceModel {
+func (r *connectionResource) readState(result models.ProjectFeatureJson, plan connectionResourceModel) connectionResourceModel {
 	props := make(map[string]string)
 	for _, p := range result.Properties.Property {
 		props[p.Name] = p.Value

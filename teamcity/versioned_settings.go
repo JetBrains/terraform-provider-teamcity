@@ -28,14 +28,6 @@ type versionedSettingsResource struct {
 	client *client.Client
 }
 
-type versionedSettingsModel struct {
-	ProjectId      types.String `tfsdk:"project_id"`
-	VcsRoot        types.String `tfsdk:"vcsroot_id"`
-	AllowUIEditing types.Bool   `tfsdk:"allow_ui_editing"`
-	Settings       types.String `tfsdk:"settings"`
-	ShowChanges    types.Bool   `tfsdk:"show_changes"`
-}
-
 func (r *versionedSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_versioned_settings"
 }
@@ -71,7 +63,7 @@ func (r *versionedSettingsResource) Configure(_ context.Context, req resource.Co
 }
 
 func (r *versionedSettingsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan versionedSettingsModel
+	var plan models.VersionedSettingsModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -85,7 +77,7 @@ func (r *versionedSettingsResource) Create(ctx context.Context, req resource.Cre
 	buildSettings := plan.Settings.ValueString()
 	showChanges := plan.ShowChanges.ValueBool()
 	decision := "importFromVCS"
-	settings := models.VersionedSettings{
+	settings := models.VersionedSettingsJson{
 		SynchronizationMode:         "enabled",
 		VcsRootId:                   &root,
 		Format:                      &format,
@@ -124,7 +116,7 @@ func (r *versionedSettingsResource) Create(ctx context.Context, req resource.Cre
 }
 
 func (r *versionedSettingsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var oldState versionedSettingsModel
+	var oldState models.VersionedSettingsModel
 	diags := req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -167,21 +159,21 @@ func (r *versionedSettingsResource) Read(ctx context.Context, req resource.ReadR
 }
 
 func (r *versionedSettingsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan versionedSettingsModel
+	var plan models.VersionedSettingsModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var oldState versionedSettingsModel
+	var oldState models.VersionedSettingsModel
 	diags = req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var newState versionedSettingsModel
+	var newState models.VersionedSettingsModel
 	projectId := plan.ProjectId.ValueString()
 	newState.ProjectId = plan.ProjectId
 
@@ -217,14 +209,14 @@ func (r *versionedSettingsResource) Update(ctx context.Context, req resource.Upd
 }
 
 func (r *versionedSettingsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state versionedSettingsModel
+	var state models.VersionedSettingsModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	settings := models.VersionedSettings{
+	settings := models.VersionedSettingsJson{
 		SynchronizationMode: "disabled",
 	}
 
@@ -239,8 +231,8 @@ func (r *versionedSettingsResource) Delete(ctx context.Context, req resource.Del
 	}
 }
 
-func (r *versionedSettingsResource) readState(result models.VersionedSettings) (*versionedSettingsModel, error) {
-	settings := versionedSettingsModel{
+func (r *versionedSettingsResource) readState(result models.VersionedSettingsJson) (*models.VersionedSettingsModel, error) {
+	settings := models.VersionedSettingsModel{
 		VcsRoot:        types.StringValue(*result.VcsRootId),
 		AllowUIEditing: types.BoolValue(*result.AllowUIEditing),
 		Settings:       types.StringValue(*result.BuildSettingsMode),
