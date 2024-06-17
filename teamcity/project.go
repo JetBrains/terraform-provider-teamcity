@@ -27,11 +27,6 @@ type projectResource struct {
 	client *client.Client
 }
 
-type projectResourceModel struct {
-	Name types.String `tfsdk:"name"`
-	Id   types.String `tfsdk:"id"`
-}
-
 func (r *projectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_project"
 }
@@ -62,14 +57,14 @@ func (r *projectResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan projectResourceModel
+	var plan models.ProjectResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	project := models.Project{
+	project := models.ProjectJson{
 		Name: plan.Name.ValueString(),
 	}
 	if !plan.Id.IsUnknown() {
@@ -86,7 +81,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	var newState projectResourceModel
+	var newState models.ProjectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)
 
@@ -98,7 +93,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 }
 
 func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state projectResourceModel
+	var state models.ProjectResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -129,21 +124,21 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 }
 
 func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan projectResourceModel
+	var plan models.ProjectResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var oldState projectResourceModel
+	var oldState models.ProjectResourceModel
 	diags = req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var newState projectResourceModel
+	var newState models.ProjectResourceModel
 	resourceId := oldState.Id.ValueString()
 
 	if result, ok := r.setFieldString(resourceId, "name", oldState.Name, plan.Name, &resp.Diagnostics); ok {
@@ -166,7 +161,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 }
 
 func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state projectResourceModel
+	var state models.ProjectResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -187,8 +182,8 @@ func (r *projectResource) ImportState(ctx context.Context, req resource.ImportSt
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *projectResource) readState(result models.Project) (projectResourceModel, error) {
-	var newState projectResourceModel
+func (r *projectResource) readState(result models.ProjectJson) (models.ProjectResourceModel, error) {
+	var newState models.ProjectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)
 
