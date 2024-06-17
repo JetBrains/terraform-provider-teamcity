@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -68,7 +69,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	project := client.Project{
+	project := models.Project{
 		Name: plan.Name.ValueString(),
 	}
 	if !plan.Id.IsUnknown() {
@@ -186,7 +187,7 @@ func (r *projectResource) ImportState(ctx context.Context, req resource.ImportSt
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *projectResource) readState(result client.Project) (projectResourceModel, error) {
+func (r *projectResource) readState(result models.Project) (projectResourceModel, error) {
 	var newState projectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)

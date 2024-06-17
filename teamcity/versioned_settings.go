@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strconv"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -84,7 +85,7 @@ func (r *versionedSettingsResource) Create(ctx context.Context, req resource.Cre
 	buildSettings := plan.Settings.ValueString()
 	showChanges := plan.ShowChanges.ValueBool()
 	decision := "importFromVCS"
-	settings := client.VersionedSettings{
+	settings := models.VersionedSettings{
 		SynchronizationMode:         "enabled",
 		VcsRootId:                   &root,
 		Format:                      &format,
@@ -223,7 +224,7 @@ func (r *versionedSettingsResource) Delete(ctx context.Context, req resource.Del
 		return
 	}
 
-	settings := client.VersionedSettings{
+	settings := models.VersionedSettings{
 		SynchronizationMode: "disabled",
 	}
 
@@ -238,7 +239,7 @@ func (r *versionedSettingsResource) Delete(ctx context.Context, req resource.Del
 	}
 }
 
-func (r *versionedSettingsResource) readState(result client.VersionedSettings) (*versionedSettingsModel, error) {
+func (r *versionedSettingsResource) readState(result models.VersionedSettings) (*versionedSettingsModel, error) {
 	settings := versionedSettingsModel{
 		VcsRoot:        types.StringValue(*result.VcsRootId),
 		AllowUIEditing: types.BoolValue(*result.AllowUIEditing),

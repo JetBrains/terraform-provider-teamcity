@@ -90,7 +90,7 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	// Generate API request
 	var pool models.PoolJson
-	proj := models.ProjectsJson{Project: make([]models.ProjectJson, 0)}
+	proj := models.ProjectsJson{Project: make([]models.Project, 0)}
 	var size int64
 
 	pool.Name = plan.Name.ValueString()
@@ -130,7 +130,7 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	for _, project := range elements {
 		id := project.ValueString()
-		proj.Project = append(proj.Project, models.ProjectJson{Name: "-", Id: &id})
+		proj.Project = append(proj.Project, models.Project{Name: "-", Id: &id})
 	}
 
 	response, err := r.client.SetPoolProjects(pool.Name, &proj)
@@ -243,7 +243,7 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	var newName string
 	var newSize string
-	proj := models.ProjectsJson{Project: make([]models.ProjectJson, 0)}
+	proj := models.ProjectsJson{Project: make([]models.Project, 0)}
 
 	// Assing projects from the plan
 	elements := make([]types.String, 0, len(plan.Projects.Elements()))
@@ -254,7 +254,7 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	for _, project := range elements {
 		id := project.ValueString()
-		proj.Project = append(proj.Project, models.ProjectJson{Name: "-", Id: &id})
+		proj.Project = append(proj.Project, models.Project{Name: "-", Id: &id})
 	}
 
 	// verify plan values
