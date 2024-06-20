@@ -67,7 +67,7 @@ func (r *poolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Computed:            true,
 				Required:            false,
 				Optional:            true,
-				MarkdownDescription: "Projects assigned to the given pool",
+				MarkdownDescription: "Projects assigned to the given pool. List of Project IDs.",
 				ElementType:         types.StringType,
 				Default:             setdefault.StaticValue(basetypes.NewSetValueMust(types.StringType, []attr.Value{})),
 				PlanModifiers: []planmodifier.Set{
