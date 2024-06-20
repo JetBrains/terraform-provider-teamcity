@@ -141,12 +141,7 @@ func (r *poolResource) Create(ctx context.Context, req resource.CreateRequest, r
 		)
 		return
 	} else {
-		projects := []attr.Value{}
-		for _, p := range response.Project {
-			projects = append(projects, types.StringValue(string(*p.Id)))
-		}
-
-		plan.Projects, diags = types.SetValue(types.StringType, projects)
+		plan.Projects, diags = types.SetValue(types.StringType, getProjectsAttrValue(response.Project))
 		if diags.HasError() {
 			return
 		}
@@ -204,12 +199,7 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
 	if pool.Projects != nil {
-		elements := []attr.Value{}
-		for _, project := range pool.Projects.Project {
-			elements = append(elements, types.StringValue(*project.Id))
-		}
-
-		state.Projects, diags = types.SetValue(types.StringType, elements)
+		state.Projects, diags = types.SetValue(types.StringType, getProjectsAttrValue(pool.Projects.Project))
 		if diags.HasError() {
 			return
 		}
@@ -326,12 +316,7 @@ func (r *poolResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		)
 		return
 	} else {
-		projects := []attr.Value{}
-		for _, p := range response.Project {
-			projects = append(projects, types.StringValue(*p.Id))
-		}
-
-		state.Projects, diags = types.SetValue(types.StringType, projects)
+		state.Projects, diags = types.SetValue(types.StringType, getProjectsAttrValue(response.Project))
 		if diags.HasError() {
 			return
 		}
@@ -383,6 +368,15 @@ func (r *poolResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		)
 		return
 	}
+}
+
+func getProjectsAttrValue(data []models.ProjectJson) []attr.Value {
+	projects := []attr.Value{}
+	for _, p := range data {
+		projects = append(projects, types.StringValue(*p.Id))
+	}
+
+	return projects
 }
 
 // configure client

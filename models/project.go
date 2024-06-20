@@ -9,8 +9,8 @@ type ProjectsJson struct {
 }
 
 type ProjectJson struct {
-	Name            string           `json:"name"`
-	Id              *string          `json:"id,omitempty"`
+	Name            string               `json:"name"`
+	Id              *string              `json:"id,omitempty"`
 	ProjectFeatures *ProjectFeaturesJson `json:"projectFeatures,omitempty"`
 }
 
