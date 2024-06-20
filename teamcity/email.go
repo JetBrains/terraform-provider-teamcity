@@ -62,6 +62,8 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"password": schema.StringAttribute{Optional: true, Sensitive: true},
 			"secure_connection": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("NONE"),
 				Validators: []validator.String{
 					stringvalidator.OneOf([]string{"NONE", "STARTTLS", "SSL"}...),
 				},
