@@ -100,20 +100,16 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	var state models.PoolDataModel
 
-	if pool.Size == nil {
-		state = models.PoolDataModel{
-			Name:     types.StringValue(string(pool.Name)),
-			Size:     basetypes.NewInt64Null(),
-			Id:       types.Int64Value(int64(*(pool.Id))),
-			Projects: types.SetNull(types.StringType),
-		}
-	} else {
-		state = models.PoolDataModel{
-			Name:     types.StringValue(string(pool.Name)),
-			Size:     types.Int64Value(int64(*(pool.Size))),
-			Id:       types.Int64Value(int64(*(pool.Id))),
-			Projects: types.SetNull(types.StringType),
-		}
+	size := basetypes.NewInt64Null()
+	if pool.Size != nil {
+		size = types.Int64Value(int64(*(pool.Size)))
+	}
+
+	state = models.PoolDataModel{
+		Name:     types.StringValue(string(pool.Name)),
+		Id:       types.Int64Value(int64(*(pool.Id))),
+		Projects: types.SetNull(types.StringType),
+		Size:     size,
 	}
 
 	if pool.Projects != nil {
