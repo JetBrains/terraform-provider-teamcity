@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -162,6 +163,39 @@ func (c *Client) SetField(resource, id, name string, value *string) (string, err
 	}
 
 	return string(result), nil
+}
+
+func (c *Client) SetFieldJson(resource, id, name string, value interface{}) (string, error) {
+	var method string
+	var body []byte
+	var err error
+
+	if value == nil {
+		method = "DELETE"
+		body = make([]byte, 0)
+	} else {
+		method = "PUT"
+		body, err = json.Marshal(value)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	req, err := http.NewRequest(
+		method,
+		fmt.Sprintf("%s/%s/id:%s/%s", c.RestURL, resource, id, name),
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	result, err := c.requestWithType(req, "application/json")
+	if err != nil {
+		return "", err
+	}
+
+	return string(result.Body), nil
 }
 
 // Verify authethication and status of the REST endpoint
