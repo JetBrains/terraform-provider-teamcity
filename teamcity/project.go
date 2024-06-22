@@ -2,11 +2,13 @@ package teamcity
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
@@ -45,6 +47,14 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"parent_project_id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Default: stringdefault.StaticString("_Root"),
+			},
 		},
 	}
 }
@@ -71,19 +81,21 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		val := plan.Id.ValueString()
 		project.Id = &val
 	}
+	if !plan.ParentProjectId.IsUnknown() {
+		parentProjectId := plan.ParentProjectId.ValueString()
+		project.ParentProject = &models.ProjectJson{Id: &parentProjectId}
+	}
 
 	result, err := r.client.NewProject(project)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error setting project",
+			fmt.Sprintf("Error setting project: %s", project.Name),
 			"Cannot set project, unexpected error: "+err.Error(),
 		)
 		return
 	}
 
-	var newState models.ProjectResourceModel
-	newState.Name = types.StringValue(result.Name)
-	newState.Id = types.StringValue(*result.Id)
+	newState := r.convertToResource(result)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -103,7 +115,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	actual, err := r.client.GetProject(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading project",
+			fmt.Sprintf("Error reading project with ID: %s", state.Id.ValueString()),
 			"Could not read project settings: "+err.Error(),
 		)
 		return
@@ -114,7 +126,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	newState, err := r.readState(*actual)
+	newState := r.convertToResource(*actual)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -153,6 +165,13 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	//send update request with parent project as body - TC rest API
+	if result, ok := r.updateParentProjectParam(resourceId, oldState.ParentProjectId, plan.ParentProjectId, &resp.Diagnostics); ok {
+		newState.ParentProjectId = result
+	} else {
+		return
+	}
+
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -171,7 +190,7 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	err := r.client.DeleteProject(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Deleting project",
+			fmt.Sprintf("Error deleting project with ID: %s", state.Id.ValueString()),
 			"Could not delete project, unexpected error: "+err.Error(),
 		)
 		return
@@ -182,12 +201,13 @@ func (r *projectResource) ImportState(ctx context.Context, req resource.ImportSt
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *projectResource) readState(result models.ProjectJson) (models.ProjectResourceModel, error) {
+func (r *projectResource) convertToResource(result models.ProjectJson) models.ProjectResourceModel {
 	var newState models.ProjectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)
+	newState.ParentProjectId = types.StringValue(*result.ParentProject.Id)
 
-	return newState, nil
+	return newState
 }
 
 func (r *projectResource) setFieldString(id, name string, state, plan types.String, diag *diag.Diagnostics) (types.String, bool) {
@@ -200,11 +220,32 @@ func (r *projectResource) setFieldString(id, name string, state, plan types.Stri
 	result, err := r.client.SetField("projects", id, name, &val)
 	if err != nil {
 		diag.AddError(
-			"Error setting project field",
+			fmt.Sprintf("Error setting project field %s for the Project with ID: %s", name, id),
 			err.Error(),
 		)
 		return types.String{}, false
 	}
 
 	return types.StringValue(result), true
+}
+
+func (r *projectResource) updateParentProjectParam(id string, state, plan types.String, diag *diag.Diagnostics) (types.String, bool) {
+	if plan.Equal(state) {
+		return state, true
+	}
+
+	val := plan.ValueString()
+	requestBody := map[string]interface{}{
+		"id": val,
+	}
+	_, err := r.client.SetFieldJson("projects", id, "parentProject", requestBody)
+	if err != nil {
+		diag.AddError(
+			fmt.Sprintf("Error setting Project parent to %s, for the Project with ID: %s", val, id),
+			err.Error(),
+		)
+		return types.String{}, false
+	} else {
+		return plan, true
+	}
 }

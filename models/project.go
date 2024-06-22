@@ -11,12 +11,14 @@ type ProjectsJson struct {
 type ProjectJson struct {
 	Name            string               `json:"name"`
 	Id              *string              `json:"id,omitempty"`
+	ParentProject   *ProjectJson         `json:"parentProject,omitempty"`
 	ProjectFeatures *ProjectFeaturesJson `json:"projectFeatures,omitempty"`
 }
 
 type ProjectResourceModel struct {
-	Name types.String `tfsdk:"name"`
-	Id   types.String `tfsdk:"id"`
+	Name            types.String `tfsdk:"name"`
+	Id              types.String `tfsdk:"id"`
+	ParentProjectId types.String `tfsdk:"parent_project_id"`
 }
 
 type ProjectFeaturesJson struct {
