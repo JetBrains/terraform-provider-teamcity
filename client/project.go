@@ -3,44 +3,37 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"terraform-provider-teamcity/models"
 )
 
-// TODO: refactor other methods in the same way
 func (c *Client) NewProject(p models.ProjectJson) (models.ProjectJson, error) {
 	rb, err := json.Marshal(p)
 	if err != nil {
 		return models.ProjectJson{}, err
 	}
 
-	var newPool = models.ProjectJson{}
+	var newProject = models.ProjectJson{}
 	endpoint := "/projects"
-	err = c.PostRequest(endpoint, bytes.NewReader(rb), &newPool)
+	err = c.PostRequest(endpoint, bytes.NewReader(rb), &newProject)
 	if err != nil {
 		return models.ProjectJson{}, err
 	}
 
-	return newPool, nil
+	return newProject, nil
 }
 
 func (c *Client) GetProject(id string) (*models.ProjectJson, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s", c.RestURL, id), nil)
-	if err != nil {
-		return nil, err
-	}
+	var actual models.ProjectJson
+	endpoint := fmt.Sprintf("/projects/id:%s", id)
 
-	resp, err := c.request(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode == http.StatusNotFound {
+	err := c.GetRequest(endpoint, "", &actual)
+
+	if errors.Is(err, ErrNotFound) {
 		return nil, nil
 	}
-
-	actual := models.ProjectJson{}
-	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
 		return nil, err
 	}
@@ -49,12 +42,9 @@ func (c *Client) GetProject(id string) (*models.ProjectJson, error) {
 }
 
 func (c *Client) DeleteProject(id string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s", c.RestURL, id), nil)
-	if err != nil {
-		return err
-	}
+	endpoint := fmt.Sprintf("/projects/id:%s", id)
 
-	_, err = c.doRequest(req)
+	err := c.DeleteRequest(endpoint)
 	if err != nil {
 		return err
 	}
@@ -62,6 +52,7 @@ func (c *Client) DeleteProject(id string) error {
 	return nil
 }
 
+// TODO: refactor other methods in the same way as the New/Get/DeleteProject
 func (c *Client) NewProjectFeature(id string, feature models.ProjectFeatureJson) (models.ProjectFeatureJson, error) {
 	rb, err := json.Marshal(feature)
 	if err != nil {

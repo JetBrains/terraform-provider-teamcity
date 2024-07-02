@@ -179,7 +179,7 @@ func (r *poolResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		resp.Diagnostics.AddAttributeError(
 			path.Root("name"),
 			"Agent Pool not found",
-			"The Datasource cannot get an Agent Pool since there is no Agent Pool with the provided name.",
+			"Cannot get an Agent Pool since there is no Agent Pool with the provided name.",
 		)
 		return
 	}
