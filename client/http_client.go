@@ -107,7 +107,7 @@ func (c *Client) requestWithType(req *http.Request, ct string) (Response, error)
 				StatusCode: res.StatusCode,
 				Body:       body,
 			},
-			ErrNotFound
+			nil
 	}
 
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
@@ -255,6 +255,9 @@ func (c *Client) GetRequestWithContext(ctx context.Context, endpoint, query stri
 	response, err := c.request(req)
 	if err != nil {
 		return err
+	}
+	if response.StatusCode == http.StatusNotFound {
+		return ErrNotFound
 	}
 
 	// Unmarshal the response
