@@ -61,6 +61,7 @@ Optional:
 - `github` authentication using a GitHub.com account (see [below for nested schema](#nestedatt--modules--github))
 - `github_enterprise` authentication using a GitHub Enterprise account (see [below for nested schema](#nestedatt--modules--github_enterprise))
 - `google` authentication using a Google account (see [below for nested schema](#nestedatt--modules--google))
+- `ldap` authentication using LDAP (see [below for nested schema](#nestedatt--modules--ldap))
 - `jetbrains_space` authentication using a JetBrains Space account (see [below for nested schema](#nestedatt--modules--jetbrains_space))
 
 <a id="nestedatt--modules--built_in"></a>
@@ -104,6 +105,14 @@ Required:
 Optional:
 
 - `domains` (String) Restrict authentication to users from the specified Google domains, comma-separated
+
+<a id="nestedatt--modules--ldap"></a>
+### Nested Schema for `modules.ldap`
+
+Required:
+
+- `create_new_users` (Boolean)  Allow creating new users on the first login
+
 
 <a id="nestedatt--modules--jetbrains_space"></a>
 ### Nested Schema for `modules.jetbrains_space`

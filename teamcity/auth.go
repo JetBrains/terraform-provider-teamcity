@@ -45,6 +45,7 @@ type authModulesModel struct {
 	GithubApp        *authModuleGithubAppModel `tfsdk:"github_app"`
 	GithubCom        *authModuleGithubModel    `tfsdk:"github"`
 	GithubEnterprise *authModuleGithubModel    `tfsdk:"github_enterprise"`
+	LDAP             *authModuleLDAPModel      `tfsdk:"ldap"`
 	Space            *authModuleSpaceModel     `tfsdk:"jetbrains_space"`
 }
 
@@ -153,6 +154,14 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 								Required: true,
 							},
 							"organizations": schema.StringAttribute{
+								Required: true,
+							},
+						},
+					},
+					"ldap": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"create_new_users": schema.BoolAttribute{
 								Required: true,
 							},
 						},
@@ -367,6 +376,14 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 			},
 		})
 	}
+	if plan.Modules.LDAP != nil {
+		settings.Modules.Module = append(settings.Modules.Module, client.Module{
+			Name: "LDAP",
+			Properties: &models.Properties{
+				Property: plan.Modules.LDAP.getProperties(),
+			},
+		})
+	}
 
 	result, err := r.client.SetAuthSettings(settings)
 	if err != nil {
@@ -456,6 +473,15 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 			}
 			continue
 		}
+
+		if module.Name == "LDAP" {
+			state.Modules.LDAP = &authModuleLDAPModel{}
+			err := state.Modules.LDAP.setFields(props)
+			if err != nil {
+				return authResourceModel{}, err
+			}
+			continue
+		}
 	}
 
 	return state, nil
@@ -487,6 +513,10 @@ type authModuleGithubModel struct {
 type authModuleGithubAppModel struct {
 	CreateNewUsers types.Bool   `tfsdk:"create_new_users"`
 	Organizations  types.String `tfsdk:"organizations"`
+}
+
+type authModuleLDAPModel struct {
+	CreateNewUsers types.Bool `tfsdk:"create_new_users"`
 }
 
 type authModuleSpaceModel struct {
@@ -601,6 +631,22 @@ func (m *authModuleGithubModel) setFields(props map[string]string) error {
 
 	m.CreateNewUsers = types.BoolValue(creating)
 	m.Organizations = types.StringValue(props["organization"])
+	return nil
+}
+
+func (m *authModuleLDAPModel) getProperties() []models.Property {
+	return []models.Property{
+		{Name: "allowCreatingNewUsersByLogin", Value: strconv.FormatBool(m.CreateNewUsers.ValueBool())},
+	}
+}
+
+func (m *authModuleLDAPModel) setFields(props map[string]string) error {
+	creating, err := strconv.ParseBool(props["allowCreatingNewUsersByLogin"])
+	if err != nil {
+		return err
+	}
+
+	m.CreateNewUsers = types.BoolValue(creating)
 	return nil
 }
 
