@@ -2,14 +2,21 @@ package teamcity
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"strconv"
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 )
+
+//TODO import does not work with my changes for some reason - remove everything and try to import the auth settings adding one by one to find the cause
 
 var (
 	_ resource.Resource                   = &authResource{}
@@ -35,6 +42,7 @@ type authResourceModel struct {
 	PerProjectPermissions types.Bool       `tfsdk:"per_project_permissions"`
 	EmailVerification     types.Bool       `tfsdk:"email_verification"`
 	Modules               authModulesModel `tfsdk:"modules"`
+	ModulesJSON           types.List       `tfsdk:"modules_json"`
 }
 
 type authModulesModel struct {
@@ -46,6 +54,11 @@ type authModulesModel struct {
 	GithubCom        *authModuleGithubModel    `tfsdk:"github"`
 	GithubEnterprise *authModuleGithubModel    `tfsdk:"github_enterprise"`
 	Space            *authModuleSpaceModel     `tfsdk:"jetbrains_space"`
+}
+
+type ModuleModel struct {
+	Name       types.String `tfsdk:"name"`
+	Properties *types.Map   `tfsdk:"properties"`
 }
 
 func (r *authResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
@@ -167,6 +180,23 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 					},
 				},
 			},
+			"modules_json": schema.ListNestedAttribute{
+				Optional: true,
+				//Computed: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Optional: true,
+							//Computed: true,
+						},
+						"properties": schema.MapAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+							//Computed:    true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -229,7 +259,7 @@ func (r *authResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	newState, err := r.update(plan)
+	newState, err := r.update(ctx, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting authentication settings",
@@ -279,7 +309,47 @@ func (r *authResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	newState, err := r.update(plan)
+	//var modulesJSON basetypes.ListValue
+	//var diags diag.Diagnostics
+	//diags = plan.ModulesJSON.ElementsAs(ctx, &modulesJSON, false)
+	//if diags.HasError() {
+	//	resp.Diagnostics.Append(diags...)
+	//	return
+	//}
+	//
+	//// Iterate over the slice of objects
+	//for _, moduleAttr := range modulesJSON.Elements() {
+	//	//moduleAttr.As()
+	//	module := make(map[string]attr.Value)
+	//	var value tftypes.Value
+	//	value, _ = moduleAttr.ToTerraformValue(ctx) //As(ctx, &module, basetypes.ObjectAsOptions{})
+	//	if diags.HasError() {
+	//		resp.Diagnostics.Append(diags...)
+	//		return
+	//	}
+	//	err := value.As(module)
+	//	if err != nil {
+	//		return
+	//	}
+	//
+	//	// Extract individual attributes
+	//	name := module["name"].(types.String).ValueString()
+	//	propertiesMap := module["properties"].(types.Map)
+	//
+	//	// Convert properties map to native Go map
+	//	var properties map[string]string
+	//	diags = propertiesMap.ElementsAs(ctx, &properties, false)
+	//	if diags.HasError() {
+	//		resp.Diagnostics.Append(diags...)
+	//		return
+	//	}
+	//
+	//	// Now you have name and properties, and can work with them
+	//	fmt.Printf("Module Name: %s\n", name)
+	//	fmt.Printf("Properties: %v\n", properties)
+	//}
+
+	newState, err := r.update(ctx, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting authentication settings",
@@ -302,7 +372,7 @@ func (r *authResource) ImportState(ctx context.Context, req resource.ImportState
 	resp.State.Set(ctx, authResourceModel{})
 }
 
-func (r *authResource) update(plan authResourceModel) (authResourceModel, error) {
+func (r *authResource) update(ctx context.Context, plan authResourceModel) (authResourceModel, error) {
 	settings := client.AuthSettings{
 		AllowGuest:        plan.AllowGuest.ValueBool(),
 		GuestUsername:     plan.GuestUsername.ValueString(),
@@ -368,6 +438,78 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 		})
 	}
 
+	if !plan.ModulesJSON.IsNull() {
+		var modulesJSON basetypes.ListValue
+		var diags diag.Diagnostics
+		diags = plan.ModulesJSON.ElementsAs(ctx, &modulesJSON, false)
+		//if diags.HasError() {
+		//	resp.Diagnostics.Append(diags...)
+		//	return
+		//}
+
+		// Iterate over the slice of objects
+		for _, moduleAttr := range modulesJSON.Elements() {
+			//moduleAttr.As()
+			module := make(map[string]attr.Value)
+			var value tftypes.Value
+			value, _ = moduleAttr.ToTerraformValue(ctx) //As(ctx, &module, basetypes.ObjectAsOptions{})
+			//if diags.HasError() {
+			//	resp.Diagnostics.Append(diags...)
+			//	return
+			//}
+			err := value.As(module)
+			if err != nil {
+				return authResourceModel{}, err
+			}
+
+			// Extract individual attributes
+			name := module["name"].(types.String).ValueString()
+			propertiesMap := module["properties"].(types.Map)
+
+			// Convert properties map to native Go map
+			var properties map[string]string
+			diags = propertiesMap.ElementsAs(ctx, &properties, false)
+			if diags.HasError() {
+				//resp.Diagnostics.Append(diags...)
+				//return
+				return authResourceModel{}, err
+			}
+
+			// Now you have name and properties, and can work with them
+			fmt.Printf("Module Name: %s\n", name)
+			fmt.Printf("Properties: %v\n", properties)
+		}
+	}
+
+	//if !plan.ModulesJSON.IsNull() {
+	//	// Create a list of Module structs from the Terraform list
+	//	var modules []ModuleModel
+	//	// Convert the list to a slice of objects
+	//
+	//	for _, element := range plan.ModulesJSON.Elements() {
+	//		nameAttr := element.Attributes["name"].(types.String)
+	//		propertiesAttr := element.Attributes["properties"].(types.Map)
+	//
+	//		// Convert properties from types.Map to a Go map
+	//		propsMap := make(map[string]string)
+	//		for _, key := range propertiesAttr.Keys() {
+	//			value := propertiesAttr.AttrValue(key).(types.String)
+	//			propsMap[key] = value.Value
+	//		}
+	//
+	//		modules = append(modules, Module{
+	//			Name:       nameAttr.Value,
+	//			Properties: &Properties{Props: propsMap},
+	//		})
+	//	}
+	//	settings.Modules.Module = append(settings.Modules.Module, client.Module{
+	//		Name: "JetbrainsSpace-oauth",
+	//		Properties: &models.Properties{
+	//			Property: plan.Modules.Space.getProperties(),
+	//		},
+	//	})
+	//}
+
 	result, err := r.client.SetAuthSettings(settings)
 	if err != nil {
 		return authResourceModel{}, err
@@ -387,6 +529,7 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 	state.PerProjectPermissions = types.BoolValue(result.PerProjectPermissions)
 	state.EmailVerification = types.BoolValue(result.EmailVerification)
 
+	var modules []ModuleModel
 	for _, module := range result.Modules.Module {
 		props := make(map[string]string)
 		for _, p := range module.Properties.Property {
@@ -456,7 +599,50 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 			}
 			continue
 		}
+
+		modules = append(modules, readModule(&module, props))
 	}
+
+	//if len(modules) != 0 {
+	// Convert list of ModuleModel to types.List
+	var diags diag.Diagnostics
+	moduleElements := make([]attr.Value, len(modules))
+	for i, module := range modules {
+		// Convert module's Go struct to map[string]attr.Value
+		moduleMap := map[string]attr.Value{
+			"name":       module.Name,
+			"properties": module.Properties,
+		}
+
+		// Create an Object value from the map
+		moduleElements[i], diags = types.ObjectValue(map[string]attr.Type{
+			"name":       types.StringType,
+			"properties": types.MapType{ElemType: types.StringType},
+		}, moduleMap)
+		if diags.HasError() {
+			return authResourceModel{}, fmt.Errorf("an error occurred when converting auth modules properties to map: %s", diags)
+		}
+	}
+
+	// Set the modules_json attribute to the list of objects
+	modulesJson, diags := types.ListValue(types.ObjectType{AttrTypes: map[string]attr.Type{
+		"name":       types.StringType,
+		"properties": types.MapType{ElemType: types.StringType},
+	}}, moduleElements)
+	if diags.HasError() {
+		return authResourceModel{}, fmt.Errorf("an error occurred when writing auth modules to state: %s", diags)
+	}
+
+	if len(modulesJson.Elements()) == 0 {
+		state.ModulesJSON = basetypes.NewListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+			"name":       types.StringType,
+			"properties": types.MapType{ElemType: types.StringType},
+		}})
+	} else {
+		state.ModulesJSON = modulesJson
+	}
+
+	//}
 
 	return state, nil
 }
@@ -618,4 +804,19 @@ func (m *authModuleSpaceModel) setFields(props map[string]string) error {
 
 	m.CreateNewUsers = types.BoolValue(creating)
 	return nil
+}
+
+func readModule(module *client.Module, props map[string]string) ModuleModel {
+	propValues := make(map[string]attr.Value, len(props))
+	for key, value := range props {
+		propValues[key] = types.StringValue(value)
+	}
+
+	// Create the Terraform map type
+	propsMap := types.MapValueMust(types.StringType, propValues)
+
+	return ModuleModel{
+		Name:       types.StringValue(module.Name),
+		Properties: &propsMap,
+	}
 }
