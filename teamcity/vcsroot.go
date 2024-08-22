@@ -61,6 +61,7 @@ type GitPropertiesModel struct {
 	CheckoutPolicy   types.String `tfsdk:"checkout_policy"`
 	CleanPolicy      types.String `tfsdk:"clean_policy"`
 	CleanFilesPolicy types.String `tfsdk:"clean_files_policy"`
+	TokenId          types.String `tfsdk:"token_id"`
 }
 
 func (r *vcsRootResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -134,6 +135,7 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 								"ANONYMOUS",
 								"PASSWORD",
 								"TEAMCITY_SSH_KEY",
+								"ACCESS_TOKEN",
 								"PRIVATE_KEY_DEFAULT",
 								"PRIVATE_KEY_FILE",
 							}...),
@@ -190,6 +192,9 @@ func (r *vcsRootResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							stringvalidator.OneOf([]string{"ALL_UNTRACKED", "IGNORED_ONLY", "NON_IGNORED_ONLY"}...),
 						},
 						Default: stringdefault.StaticString("ALL_UNTRACKED"),
+					},
+					"token_id": schema.StringAttribute{
+						Optional: true,
 					},
 				},
 			},
@@ -307,6 +312,10 @@ func (r *vcsRootResource) Create(ctx context.Context, req resource.CreateRequest
 
 	if plan.Git.CleanFilesPolicy.IsNull() != true {
 		props = append(props, models.Property{Name: "agentCleanFilesPolicy", Value: plan.Git.CleanFilesPolicy.ValueString()})
+	}
+
+	if plan.Git.TokenId.IsNull() != true {
+		props = append(props, models.Property{Name: "tokenId", Value: plan.Git.TokenId.ValueString()})
 	}
 
 	root.Properties = models.Properties{
@@ -480,6 +489,9 @@ func (r *vcsRootResource) readState(result client.VcsRoot) (vcsRootResourceModel
 	if val, ok := props["agentCleanFilesPolicy"]; ok {
 		state.Git.CleanFilesPolicy = types.StringValue(val)
 	}
+	if val, ok := props["tokenId"]; ok {
+		state.Git.TokenId = types.StringValue(val)
+	}
 
 	return state, nil
 }
@@ -638,6 +650,12 @@ func (r *vcsRootResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	if result, ok := r.setFieldString(resourceId, "properties/agentCleanFilesPolicy", oldState.Git.CleanFilesPolicy, plan.Git.CleanFilesPolicy, &resp.Diagnostics); ok {
 		newState.Git.CleanFilesPolicy = result
+	} else {
+		return
+	}
+
+	if result, ok := r.setFieldString(resourceId, "properties/tokenId", oldState.Git.TokenId, plan.Git.TokenId, &resp.Diagnostics); ok {
+		newState.Git.TokenId = result
 	} else {
 		return
 	}
