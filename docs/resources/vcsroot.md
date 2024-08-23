@@ -47,29 +47,30 @@ resource "teamcity_vcsroot" "vcsroot1" {
 
 Required:
 
-- `branch` (String)
-- `url` (String)
+- `branch` (String) The main branch or tag to be monitored.
+- `url` (String) The URL used for fetching data from the repository.
 
 Optional:
 
-- `auth_method` (String)
-- `branch_spec` (String)
-- `checkout_policy` (String)
-- `clean_files_policy` (String)
-- `clean_policy` (String)
-- `convert_crlf` (Boolean)
-- `ignore_known_hosts` (Boolean)
-- `passphrase` (String, Sensitive)
-- `password` (String, Sensitive)
-- `path_to_git` (String)
-- `private_key_path` (String)
-- `push_url` (String)
-- `submodules` (String)
-- `tags_as_branches` (Boolean)
-- `uploaded_key` (String)
-- `username` (String)
-- `username_for_tags` (String)
-- `username_style` (String)
+- `auth_method` (String) The authentication method used by the vcsroot. Can be  one of ANONYMOUS, PASSWORD, TEAMCITY_SSH_KEY, ACCESS_TOKEN,  PRIVATE_KEY_DEFAULT or PRIVATE_KEY_FILE.
+- `branch_spec` (String) Branches to monitor besides the default one as a newline-delimited set of rules in the form of +|-:branch name with the optional * placeholder. Part matched by * (or part inside parentheses) will be shown as a build logical branch name.
+- `checkout_policy` (String) Uses shallow clone for short-lived agents and mirrors for regular long-lived agents.
+- `clean_files_policy` (String) This option specifies which files will be removed when "git clean" command is run on agent.
+- `clean_policy` (String) This option specifies when the "git clean" command is run on the agent.
+- `convert_crlf` (Boolean) Convert line endings of CRLF.
+- `ignore_known_hosts` (Boolean) Ignore SSH known-hosts colission.
+- `passphrase` (String, Sensitive) SSH Key passphrase.
+- `password` (String, Sensitive) User password.
+- `path_to_git` (String) The path to a git executable on the agent. If blank, the location set up in TEAMCITY_GIT_PATH environment variable is used.
+- `private_key_path` (String) Path to an SSH private key.
+- `push_url` (String) Used for pushing tags to the remote repository. If blank, the fetch url is used.
+- `submodules` (String) Defines whether to checkout submodules. Can be one of CHECKOUT or IGNORE.
+- `tags_as_branches` (Boolean) Enable to use tags in the branch specification
+- `uploaded_key` (String) The ID of an upload SSH key.
+- `username` (String) Username used to login to the VCS.
+- `username_for_tags` (String) Username used for tags. Format: Username \<email\>
+- `username_style` (String) The style of the username. Can be one of USERID, NAME, EMAIL or FULL.
+- `token_id` (String) The token ID used when auth_method is set to ACCESS_TOKEN.
 
 ## Import
 
