@@ -11,3 +11,5 @@ terraform.tfvars
 *.tfstate.*
 .terraform.lock.hcl
 .terraform/
+
+swagger.json

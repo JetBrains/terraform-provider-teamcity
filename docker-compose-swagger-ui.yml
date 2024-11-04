@@ -1,0 +1,10 @@
+services:
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: swagger-ui
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./swagger.json:/swagger.json  # Copy contents from http://localhost:8111/app/rest/swagger.json
+    environment:
+      SWAGGER_JSON: /swagger.json

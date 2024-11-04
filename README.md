@@ -95,8 +95,9 @@ This project is licensed under the Mozilla Public License 2.0. For more informat
 
 ### To debug provider:
 
-1. Open the `DebugProvider` run configuration and make sure the correct module and docker run configuration are chosen:![](examples/0-empty_development/images/img.png)
-2. Execute in debug mode this `DebugProvider` run configuration. It should start a TeamCity container with pre-defined token. You will see something like:
+1. Run TeamCity server of preferred version via docker-compose.yml file. It should start a TeamCity container with pre-defined token. (There is a `tc-server` run configuration)
+2. Open the `DebugProvider` run configuration and make sure the correct module is chosen:![](examples/0-empty_development/images/img.png)
+2. Execute in debug mode this `DebugProvider` run configuration. You will see something like:
 
 ```
 Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environment variable with the following:
@@ -121,3 +122,6 @@ go test -count=1 -v ./...
 ### Debug some test:
 There is a GoLand run configuration where you can debug a test package or chose a specific test to run using Pattern like `^\QTestAccProject_basic\E$`:
 ![](examples/0-empty_development/images/DebugTest.png)
+
+### Use Swagger UI to work with TeamCity rest API:
+When TeamCity server is running, use `Run Swagger UI` configuration and go to http://localhost:8080/

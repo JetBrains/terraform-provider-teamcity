@@ -1,4 +1,3 @@
-version: '2'
 services:
   teamcity-server-local:
     image: jetbrains/teamcity-server:2023.05
