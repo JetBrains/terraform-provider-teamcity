@@ -154,6 +154,7 @@ func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.Da
 		NewServerDataSource,
 		NewBuildConfDataSource,
 		NewPoolDataSource,
+		NewSshKeyDataSource,
 	}
 }
 
