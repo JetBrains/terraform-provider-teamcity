@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"io"
 	"net/http"
 	"net/url"
@@ -83,13 +84,7 @@ func (c *Client) request(req *http.Request) (Response, error) {
 }
 
 func (c *Client) requestWithType(req *http.Request, ct string) (Response, error) {
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	} else {
-		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(c.Username+":"+c.Password)))
-	}
-	req.Header.Set("Content-Type", ct)
-	req.Header.Set("Accept", ct)
+	c.setHeaders(req, ct)
 
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -108,6 +103,53 @@ func (c *Client) requestWithType(req *http.Request, ct string) (Response, error)
 				Body:       body,
 			},
 			nil
+	}
+
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+		return Response{}, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
+	}
+
+	return Response{
+		StatusCode: res.StatusCode,
+		Body:       body,
+	}, nil
+}
+
+// retryableRequest performs an HTTP request with retry logic using the provided retry policy and request object.
+//
+// Parameters:
+//   - req: The HTTP request to be executed with retry logic.
+//   - retryPolicy: A function defining the retry policy to be applied for the request.
+//
+// Returns:
+//   - Response: The response object containing the status code and body of the final request.
+//   - error: An error object if the request fails after retrying or other errors occur.
+func (c *Client) retryableRequest(req *http.Request, retryPolicy retryablehttp.CheckRetry) (Response, error) {
+	return c.retryableRequestWithType(req, "application/json", retryPolicy)
+}
+
+func (c *Client) retryableRequestWithType(req *http.Request, ct string, retryPolicy retryablehttp.CheckRetry) (Response, error) {
+	c.setHeaders(req, ct)
+
+	rclient := retryablehttp.NewClient()
+	rclient.RetryWaitMin = 5 * time.Second
+	rclient.RetryWaitMax = 5 * time.Second
+	rclient.RetryMax = 60
+	rclient.CheckRetry = retryPolicy
+
+	// Convert http.Request to retryablehttp request
+	retryReq, err := retryablehttp.NewRequest(req.Method, req.URL.String(), req.Body)
+	retryReq.Header = req.Header
+
+	res, err := rclient.Do(retryReq)
+	if err != nil {
+		return Response{}, fmt.Errorf("request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return Response{}, fmt.Errorf("read response failed: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
@@ -377,4 +419,14 @@ func (c *Client) verifyRequestAddr(endpoint string) (*url.URL, error) {
 	}
 	addr = addr.JoinPath(endpoint)
 	return addr, nil
+}
+
+func (c *Client) setHeaders(req *http.Request, ct string) {
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	} else {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(c.Username+":"+c.Password)))
+	}
+	req.Header.Set("Content-Type", ct)
+	req.Header.Set("Accept", ct)
 }
