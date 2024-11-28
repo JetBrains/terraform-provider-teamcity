@@ -195,7 +195,7 @@ func (r *versionedSettingsResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	if result, ok := r.setPropertyBool(projectId, "showChanges", oldState.ShowChanges, plan.ShowChanges, &resp.Diagnostics); ok {
+	if result, ok := r.setPropertyBool(projectId, "showSettingsChanges", oldState.ShowChanges, plan.ShowChanges, &resp.Diagnostics); ok {
 		newState.ShowChanges = result
 	} else {
 		return
