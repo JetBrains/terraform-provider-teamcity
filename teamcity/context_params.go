@@ -2,6 +2,7 @@ package teamcity
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -11,8 +12,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &contextParamsResource{}
-	_ resource.ResourceWithConfigure = &contextParamsResource{}
+	_ resource.Resource                = &contextParamsResource{}
+	_ resource.ResourceWithConfigure   = &contextParamsResource{}
+	_ resource.ResourceWithImportState = &contextParamsResource{}
 )
 
 func NewContextParamsResource() resource.Resource {
@@ -188,4 +190,8 @@ func (r *contextParamsResource) Delete(ctx context.Context, req resource.DeleteR
 		)
 		return
 	}
+}
+
+func (r *contextParamsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("project_id"), req, resp)
 }
