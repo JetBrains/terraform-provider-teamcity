@@ -31,3 +31,12 @@ resource "teamcity_versioned_settings" "settings1" {
 - `settings` (String) Possible values: `alwaysUseCurrent`, `useCurrentByDefault`, `useFromVCS`
 - `allow_ui_editing` (Boolean) Allow editing project settings via UI
 - `show_changes` (Boolean)  Show settings changes in builds
+
+## Import
+
+```terraform
+import {
+  to = teamcity_versioned_settings.settings1
+  id = "Project1"
+}
+```

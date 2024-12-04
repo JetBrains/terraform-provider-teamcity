@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -16,8 +17,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &versionedSettingsResource{}
-	_ resource.ResourceWithConfigure = &versionedSettingsResource{}
+	_ resource.Resource                = &versionedSettingsResource{}
+	_ resource.ResourceWithConfigure   = &versionedSettingsResource{}
+	_ resource.ResourceWithImportState = &versionedSettingsResource{}
 )
 
 func NewVersionedSettingsResource() resource.Resource {
@@ -296,4 +298,8 @@ func (r *versionedSettingsResource) setPropertyBool(projectId, name string, stat
 		return types.Bool{}, false
 	}
 	return types.BoolValue(val), true
+}
+
+func (r *versionedSettingsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("project_id"), req, resp)
 }
