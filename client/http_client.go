@@ -27,6 +27,7 @@ type Client struct {
 	Username   string
 	Password   string
 	HTTPClient *http.Client
+	MaxRetries int
 }
 
 type Response struct {
@@ -34,7 +35,7 @@ type Response struct {
 	Body       []byte
 }
 
-func NewClient(host, token, username, password string) Client {
+func NewClient(host, token, username, password string, maxRetries int) Client {
 	client := Client{
 		AppURL:     host + "/app",
 		RestURL:    host + "/app/rest",
@@ -42,6 +43,7 @@ func NewClient(host, token, username, password string) Client {
 		Username:   username,
 		Password:   password,
 		HTTPClient: &http.Client{Timeout: requestsTimeoutSec * time.Second},
+		MaxRetries: maxRetries,
 	}
 	return client
 }
@@ -134,7 +136,7 @@ func (c *Client) retryableRequestWithType(req *http.Request, ct string, retryPol
 	rclient := retryablehttp.NewClient()
 	rclient.RetryWaitMin = 5 * time.Second
 	rclient.RetryWaitMax = 5 * time.Second
-	rclient.RetryMax = 60
+	rclient.RetryMax = c.MaxRetries
 	rclient.CheckRetry = retryPolicy
 
 	// Convert http.Request to retryablehttp request
@@ -199,12 +201,12 @@ func (c *Client) SetField(resource, id, name string, value *string) (string, err
 		return "", err
 	}
 
-	result, err := c.doRequestWithType(req, "text/plain")
+	result, err := c.retryableRequestWithType(req, "text/plain", retryPolicy)
 	if err != nil {
 		return "", err
 	}
 
-	return string(result), nil
+	return string(result.Body), nil
 }
 
 func (c *Client) SetFieldJson(resource, id, name string, value interface{}) (string, error) {

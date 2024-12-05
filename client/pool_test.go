@@ -27,7 +27,7 @@ func TestPool(t *testing.T) {
 				}))
 				defer server.Close()
 
-				httpClient := NewClient(server.URL, "token", "", "")
+				httpClient := NewClient(server.URL, "token", "", "", 12)
 
 				pool, err := httpClient.GetPool("Default")
 				if err != nil {

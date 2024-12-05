@@ -9,9 +9,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"math/big"
 	"os"
 	"terraform-provider-teamcity/client"
 )
+
+const MaxRetriesDefault int = 12
 
 var (
 	_ provider.Provider = &teamcityProvider{}
@@ -44,15 +48,20 @@ func (p *teamcityProvider) Schema(_ context.Context, _ provider.SchemaRequest, r
 				Optional:  true,
 				Sensitive: true,
 			},
+			"max_retries": schema.NumberAttribute{
+				Optional:    true,
+				Description: "Maximum number of retries for requests to the server. Default is 12 (1 min). Each retry waits 5 seconds by default.",
+			},
 		},
 	}
 }
 
 type teamcityProviderModel struct {
-	Host     types.String `tfsdk:"host"`
-	Token    types.String `tfsdk:"token"`
-	Username types.String `tfsdk:"username"`
-	Password types.String `tfsdk:"password"`
+	Host       types.String          `tfsdk:"host"`
+	Token      types.String          `tfsdk:"token"`
+	Username   types.String          `tfsdk:"username"`
+	Password   types.String          `tfsdk:"password"`
+	MaxRetries basetypes.NumberValue `tfsdk:"max_retries"`
 }
 
 func (p *teamcityProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -99,6 +108,8 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 	token := os.Getenv("TEAMCITY_TOKEN")
 	username := os.Getenv("TEAMCITY_USERNAME")
 	password := os.Getenv("TEAMCITY_PASSWORD")
+	maxRetries := MaxRetriesDefault
+
 	if !config.Host.IsNull() {
 		host = config.Host.ValueString()
 	}
@@ -131,7 +142,13 @@ func (p *teamcityProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
-	cl := client.NewClient(host, token, username, password)
+	if !config.MaxRetries.IsNull() {
+		var bigInt big.Int
+		config.MaxRetries.ValueBigFloat().Int(&bigInt)
+		maxRetries = int(bigInt.Int64())
+	}
+
+	cl := client.NewClient(host, token, username, password, maxRetries)
 	_, err := cl.VerifyConnection(ctx)
 
 	if err != nil {

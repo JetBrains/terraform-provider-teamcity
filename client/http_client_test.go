@@ -23,7 +23,7 @@ func TestHTTPClient(t *testing.T) {
 				}))
 				defer server.Close()
 
-				httpClient := NewClient(server.URL, "token", "", "")
+				httpClient := NewClient(server.URL, "token", "", "", 12)
 
 				_, err := httpClient.VerifyConnection(context.Background())
 				if err != nil {
@@ -39,7 +39,7 @@ func TestHTTPClient(t *testing.T) {
 				}))
 				defer server.Close()
 
-				httpClient := NewClient(server.URL, "token", "", "")
+				httpClient := NewClient(server.URL, "token", "", "", 12)
 
 				body := &struct{}{}
 				err := httpClient.GetRequest("", "", body)

@@ -200,7 +200,7 @@ func (c *Client) SetVersionedSettingsProperty(projectId string, property string,
 }
 
 func retryPolicy(_ context.Context, resp *http.Response, _ error) (bool, error) {
-	if resp.StatusCode == http.StatusInternalServerError { // wait for versioned settings to be ready for the change
+	if resp.StatusCode == http.StatusInternalServerError { // wait the main object/feature to be ready for a property change
 		return true, nil
 	} else {
 		return false, nil

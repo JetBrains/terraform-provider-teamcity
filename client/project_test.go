@@ -38,7 +38,7 @@ func TestProject(t *testing.T) {
 				}))
 				defer server.Close()
 
-				httpClient := NewClient(server.URL, "token", "", "")
+				httpClient := NewClient(server.URL, "token", "", "", 12)
 
 				testObj := &models.ProjectJson{}
 				err := json.Unmarshal([]byte(testObjJSON), testObj)
@@ -71,7 +71,7 @@ func TestProject(t *testing.T) {
 				}))
 				defer server.Close()
 
-				httpClient := NewClient(server.URL, "token", "", "")
+				httpClient := NewClient(server.URL, "token", "", "", 12)
 
 				obj, err := httpClient.GetProject(objId)
 				if err != nil {
@@ -98,7 +98,7 @@ func TestProject(t *testing.T) {
 				}))
 				defer server.Close()
 
-				httpClient := NewClient(server.URL, "token", "", "")
+				httpClient := NewClient(server.URL, "token", "", "", 12)
 
 				err := httpClient.DeleteProject(objId)
 				if err != nil {
