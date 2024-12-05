@@ -28,3 +28,12 @@ resource "teamcity_project_parameter" "project_param" {
 - `name` (String)
 - `project_id` (String)
 - `value` (String)
+
+## Import
+
+```terraform
+import {
+  to = teamcity_project_parameter.project_param
+  id = "_Root/env.MY_ENV_PARAM"
+}
+```
