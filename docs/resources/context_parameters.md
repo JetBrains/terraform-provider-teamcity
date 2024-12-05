@@ -28,3 +28,12 @@ resource "teamcity_context_parameters" "project1" {
 
 - `project_id` (String) Project ID
 - `params` (Map of String)
+
+## Import
+
+```terraform
+import {
+  to = teamcity_context_parameters.project1
+  id = "Project1"
+}
+```
