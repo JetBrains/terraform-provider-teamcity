@@ -56,6 +56,17 @@ provider "teamcity" {
 }
 ```
 
+## Fine-tuning
+Sometimes some requests may fail due to time-specific constraints in TeamCity server. There is a way to configure retries for some terraform operations in this provider: 
+* `max_retries` (Number) Maximum number of retries for requests to the server. Default is 12 (1 min). Each retry waits 5 seconds by default.
+```HCL
+provider "teamcity" {
+  host  = "http://...:8111"
+  password = "..."
+  max_retries = 60 #each retry is 5 sec long, 12 by default
+}
+```
+
 ## Examples
 
 For more advanced examples, see the `/examples/` folder in the [GitHub repository](https://github.com/JetBrains/terraform-provider-teamcity):
