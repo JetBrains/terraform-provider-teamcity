@@ -109,13 +109,6 @@ func (r *userResource) ValidateConfig(ctx context.Context, req resource.Validate
 				"",
 			)
 		}
-		if !role.Global.ValueBool() {
-			resp.Diagnostics.AddAttributeError(
-				path.Root("roles"), //TODO path to specific set item
-				"'global' must be set to 'true'",
-				"",
-			)
-		}
 	}
 }
 
