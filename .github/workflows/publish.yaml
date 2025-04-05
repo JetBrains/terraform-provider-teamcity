@@ -1,0 +1,36 @@
+name: publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: get-files-changed
+        id: get-files-changed
+        run: |
+          files="$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})"
+          folders_list="[]"
+          
+          for file in $files
+          do  
+            folder="$(echo $(dirname "${file}") | sed 's!/*\([^/]*\).*!\1!g')"
+            folders_list="$(echo "$folders_list" | jq ". += [\"$folder\"]")"
+          done
+          
+          unique_list="$(echo "$folders_list" | jq -c unique )"
+          echo "::set-output name=FOLDERS_LIST::$unique_list"
+
+      - name: publish
+        uses: seeeverything/publish-terraform-modules@1.0.0
+        with:
+          modules_list: ${{ steps.get-files-changed.outputs.FOLDERS_LIST }}
+          provider: "teamcity"
+          namespace: "jpascal"
+          token: ${{ secrets.TF_CLOUD_API_TOKEN }}
+          recreate: "false"
+          base_version: "1.0.0"
+          autobump: "true"
