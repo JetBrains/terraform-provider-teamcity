@@ -31,6 +31,7 @@ func (r *groupResource) Metadata(_ context.Context, req resource.MetadataRequest
 
 type groupResourceModel struct {
 	Id           types.String     `tfsdk:"id"`
+	Key          types.String     `tfsdk:"key"`
 	Name         types.String     `tfsdk:"name"`
 	Roles        []roleAssignment `tfsdk:"roles"`
 	ParentGroups types.Set        `tfsdk:"parent_groups"`
@@ -42,11 +43,16 @@ func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
-				//TODO Optional: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"key": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Description: "Custom key for the group. If not provided, TeamCity will generate one based on the name.",
 			},
 			"name": schema.StringAttribute{
 				Required: true,
@@ -96,6 +102,11 @@ func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, 
 	group := client.Group{
 		Name: plan.Name.ValueString(),
 	}
+
+	if !plan.Key.IsNull() {
+		group.Key = plan.Key.ValueString()
+	}
+
 	group.Roles = &client.RoleAssignments{
 		RoleAssignment: []client.RoleAssignment{},
 	}
@@ -286,6 +297,7 @@ func (r *groupResource) ImportState(ctx context.Context, req resource.ImportStat
 func (r *groupResource) readState(actual *client.Group) groupResourceModel {
 	var newState groupResourceModel
 	newState.Id = types.StringValue(actual.Key)
+	newState.Key = types.StringValue(actual.Key)
 	newState.Name = types.StringValue(actual.Name)
 
 	if actual.Roles != nil && len(actual.Roles.RoleAssignment) > 0 {
