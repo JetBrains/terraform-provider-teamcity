@@ -2,6 +2,10 @@ package teamcity
 
 import (
 	"context"
+	"strconv"
+	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -11,9 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"strconv"
-	"terraform-provider-teamcity/client"
-	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -191,7 +192,7 @@ func (r *versionedSettingsResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	if result, ok := r.setPropertyString(projectId, "buildSettings", oldState.Settings, plan.Settings, &resp.Diagnostics); ok {
+	if result, ok := r.setPropertyString(projectId, "buildSettingsMode", oldState.Settings, plan.Settings, &resp.Diagnostics); ok {
 		newState.Settings = result
 	} else {
 		return
