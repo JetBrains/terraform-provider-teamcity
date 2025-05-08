@@ -180,6 +180,11 @@ func (r *groupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 	newState := r.readState(actual)
 
+	// Only set the key if it was explicitly set before
+	if oldState.Key.IsNull() {
+		newState.Key = types.StringNull()
+	}
+
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -264,6 +269,11 @@ func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	newState := r.readState(actual)
+
+	// Only set the key if it was explicitly set before
+	if oldState.Key.IsNull() {
+		newState.Key = types.StringNull()
+	}
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
