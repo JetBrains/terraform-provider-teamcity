@@ -46,13 +46,14 @@ func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Description: "Deprecated. Use key instead, id is generated on creation and is read only.",
 			},
 			"key": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
-				Description: "Custom key for the group. If not provided, TeamCity will generate one based on the name.",
+				Description: "Custom key (id) for the group. If not provided, TeamCity will generate one based on the name.",
 			},
 			"name": schema.StringAttribute{
 				Required: true,
