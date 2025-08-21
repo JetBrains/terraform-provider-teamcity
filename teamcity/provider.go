@@ -172,6 +172,8 @@ func (p *teamcityProvider) DataSources(_ context.Context) []func() datasource.Da
 		NewBuildConfDataSource,
 		NewPoolDataSource,
 		NewSshKeyDataSource,
+		NewGroupDataSource,
+		NewUserDataSource,
 	}
 }
 
@@ -195,5 +197,7 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 		NewLicenseResource,
 		NewParamResource,
 		NewConnectionResource,
+		NewGroupRoleAssignmentResource,
+		NewUserRoleAssignmentResource,
 	}
 }
