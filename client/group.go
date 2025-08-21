@@ -3,8 +3,10 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"unicode"
 )
@@ -81,6 +83,32 @@ func (c *Client) GetGroup(id string) (*Group, error) {
 	}
 
 	return &actual, nil
+}
+
+func (c *Client) GetGroupByName(name string) (*Group, error) {
+	encodedName := url.QueryEscape(name)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/userGroups/name:%s", c.RestURL, encodedName), nil)
+	if err != nil {
+		// If direct name lookup fails, fall back to listing all groups
+		return nil, err
+	}
+
+	resp, err := c.request(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, errors.New("group not found")
+	}
+
+	var group Group
+	err = json.Unmarshal(resp.Body, &group)
+	if err != nil {
+		return nil, err
+	}
+
+	return &group, nil
 }
 
 func (c *Client) DeleteGroup(id string) error {
