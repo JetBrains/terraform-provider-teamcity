@@ -5,6 +5,8 @@
 
 This provider leverages the HashiCorp Terraform infrastructure as code approach to allow DevOps engineers to initialize the [JetBrains TeamCity](https://www.jetbrains.com/teamcity/) server and automate its administration.
 
+> Check out our [great blog post about this terraform provider](https://blog.jetbrains.com/teamcity/2024/02/configuration-as-code-terraform-teamcity/) with an awesome demo made by Daniel Gallo!
+
 TeamCity Terraform provider supports Terraform 0.13 and newer.
 
 ## Common Information
@@ -90,38 +92,3 @@ Also, all used repositories are created in teamcity-terraform-test organisation.
 ## License
 
 This project is licensed under the Mozilla Public License 2.0. For more information, please see the LICENSE file.
-
-## Local development and contribution
-
-### To debug provider:
-
-1. Run TeamCity server of preferred version via docker-compose.yml file. It should start a TeamCity container with pre-defined token. (There is a `tc-server` run configuration)
-2. Open the `DebugProvider` run configuration and make sure the correct module is chosen:![](examples/0-empty_development/images/img.png)
-2. Execute in debug mode this `DebugProvider` run configuration. You will see something like:
-
-```
-Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environment variable with the following:
-
-        TF_REATTACH_PROVIDERS='...'
-```
-
-3. In the `examples/0-empty_development` folder export this `TF_REATTACH_PROVIDERS` env variable and you can use `terraform plan/apply`, you dont need to run `terraform init` because it already knows where to get the provider plugin part.
-
-### Run all tests:
-* `docker compose up -d --wait --wait-timeout 1000`
-```bash
-export TEAMCITY_PASSWORD=token123
-export TEAMCITY_HOST=http://localhost:8111
-export CGO_ENABLED=0
-export TF_ACC_PROVIDER_NAMESPACE=jetbrains
-export TF_ACC=1
-
-go test -count=1 -v ./...
-```
-
-### Debug some test:
-There is a GoLand run configuration where you can debug a test package or chose a specific test to run using Pattern like `^\QTestAccProject_basic\E$`:
-![](examples/0-empty_development/images/DebugTest.png)
-
-### Use Swagger UI to work with TeamCity rest API:
-When TeamCity server is running, use `Run Swagger UI` configuration and go to http://localhost:8080/
