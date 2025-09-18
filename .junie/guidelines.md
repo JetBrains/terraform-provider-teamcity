@@ -8,10 +8,10 @@ This document describes how to contribute code to this repository and align with
   - DataModel – Terraform SDK structures
   - Json – JSON payload structures used by the HTTP client
 - `teamcity/`: Terraform provider implementation (resources and data sources) built on top of `client/` and `models/`.
-- You can use `teamcity/pool_resource.go` as currently the latest example of how new Terraform resources should be built.
+- You can use [teamcity/pool_resource.go](../teamcity/pool_resource.go) as, currently, the latest example of how new Terraform resources should be built.
 
 ## 1. HTTP Client Layer (client/)
-- `client/http_client.go` contains the canonical HTTP layer. New code should use the new helper methods:
+- [client/http_client.go](../client/http_client.go) contains the canonical HTTP layer. New code should use the new helper methods:
   - GetRequest / GetRequestWithContext
   - PostRequest / PostRequestWithContext
   - PutRequest / PutRequestWithContext
@@ -24,7 +24,7 @@ This document describes how to contribute code to this repository and align with
   - Pass bytes.NewReader(rb) as the body to PostRequest/PutRequest.
   - Provide a pointer for the response struct; the helper fills it when applicable.
 
-Example (see client/pool.go):
+Example (see [client/pool.go](../client/pool.go)):
 
 ```
 func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
@@ -47,13 +47,13 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 - Example of retry policy implementation in [project.go](../client/project.go) - `retryPolicy()`, ignore 500 error from server.
 
 ## 2. Terraform Provider (teamcity/)
-- The Terraform Plugin Framework is used. The current latest great example is `teamcity/pool_resource.go`.
+- The Terraform Plugin Framework is used. The current latest great example is [teamcity/pool_resource.go](../teamcity/pool_resource.go).
 - General guidelines for implementing a new resource:
     - Implement resource.Resource with Metadata, Schema, Create, Read, Update, Delete, and Configure methods.
     - In Create/Update, map DataModel → Json and use `client/.go` functions (e.g., New, Update), then map the response back to DataModel and set the state.
     - In Read, call Get; if it returns nil (ErrNotFound), remove the resource from the state.
     - In Delete, call Delete and handle errors appropriately.
-    - It is better to use validators, plan modifiers, and attribute conversions similar to `pool_resource.go` for robust UX (e.g., int64validator, setplanmodifier, etc.).
+    - It is better to use validators, plan modifiers, and attribute conversions similar to [pool_resource.go](../teamcity/pool_resource.go) for robust UX (e.g., int64validator, setplanmodifier, etc.).
 - Data sources should follow the same separation of concerns: read using logic from `client/`, map to DataModel, and expose via the Terraform schema.
 
 # Additional information
