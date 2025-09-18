@@ -40,6 +40,12 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 }
 ```
 
+### If operation requires retries
+- There is `retryableRequest` with `retryPolicy`, this provider has a parameter for configuring retries: `max_retries`, each retry is 5 sec long, 12 by default.
+- Example where retries are needed - setting properties on versioned settings after main configuration is applied `SetVersionedSettingsProperty()` in [project.go](../client/project.go), since
+  we need to wait for the feature to be ready. 
+- Example of retry policy implementation in [project.go](../client/project.go) - `retryPolicy()`, ignore 500 error from server.
+
 ## 2. Terraform Provider (teamcity/)
 - The Terraform Plugin Framework is used. The current latest great example is `teamcity/pool_resource.go`.
 - General guidelines for implementing a new resource:
