@@ -61,18 +61,9 @@ func (c *Client) NewProjectFeature(id string, feature models.ProjectFeatureJson)
 		return models.ProjectFeatureJson{}, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/id:%s/projectFeatures", c.RestURL, id), bytes.NewReader(rb))
-	if err != nil {
-		return models.ProjectFeatureJson{}, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return models.ProjectFeatureJson{}, err
-	}
-
-	actual := models.ProjectFeatureJson{}
-	err = json.Unmarshal(body, &actual)
+	var actual models.ProjectFeatureJson
+	endpoint := fmt.Sprintf("/projects/id:%s/projectFeatures", id)
+	err = c.PostRequest(endpoint, bytes.NewReader(rb), &actual)
 	if err != nil {
 		return models.ProjectFeatureJson{}, err
 	}
@@ -81,22 +72,13 @@ func (c *Client) NewProjectFeature(id string, feature models.ProjectFeatureJson)
 }
 
 func (c *Client) GetProjectFeature(projectId, featureId string) (*models.ProjectFeatureJson, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/projectFeatures/id:%s", c.RestURL, projectId, featureId), nil)
-	if err != nil {
-		return nil, err
-	}
+	var actual models.ProjectFeatureJson
+	endpoint := fmt.Sprintf("/projects/id:%s/projectFeatures/id:%s", projectId, featureId)
 
-	resp, err := c.request(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
+	err := c.GetRequest(endpoint, "", &actual)
+	if errors.Is(err, ErrNotFound) {
 		return nil, nil
 	}
-
-	actual := models.ProjectFeatureJson{}
-	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
 		return nil, err
 	}
@@ -105,17 +87,8 @@ func (c *Client) GetProjectFeature(projectId, featureId string) (*models.Project
 }
 
 func (c *Client) DeleteProjectFeature(projectId, featureId string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/projects/id:%s/projectFeatures/id:%s", c.RestURL, projectId, featureId), nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	endpoint := fmt.Sprintf("/projects/id:%s/projectFeatures/id:%s", projectId, featureId)
+	return c.DeleteRequest(endpoint)
 }
 
 type ProjectLocator struct {
@@ -123,21 +96,13 @@ type ProjectLocator struct {
 }
 
 func (c *Client) GetVersionedSettings(projectId string) (*models.VersionedSettingsJson, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/id:%s/versionedSettings/config", c.RestURL, projectId), nil)
-	if err != nil {
-		return nil, err
-	}
+	var actual models.VersionedSettingsJson
+	endpoint := fmt.Sprintf("/projects/id:%s/versionedSettings/config", projectId)
 
-	resp, err := c.request(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode == http.StatusNotFound {
+	err := c.GetRequest(endpoint, "", &actual)
+	if errors.Is(err, ErrNotFound) {
 		return nil, nil
 	}
-
-	actual := models.VersionedSettingsJson{}
-	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
 		return nil, err
 	}
@@ -151,18 +116,9 @@ func (c *Client) SetVersionedSettings(projectId string, settings models.Versione
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/projects/id:%s/versionedSettings/config", c.RestURL, projectId), bytes.NewReader(rb))
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := c.request(req)
-	if err != nil {
-		return nil, err
-	}
-
-	actual := models.VersionedSettingsJson{}
-	err = json.Unmarshal(res.Body, &actual)
+	var actual models.VersionedSettingsJson
+	endpoint := fmt.Sprintf("/projects/id:%s/versionedSettings/config", projectId)
+	err = c.PutRequest(endpoint, bytes.NewReader(rb), &actual)
 	if err != nil {
 		return nil, err
 	}
