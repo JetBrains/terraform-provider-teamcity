@@ -26,6 +26,8 @@ In addition, you can include blocks that initialize and set up TeamCity projects
 
 ## Initial Setup
 
+
+
 Add the TeamCity Terraform Provider to the `required_providers` block of your configuration and specify valid credentials as follows:
 
 ```HCL
