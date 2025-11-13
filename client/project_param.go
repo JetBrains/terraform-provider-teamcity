@@ -1,65 +1,32 @@
 package client
 
 import (
+	"errors"
 	"fmt"
-	"net/http"
-	"strings"
 )
 
 func (c *Client) SetParam(project, name, value string) error {
-	req, err := http.NewRequest(
-		"PUT",
-		fmt.Sprintf("%s/projects/id:%s/parameters/%s", c.RestURL, project, name),
-		strings.NewReader(value),
-	)
+	// Use SetField to PUT text/plain value; leverages retryableRequestWithType under the hood
+	_, err := c.SetField("projects", project, fmt.Sprintf("parameters/%s", name), &value)
 	if err != nil {
 		return err
 	}
-
-	_, err = c.doRequestWithType(req, "text/plain")
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (c *Client) GetParam(project, name string) (*string, error) {
-	req, err := http.NewRequest(
-		"GET",
-		fmt.Sprintf("%s/projects/id:%s/parameters/%s", c.RestURL, project, name),
-		nil,
-	)
+	endpoint := fmt.Sprintf("/projects/id:%s/parameters/%s", project, name)
+	body, err := c.GetTextRequest(endpoint, "")
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
-
-	resp, err := c.requestWithType(req, "text/plain")
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil
-	}
-
-	body := string(resp.Body)
 	return &body, nil
 }
 
 func (c *Client) DeleteParam(project, name string) error {
-	req, err := http.NewRequest(
-		"DELETE",
-		fmt.Sprintf("%s/projects/id:%s/parameters/%s", c.RestURL, project, name),
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	endpoint := fmt.Sprintf("/projects/id:%s/parameters/%s", project, name)
+	return c.DeleteRequest(endpoint)
 }

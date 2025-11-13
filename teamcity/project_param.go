@@ -3,11 +3,13 @@ package teamcity
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strings"
 	"terraform-provider-teamcity/client"
@@ -31,6 +33,7 @@ type paramResourceModel struct {
 	ProjectId types.String `tfsdk:"project_id"`
 	Name      types.String `tfsdk:"name"`
 	Value     types.String `tfsdk:"value"`
+	Type      types.String `tfsdk:"type"`
 }
 
 func (r *paramResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -54,7 +57,19 @@ func (r *paramResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				},
 			},
 			"value": schema.StringAttribute{
-				Required: true,
+				Required:  true,
+				Sensitive: true,
+			},
+			"type": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf([]string{"text", "password"}...),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
+				Description: "Parameter type. Use 'password' to create a secure (hidden) parameter. Defaults to 'text' if omitted.",
 			},
 		},
 	}
@@ -75,7 +90,12 @@ func (r *paramResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	err := r.client.SetParam(plan.ProjectId.ValueString(), plan.Name.ValueString(), plan.Value.ValueString())
+	name := plan.Name.ValueString()
+	if strings.EqualFold(plan.Type.ValueString(), "password") {
+		name = "secure:" + name
+	}
+
+	err := r.client.SetParam(plan.ProjectId.ValueString(), name, plan.Value.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error adding project parameter",
@@ -88,6 +108,11 @@ func (r *paramResource) Create(ctx context.Context, req resource.CreateRequest, 
 	newState.ProjectId = plan.ProjectId
 	newState.Name = plan.Name
 	newState.Value = plan.Value
+	if plan.Type.IsNull() || plan.Type.ValueString() == "" {
+		newState.Type = types.StringValue("text")
+	} else {
+		newState.Type = plan.Type
+	}
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -104,7 +129,13 @@ func (r *paramResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	result, err := r.client.GetParam(oldState.ProjectId.ValueString(), oldState.Name.ValueString())
+	name := oldState.Name.ValueString()
+	isPassword := strings.EqualFold(oldState.Type.ValueString(), "password")
+	if isPassword {
+		name = "secure:" + name
+	}
+
+	result, err := r.client.GetParam(oldState.ProjectId.ValueString(), name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading group param",
@@ -121,7 +152,18 @@ func (r *paramResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	var newState paramResourceModel
 	newState.ProjectId = oldState.ProjectId
 	newState.Name = oldState.Name
-	newState.Value = types.StringValue(*result)
+	if isPassword {
+		// Server does not return secure value; keep it from state to avoid unwanted diffs
+		newState.Value = oldState.Value
+		newState.Type = types.StringValue("password")
+	} else {
+		newState.Value = types.StringValue(*result)
+		if oldState.Type.IsNull() || oldState.Type.ValueString() == "" {
+			newState.Type = types.StringValue("text")
+		} else {
+			newState.Type = oldState.Type
+		}
+	}
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -146,7 +188,11 @@ func (r *paramResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	if !plan.Value.Equal(oldState.Value) {
-		err := r.client.SetParam(plan.ProjectId.ValueString(), plan.Name.ValueString(), plan.Value.ValueString())
+		name := plan.Name.ValueString()
+		if strings.EqualFold(plan.Type.ValueString(), "password") {
+			name = "secure:" + name
+		}
+		err := r.client.SetParam(plan.ProjectId.ValueString(), name, plan.Value.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error updating project param",
@@ -160,6 +206,11 @@ func (r *paramResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	newState.ProjectId = plan.ProjectId
 	newState.Name = plan.Name
 	newState.Value = plan.Value
+	if plan.Type.IsNull() || plan.Type.ValueString() == "" {
+		newState.Type = types.StringValue("text")
+	} else {
+		newState.Type = plan.Type
+	}
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -176,7 +227,12 @@ func (r *paramResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		return
 	}
 
-	err := r.client.DeleteParam(state.ProjectId.ValueString(), state.Name.ValueString())
+	name := state.Name.ValueString()
+	if strings.EqualFold(state.Type.ValueString(), "password") {
+		name = "secure:" + name
+	}
+
+	err := r.client.DeleteParam(state.ProjectId.ValueString(), name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting project param",
@@ -199,4 +255,6 @@ func (r *paramResource) ImportState(ctx context.Context, req resource.ImportStat
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), idParts[1])...)
+	// Default type for imported parameters is text; users can change it to password if needed
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), "text")...)
 }
