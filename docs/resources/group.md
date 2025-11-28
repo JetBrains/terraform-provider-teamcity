@@ -53,6 +53,7 @@ resource "teamcity_group" "developers" {
 
 ### Optional
 
+- `key` (String) The unique identifier for the group. If it is not specified, will be automatically generated based on the group name
 - `parent_groups` (Set of String)
 - `roles` (Attributes Set) (see [below for nested schema](#nestedatt--roles))
 
