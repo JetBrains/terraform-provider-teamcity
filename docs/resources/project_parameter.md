@@ -50,6 +50,10 @@ resource "teamcity_project_parameter" "secret_param" {
 
 - `type` (String) Parameter type. Use `password` to create a secure (hidden) parameter. Defaults to `text` if omitted. Changing this forces a new resource.
 
+### Computed
+
+- `id` (String) Resource identifier in the form `project_id/name`.
+
 ## Import
 
 ```terraform
