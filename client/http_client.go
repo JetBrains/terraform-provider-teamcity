@@ -7,12 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 // ErrNotFound for special cases instead of always returning http statusCode.
@@ -311,6 +312,44 @@ func (c *Client) GetRequestWithContext(ctx context.Context, endpoint, query stri
 	}
 
 	return nil
+}
+
+// Uses default Background context. Use GetTextRequestWithContext for custom context. Returns body as string.
+func (c *Client) GetTextRequest(endpoint, query string) (string, error) {
+	ctx := context.Background()
+	return c.GetTextRequestWithContext(ctx, endpoint, query)
+}
+
+// Calling http methods directly for text/plain endpoints. Returns body as string.
+func (c *Client) GetTextRequestWithContext(ctx context.Context, endpoint, query string) (string, error) {
+	addr, err := c.verifyRequestAddr(endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	// Adding queries
+	_, err = url.ParseQuery(query)
+	if err != nil {
+		return "", err
+	}
+	addr.RawQuery = query
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, addr.String(), nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Run request as text/plain
+	response, err := c.requestWithType(req, "text/plain")
+	if err != nil {
+		return "", err
+	}
+	if response.StatusCode == http.StatusNotFound {
+		return "", ErrNotFound
+	}
+
+	return string(response.Body), nil
 }
 
 // Uses default Background context. Use PostRequestWithContext for custom context. resp must be ready for json.Unmarshall
