@@ -33,6 +33,7 @@ type paramResource struct {
 }
 
 type paramResourceModel struct {
+	Id        types.String `tfsdk:"id"`
 	ProjectId types.String `tfsdk:"project_id"`
 	Name      types.String `tfsdk:"name"`
 	Value     types.String `tfsdk:"value"`
@@ -47,6 +48,13 @@ func (r *paramResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	resp.Schema = schema.Schema{
 		Description: "Parameters are name=value pairs that can be referenced throughout TeamCity. Project parameters are available to any Build Configuration inside corresponding project. More info [here](https://www.jetbrains.com/help/teamcity/configuring-build-parameters.html)",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "Resource identifier in the form 'project_id/name'.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"project_id": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
@@ -111,6 +119,7 @@ func (r *paramResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	var newState paramResourceModel
+	newState.Id = types.StringValue(fmt.Sprintf("%s/%s", plan.ProjectId.ValueString(), plan.Name.ValueString()))
 	newState.ProjectId = plan.ProjectId
 	newState.Name = plan.Name
 	newState.Value = plan.Value
@@ -137,6 +146,7 @@ func (r *paramResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 	name := oldState.Name.ValueString()
 	var newState paramResourceModel
+	newState.Id = types.StringValue(fmt.Sprintf("%s/%s", oldState.ProjectId.ValueString(), name))
 	newState.ProjectId = oldState.ProjectId
 	newState.Name = oldState.Name
 
@@ -208,6 +218,7 @@ func (r *paramResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	var newState paramResourceModel
+	newState.Id = types.StringValue(fmt.Sprintf("%s/%s", plan.ProjectId.ValueString(), plan.Name.ValueString()))
 	newState.ProjectId = plan.ProjectId
 	newState.Name = plan.Name
 	newState.Value = plan.Value
@@ -254,6 +265,7 @@ func (r *paramResource) ImportState(ctx context.Context, req resource.ImportStat
 		return
 	}
 
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), idParts[1])...)
 	// Default type for imported parameters is text; users can change it to password if needed
