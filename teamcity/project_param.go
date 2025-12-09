@@ -22,6 +22,7 @@ var (
 	_ resource.Resource                = &paramResource{}
 	_ resource.ResourceWithConfigure   = &paramResource{}
 	_ resource.ResourceWithImportState = &paramResource{}
+	_ resource.ResourceWithModifyPlan  = &paramResource{}
 )
 
 func NewParamResource() resource.Resource {
@@ -105,7 +106,7 @@ func (r *paramResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	name := plan.Name.ValueString()
 	var err error
-	if strings.EqualFold(plan.Type.ValueString(), models.ParamTypePassword) {
+	if isSecureParam(plan) {
 		err = r.client.SecureSetParam(plan.ProjectId.ValueString(), name, plan.Value.ValueString())
 	} else {
 		err = r.client.SetParam(plan.ProjectId.ValueString(), name, plan.Value.ValueString())
@@ -150,7 +151,7 @@ func (r *paramResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	newState.ProjectId = oldState.ProjectId
 	newState.Name = oldState.Name
 
-	isPassword := strings.EqualFold(oldState.Type.ValueString(), models.ParamTypePassword)
+	isPassword := isSecureParam(oldState)
 	if isPassword {
 		// Server does not return secure value; keep it from state to avoid unwanted diffs
 		newState.Value = oldState.Value
@@ -203,7 +204,7 @@ func (r *paramResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if !plan.Value.Equal(oldState.Value) {
 		name := plan.Name.ValueString()
 		var err error
-		if strings.EqualFold(plan.Type.ValueString(), models.ParamTypePassword) {
+		if isSecureParam(plan) {
 			err = r.client.SecureSetParam(plan.ProjectId.ValueString(), name, plan.Value.ValueString())
 		} else {
 			err = r.client.SetParam(plan.ProjectId.ValueString(), name, plan.Value.ValueString())
@@ -270,4 +271,65 @@ func (r *paramResource) ImportState(ctx context.Context, req resource.ImportStat
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), idParts[1])...)
 	// Default type for imported parameters is text; users can change it to password if needed
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), models.ParamTypeText)...)
+}
+
+// ModifyPlan emits a plan-time warning for secure parameters on Create.
+func (r *paramResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// Only consider Create operations (no prior state)
+	if !req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+
+	var plan paramResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Only warn for password-type parameters, and only if server indicates
+	// that a secure parameter with this name already exists (TeamCity returns 400 on GET).
+	if isSecureParam(plan) {
+		willReplace, err := r.willReplaceSecureOnCreate(ctx, plan.ProjectId.ValueString(), plan.Name.ValueString())
+		if err != nil {
+			// Do not fail plan on pre-check errors; just skip the warning.
+			return
+		}
+		if willReplace {
+			// Pure informational warning; does not mutate the plan
+			resp.Diagnostics.AddWarning(
+				"Existing secure parameter will be updated",
+				fmt.Sprintf(
+					"A secure project parameter named %q already exists in project %q. Creating this resource will update (overwrite) the existing secure parameter value. TeamCity does not return secure project parameters, the previous secure value will be lost.",
+					plan.Name.ValueString(), plan.ProjectId.ValueString(),
+				),
+			)
+		}
+	}
+}
+
+func isSecureParam(plan paramResourceModel) bool {
+	return strings.EqualFold(plan.Type.ValueString(), models.ParamTypePassword)
+}
+
+// willReplaceSecureOnCreate queries TeamCity to determine whether creating this parameter
+// will overwrite an existing secure parameter. TeamCity returns HTTP 400 when trying to
+// GET a secure parameter value by name. We detect that and return true; otherwise false.
+func (r *paramResource) willReplaceSecureOnCreate(_ context.Context, projectId, paramName string) (bool, error) {
+	if r.client == nil {
+		return false, nil
+	}
+	_, err := r.client.GetParam(projectId, paramName)
+	if err != nil {
+		// TeamCity returns 400 Bad Request for secure parameters on GET
+		msg := strings.ToLower(err.Error())
+		if strings.Contains(msg, "400") || strings.Contains(msg, "secure parameters cannot be retrieved via remote api by default.") {
+			return true, nil
+		}
+		// Other errors: bubble up to allow caller to decide (we skip the warning on error).
+		return false, err
+	}
+	// No error means either parameter does not exist (404 mapped to nil by client) or
+	// it is a non-secure parameter. In both cases, no replacement warning.
+	return false, nil
 }
