@@ -15,6 +15,10 @@ import (
 	"terraform-provider-teamcity/models"
 )
 
+const (
+	defaultParentProjectId = "_Root"
+)
+
 var (
 	_ resource.Resource                = &projectResource{}
 	_ resource.ResourceWithConfigure   = &projectResource{}
@@ -53,7 +57,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				Default: stringdefault.StaticString("_Root"),
+				Default: stringdefault.StaticString(defaultParentProjectId),
 			},
 		},
 	}
@@ -205,7 +209,12 @@ func (r *projectResource) convertToResource(result models.ProjectJson) models.Pr
 	var newState models.ProjectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)
-	newState.ParentProjectId = types.StringValue(*result.ParentProject.Id)
+	// compatibility: <0.0.72
+	if result.ParentProject == nil || result.ParentProject.Id == nil {
+		newState.ParentProjectId = types.StringValue(defaultParentProjectId)
+	} else {
+		newState.ParentProjectId = types.StringValue(*result.ParentProject.Id)
+	}
 
 	return newState
 }
