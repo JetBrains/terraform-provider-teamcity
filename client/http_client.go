@@ -305,10 +305,12 @@ func (c *Client) GetRequestWithContext(ctx context.Context, endpoint, query stri
 		return ErrNotFound
 	}
 
-	// Unmarshal the response
-	err = json.Unmarshal(response.Body, resp)
-	if err != nil {
-		return err
+	// Unmarshal the response if it is not empty and resp is provided
+	if len(response.Body) != 0 && resp != nil {
+		err = json.Unmarshal(response.Body, resp)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -377,8 +379,8 @@ func (c *Client) PostRequestWithContext(ctx context.Context, endpoint string, bo
 		return err
 	}
 
-	// Unmarshal the response if it is not empty
-	if len(response.Body) != 0 {
+	// Unmarshal the response if it is not empty and resp is provided
+	if len(response.Body) != 0 && resp != nil {
 		err = json.Unmarshal(response.Body, resp)
 		if err != nil {
 			return err
@@ -441,8 +443,8 @@ func (c *Client) PutRequestWithContext(ctx context.Context, endpoint string, bod
 		return err
 	}
 
-	// Unmarshal the response if it is not empty
-	if len(response.Body) != 0 {
+	// Unmarshal the response if it is not empty and resp is provided
+	if len(response.Body) != 0 && resp != nil {
 		err = json.Unmarshal(response.Body, resp)
 		if err != nil {
 			return err

@@ -80,6 +80,40 @@ func TestGroup(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "test-check-group-member",
+			test: func(t *testing.T) {
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path == "/app/rest/users/username:testuser/groups/TEST_GROUP" {
+						w.WriteHeader(http.StatusOK)
+						w.Write([]byte(`{"key":"TEST_GROUP"}`))
+					} else {
+						w.WriteHeader(http.StatusNotFound)
+					}
+				}))
+				defer server.Close()
+
+				httpClient := NewClient(server.URL, "token", "", "", 12)
+
+				// Test found
+				ok, err := httpClient.CheckGroupMember("TEST_GROUP", "testuser")
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if !ok {
+					t.Fatal("expected ok to be true")
+				}
+
+				// Test not found
+				ok, err = httpClient.CheckGroupMember("NON_EXISTENT", "testuser")
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if ok {
+					t.Fatal("expected ok to be false")
+				}
+			},
+		},
 	}
 
 	for _, tc := range groupTests {
