@@ -5,45 +5,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"unicode"
+
+	"terraform-provider-teamcity/models"
 )
 
-type Group struct {
-	Key     string           `json:"key"`
-	Name    string           `json:"name"`
-	Roles   *RoleAssignments `json:"roles,omitempty"`
-	Parents *ParentGroups    `json:"parent-groups,omitempty"`
-}
-
-type ParentGroups struct {
-	Group []Group `json:"group"`
-}
-
-func (c *Client) NewGroup(group Group) (*Group, error) {
+func (c *Client) NewGroup(group models.GroupJson) (*models.GroupJson, error) {
 	if group.Key == "" {
 		group.Key = generateKey(group.Name)
 	}
 
-	body, err := json.Marshal(group)
+	var actual models.GroupJson
+	rb, err := json.Marshal(group)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/userGroups", c.RestURL), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	actual := Group{}
-	err = json.Unmarshal(result, &actual)
+	err = c.PostRequest("/userGroups", bytes.NewReader(rb), &actual)
 	if err != nil {
 		return nil, err
 	}
@@ -62,22 +42,13 @@ func generateKey(name string) string {
 	}, name)
 }
 
-func (c *Client) GetGroup(id string) (*Group, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/userGroups/%s", c.RestURL, id), nil)
-	if err != nil {
-		return nil, err
-	}
+func (c *Client) GetGroup(id string) (*models.GroupJson, error) {
+	var actual models.GroupJson
+	err := c.GetRequest(fmt.Sprintf("/userGroups/%s", id), "", &actual)
 
-	resp, err := c.request(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode == http.StatusNotFound {
+	if errors.Is(err, ErrNotFound) {
 		return nil, nil
 	}
-
-	actual := Group{}
-	err = json.Unmarshal(resp.Body, &actual)
 	if err != nil {
 		return nil, err
 	}
@@ -85,25 +56,14 @@ func (c *Client) GetGroup(id string) (*Group, error) {
 	return &actual, nil
 }
 
-func (c *Client) GetGroupByName(name string) (*Group, error) {
+func (c *Client) GetGroupByName(name string) (*models.GroupJson, error) {
 	encodedName := url.QueryEscape(name)
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/userGroups/name:%s", c.RestURL, encodedName), nil)
-	if err != nil {
-		// If direct name lookup fails, fall back to listing all groups
-		return nil, err
-	}
+	var group models.GroupJson
+	err := c.GetRequest(fmt.Sprintf("/userGroups/name:%s", encodedName), "", &group)
 
-	resp, err := c.request(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
+	if errors.Is(err, ErrNotFound) {
 		return nil, errors.New("group not found")
 	}
-
-	var group Group
-	err = json.Unmarshal(resp.Body, &group)
 	if err != nil {
 		return nil, err
 	}
@@ -112,84 +72,44 @@ func (c *Client) GetGroupByName(name string) (*Group, error) {
 }
 
 func (c *Client) DeleteGroup(id string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/userGroups/%s", c.RestURL, id), nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.DeleteRequest(fmt.Sprintf("/userGroups/%s", id))
 }
 
 func (c *Client) RemoveGroupRole(groupId, roleId, scope string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/userGroups/%s/roles/%s/%s", c.RestURL, groupId, roleId, scope), nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.DeleteRequest(fmt.Sprintf("/userGroups/%s/roles/%s/%s", groupId, roleId, scope))
 }
 
 func (c *Client) AddGroupRole(groupId, roleId, scope string) error {
-	role := RoleAssignment{
+	role := models.RoleAssignmentJson{
 		Id:    roleId,
 		Scope: scope,
 	}
 
-	body, err := json.Marshal(role)
+	rb, err := json.Marshal(role)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/userGroups/%s/roles", c.RestURL, groupId), bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.PostRequest(fmt.Sprintf("/userGroups/%s/roles", groupId), bytes.NewReader(rb), nil)
 }
 
 func (c *Client) SetGroupParents(groupId string, parents []string) error {
-	groups := ParentGroups{}
+	groups := models.ParentGroupsJson{}
 
 	for _, i := range parents {
-		groups.Group = append(groups.Group, Group{Key: i})
+		groups.Group = append(groups.Group, models.GroupJson{Key: i})
 	}
 
-	body, err := json.Marshal(groups)
+	rb, err := json.Marshal(groups)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/userGroups/%s/parent-groups", c.RestURL, groupId), bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.PutRequest(fmt.Sprintf("/userGroups/%s/parent-groups", groupId), bytes.NewReader(rb), nil)
 }
 
 func (c *Client) AddGroupMember(groupId, username string) error {
-	group := Group{
+	group := models.GroupJson{
 		Key: groupId,
 	}
 
@@ -198,46 +118,22 @@ func (c *Client) AddGroupMember(groupId, username string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/users/username:%s/groups", c.RestURL, username), bytes.NewReader(rb))
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.PostRequest(fmt.Sprintf("/users/username:%s/groups", username), bytes.NewReader(rb), nil)
 }
 
 func (c *Client) CheckGroupMember(groupId, username string) (bool, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/users/username:%s/groups/%s", c.RestURL, username, groupId), nil)
-	if err != nil {
-		return false, err
-	}
+	err := c.GetRequest(fmt.Sprintf("/users/username:%s/groups/%s", username, groupId), "", nil)
 
-	resp, err := c.request(req)
+	if errors.Is(err, ErrNotFound) {
+		return false, nil
+	}
 	if err != nil {
 		return false, err
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return false, nil
 	}
 
 	return true, nil
 }
 
 func (c *Client) DeleteGroupMember(groupId, username string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/users/username:%s/groups/%s", c.RestURL, username, groupId), nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.request(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.DeleteRequest(fmt.Sprintf("/users/username:%s/groups/%s", username, groupId))
 }

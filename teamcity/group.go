@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 )
 
 var (
@@ -27,14 +28,6 @@ func NewGroupResource() resource.Resource {
 
 func (r *groupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_group"
-}
-
-type groupResourceModel struct {
-	Id           types.String     `tfsdk:"id"`
-	Key          types.String     `tfsdk:"key"`
-	Name         types.String     `tfsdk:"name"`
-	Roles        []roleAssignment `tfsdk:"roles"`
-	ParentGroups types.Set        `tfsdk:"parent_groups"`
 }
 
 func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -60,6 +53,10 @@ func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+			},
+			"description": schema.StringAttribute{
+				Optional:    true,
+				Description: "The description for the group.",
 			},
 			"roles": schema.SetNestedAttribute{
 				Optional: true,
@@ -93,28 +90,32 @@ func (r *groupResource) Configure(_ context.Context, req resource.ConfigureReque
 }
 
 func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan groupResourceModel
+	var plan models.GroupDataModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	group := client.Group{
+	group := models.GroupJson{
 		Name: plan.Name.ValueString(),
+	}
+
+	if !plan.Description.IsNull() {
+		group.Description = plan.Description.ValueString()
 	}
 
 	if !plan.Key.IsNull() {
 		group.Key = plan.Key.ValueString()
 	}
 
-	group.Roles = &client.RoleAssignments{
-		RoleAssignment: []client.RoleAssignment{},
+	group.Roles = &models.RoleAssignmentsJson{
+		RoleAssignment: []models.RoleAssignmentJson{},
 	}
 
 	if plan.Roles != nil {
 		for _, role := range plan.Roles {
-			assignment := client.RoleAssignment{
+			assignment := models.RoleAssignmentJson{
 				Id: role.Id.ValueString(),
 			}
 			assignment.Scope = scope(role)
@@ -129,12 +130,12 @@ func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		group.Parents = &client.ParentGroups{}
+		group.Parents = &models.ParentGroupsJson{}
 		for _, i := range parents {
 			val := i.ValueString()
 			group.Parents.Group = append(
 				group.Parents.Group,
-				client.Group{Key: val},
+				models.GroupJson{Key: val},
 			)
 		}
 	}
@@ -158,7 +159,7 @@ func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, 
 }
 
 func (r *groupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var oldState groupResourceModel
+	var oldState models.GroupDataModel
 	diags := req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -194,18 +195,35 @@ func (r *groupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 }
 
 func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan groupResourceModel
+	var plan models.GroupDataModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var oldState groupResourceModel
+	var oldState models.GroupDataModel
 	diags = req.State.Get(ctx, &oldState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// update simple fields (description)
+	if !plan.Description.Equal(oldState.Description) {
+		var newDescription *string
+		if !plan.Description.IsNull() {
+			val := plan.Description.ValueString()
+			newDescription = &val
+		}
+		_, err := r.client.SetField("userGroups", plan.Id.ValueString(), "description", newDescription)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating group description",
+				err.Error(),
+			)
+			return
+		}
 	}
 
 	// items present in old state but missing in a plan -> remove
@@ -284,7 +302,7 @@ func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 }
 
 func (r *groupResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state groupResourceModel
+	var state models.GroupDataModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -305,16 +323,21 @@ func (r *groupResource) ImportState(ctx context.Context, req resource.ImportStat
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *groupResource) readState(actual *client.Group) groupResourceModel {
-	var newState groupResourceModel
+func (r *groupResource) readState(actual *models.GroupJson) models.GroupDataModel {
+	var newState models.GroupDataModel
 	newState.Id = types.StringValue(actual.Key)
 	newState.Key = types.StringValue(actual.Key)
 	newState.Name = types.StringValue(actual.Name)
+	if actual.Description != "" {
+		newState.Description = types.StringValue(actual.Description)
+	} else {
+		newState.Description = types.StringNull()
+	}
 
 	if actual.Roles != nil && len(actual.Roles.RoleAssignment) > 0 {
-		newState.Roles = []roleAssignment{}
+		newState.Roles = []models.RoleAssignmentGroupDataModel{}
 		for _, role := range actual.Roles.RoleAssignment {
-			assignment := roleAssignment{
+			assignment := models.RoleAssignmentGroupDataModel{
 				Id: types.StringValue(role.Id),
 			}
 			if role.Scope == "g" {
@@ -327,17 +350,19 @@ func (r *groupResource) readState(actual *client.Group) groupResourceModel {
 	}
 
 	newState.ParentGroups = types.SetNull(types.StringType)
-	for _, parent := range actual.Parents.Group {
-		newState.ParentGroups, _ = types.SetValue(
-			types.StringType,
-			append(newState.ParentGroups.Elements(), types.StringValue(parent.Key)),
-		)
+	if actual.Parents != nil {
+		for _, parent := range actual.Parents.Group {
+			newState.ParentGroups, _ = types.SetValue(
+				types.StringType,
+				append(newState.ParentGroups.Elements(), types.StringValue(parent.Key)),
+			)
+		}
 	}
 
 	return newState
 }
 
-func scope(i roleAssignment) string {
+func scope(i models.RoleAssignmentGroupDataModel) string {
 	var scope string
 	if i.Global.ValueBool() {
 		scope = "g"
@@ -347,7 +372,7 @@ func scope(i roleAssignment) string {
 	return scope
 }
 
-func contains3(items []roleAssignment, item roleAssignment) bool {
+func contains3(items []models.RoleAssignmentGroupDataModel, item models.RoleAssignmentGroupDataModel) bool {
 	for _, i := range items {
 		if i == item {
 			return true

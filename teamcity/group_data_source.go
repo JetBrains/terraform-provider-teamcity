@@ -3,6 +3,7 @@ package teamcity
 import (
 	"context"
 	"terraform-provider-teamcity/client"
+	"terraform-provider-teamcity/models"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -28,11 +29,12 @@ func (d *groupDataSource) Metadata(_ context.Context, req datasource.MetadataReq
 }
 
 type groupDataSourceModel struct {
-	Id           types.String     `tfsdk:"id"`
-	Key          types.String     `tfsdk:"key"`
-	Name         types.String     `tfsdk:"name"`
-	Roles        []roleAssignment `tfsdk:"roles"`
-	ParentGroups types.Set        `tfsdk:"parent_groups"`
+	Id           types.String                          `tfsdk:"id"`
+	Key          types.String                          `tfsdk:"key"`
+	Name         types.String                          `tfsdk:"name"`
+	Description  types.String                          `tfsdk:"description"`
+	Roles        []models.RoleAssignmentGroupDataModel `tfsdk:"roles"`
+	ParentGroups types.Set                             `tfsdk:"parent_groups"`
 }
 
 func (d *groupDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -52,6 +54,10 @@ func (d *groupDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 				Optional:    true,
 				Computed:    true,
 				Description: "The name of the group to retrieve. Either key or name must be specified.",
+			},
+			"description": schema.StringAttribute{
+				Computed:    true,
+				Description: "The description of the group.",
 			},
 			"roles": schema.SetNestedAttribute{
 				Computed: true,
@@ -114,7 +120,7 @@ func (d *groupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		)
 	}
 
-	var group *client.Group
+	var group *models.GroupJson
 	var err error
 
 	// Get group by key or name
@@ -161,12 +167,17 @@ func (d *groupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		Key:  types.StringValue(group.Key),
 		Name: types.StringValue(group.Name),
 	}
+	if group.Description != "" {
+		state.Description = types.StringValue(group.Description)
+	} else {
+		state.Description = types.StringNull()
+	}
 
 	// Map roles
 	if group.Roles != nil && len(group.Roles.RoleAssignment) > 0 {
-		state.Roles = []roleAssignment{}
+		state.Roles = []models.RoleAssignmentGroupDataModel{}
 		for _, role := range group.Roles.RoleAssignment {
-			assignment := roleAssignment{
+			assignment := models.RoleAssignmentGroupDataModel{
 				Id: types.StringValue(role.Id),
 			}
 			if role.Scope == "g" {
