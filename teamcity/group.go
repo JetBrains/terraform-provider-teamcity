@@ -43,8 +43,10 @@ func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"key": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Custom key (id) for the group. If not provided, TeamCity will generate one based on the name.",
 			},
@@ -55,8 +57,11 @@ func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				},
 			},
 			"description": schema.StringAttribute{
-				Optional:    true,
-				Description: "The description for the group.",
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Description: "The description for the group. Changing this forces a new resource to be created.",
 			},
 			"roles": schema.SetNestedAttribute{
 				Optional: true,
@@ -207,23 +212,6 @@ func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}
-
-	// update simple fields (description)
-	if !plan.Description.Equal(oldState.Description) {
-		var newDescription *string
-		if !plan.Description.IsNull() {
-			val := plan.Description.ValueString()
-			newDescription = &val
-		}
-		_, err := r.client.SetField("userGroups", plan.Id.ValueString(), "description", newDescription)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error updating group description",
-				err.Error(),
-			)
-			return
-		}
 	}
 
 	// items present in old state but missing in a plan -> remove

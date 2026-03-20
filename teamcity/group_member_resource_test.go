@@ -33,9 +33,10 @@ func TestAccGroupMemberResource_basic(t *testing.T) {
 			},
 			// Import testing
 			{
-				ResourceName:      "teamcity_group_member.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:                         "teamcity_group_member.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "group_id",
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs, ok := s.RootModule().Resources["teamcity_group_member.test"]
 					if !ok {
