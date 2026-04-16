@@ -2,6 +2,12 @@
 
 This document describes how to contribute code to this repository and align with the current architecture. It focuses on how to abstract raw HTTP calls into TeamCity resources, how to use the new HTTP client helpers, how to organize models.
 
+## How to execute the provider and check it on a real TeamCity instance
+- We have docker compose file with example TeamCity server image: docker-compose.yml
+- For running teamcity with agent, only if task requires - use docker-compose-with-agent.yml
+- We also have an IDE run configuraion to compile the provider and run it against the TeamCity instance: .run/DebugProvider.run.xml
+- More info about how to run the provider can be found here: CONTRIBUTING.md
+
 ## Overview
 - `client/`: Go HTTP client for TeamCity REST API. Each file in this package focuses on a specific TeamCity entity (project, pool, vcsroot, etc.).
 - `models/`: Shared models with two purposes:
