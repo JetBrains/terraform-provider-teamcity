@@ -7,7 +7,6 @@ import (
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -120,17 +119,7 @@ func (r *bcStepResource) Create(ctx context.Context, req resource.CreateRequest,
 	plan.Name = types.StringValue(actual.Name)
 	plan.Type = types.StringValue(actual.Type)
 
-	if actual.Properties != nil {
-		propsMap := make(map[string]attr.Value)
-		for _, p := range actual.Properties.Property {
-			propsMap[p.Name] = types.StringValue(p.Value)
-		}
-		props, diags := types.MapValue(types.StringType, propsMap)
-		resp.Diagnostics.Append(diags...)
-		if !diags.HasError() {
-			plan.Properties = props
-		}
-	}
+	plan.Properties = mergePropertiesFromServer(actual.Properties, plan.Properties, &resp.Diagnostics)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -163,19 +152,7 @@ func (r *bcStepResource) Read(ctx context.Context, req resource.ReadRequest, res
 	state.Name = types.StringValue(actual.Name)
 	state.Type = types.StringValue(actual.Type)
 
-	if actual.Properties != nil {
-		propsMap := make(map[string]attr.Value)
-		for _, p := range actual.Properties.Property {
-			propsMap[p.Name] = types.StringValue(p.Value)
-		}
-		props, diags := types.MapValue(types.StringType, propsMap)
-		resp.Diagnostics.Append(diags...)
-		if !diags.HasError() {
-			state.Properties = props
-		}
-	} else {
-		state.Properties = types.MapNull(types.StringType)
-	}
+	state.Properties = mergePropertiesFromServer(actual.Properties, state.Properties, &resp.Diagnostics)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -231,17 +208,7 @@ func (r *bcStepResource) Update(ctx context.Context, req resource.UpdateRequest,
 	plan.Name = types.StringValue(actual.Name)
 	plan.Type = types.StringValue(actual.Type)
 
-	if actual.Properties != nil {
-		propsMap := make(map[string]attr.Value)
-		for _, p := range actual.Properties.Property {
-			propsMap[p.Name] = types.StringValue(p.Value)
-		}
-		props, diags := types.MapValue(types.StringType, propsMap)
-		resp.Diagnostics.Append(diags...)
-		if !diags.HasError() {
-			plan.Properties = props
-		}
-	}
+	plan.Properties = mergePropertiesFromServer(actual.Properties, plan.Properties, &resp.Diagnostics)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
