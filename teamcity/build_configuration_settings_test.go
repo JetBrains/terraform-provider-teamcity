@@ -118,9 +118,7 @@ resource "teamcity_build_configuration" "bc" {
 
 func testAccCheckBuildConfigurationSettingsReset(buildTypeId string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		host := os.Getenv("TEAMCITY_HOST")
-		password := os.Getenv("TEAMCITY_PASSWORD")
-		c := client.NewClient(host, "", "", password, 0)
+		c := testAccClientFromEnv()
 
 		counter, err := c.GetBuildTypeSetting(buildTypeId, "buildNumberCounter")
 		if err != nil {
@@ -183,12 +181,20 @@ resource "teamcity_project" "p" {
 }
 `,
 				PreConfig: func() {
-					host := os.Getenv("TEAMCITY_HOST")
-					password := os.Getenv("TEAMCITY_PASSWORD")
-					c := client.NewClient(host, "", "", password, 0)
+					c := testAccClientFromEnv()
 					_ = c.DeleteBuildType("oob_bc")
 				},
 			},
 		},
 	})
+}
+
+func testAccClientFromEnv() client.Client {
+	return client.NewClient(
+		os.Getenv("TEAMCITY_HOST"),
+		os.Getenv("TEAMCITY_TOKEN"),
+		os.Getenv("TEAMCITY_USERNAME"),
+		os.Getenv("TEAMCITY_PASSWORD"),
+		0,
+	)
 }
