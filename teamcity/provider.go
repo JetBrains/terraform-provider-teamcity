@@ -203,6 +203,7 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 		NewBuildConfigurationVcsRootResource,
 		NewBuildConfigurationStepResource,
 		NewBuildConfigurationFeatureResource,
+		NewBuildConfigurationTriggerResource,
 		NewConnectionResource,
 		NewGroupRoleAssignmentResource,
 		NewUserRoleAssignmentResource,
