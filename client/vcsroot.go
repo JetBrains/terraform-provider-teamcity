@@ -90,14 +90,14 @@ func (c *Client) DetachVcsRoot(id string) error {
 		return err
 	}
 
-	buildTypes := BuildTypes{}
+	buildTypes := models.BuildTypesJson{}
 	err = json.Unmarshal(resp, &buildTypes)
 	if err != nil {
 		return err
 	}
 
 	for _, buildType := range buildTypes.BuildType {
-		req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/buildTypes/%s/vcs-root-entries/%s", c.RestURL, buildType.Id, id), nil)
+		req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/buildTypes/%s/vcs-root-entries/%s", c.RestURL, buildType.ID, id), nil)
 		if err != nil {
 			return err
 		}

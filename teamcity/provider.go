@@ -3,6 +3,10 @@ package teamcity
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"os"
+	"terraform-provider-teamcity/client"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -10,9 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"math/big"
-	"os"
-	"terraform-provider-teamcity/client"
 )
 
 const MaxRetriesDefault int = 12
@@ -182,6 +183,7 @@ func (p *teamcityProvider) Resources(_ context.Context) []func() resource.Resour
 		NewCleanupResource,
 		NewPoolResource,
 		NewProjectResource,
+		NewBuildConfigurationResource,
 		NewSshKeyResource,
 		NewVcsRootResource,
 		NewVersionedSettingsResource,

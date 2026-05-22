@@ -100,7 +100,7 @@ func (c *Client) requestWithType(req *http.Request, ct string) (Response, error)
 		return Response{}, fmt.Errorf("read response failed: %w", err)
 	}
 
-	if res.StatusCode == http.StatusNotFound {
+	if res.StatusCode == http.StatusNotFound && req.Method == "GET" {
 		return Response{
 				StatusCode: res.StatusCode,
 				Body:       body,
@@ -108,7 +108,7 @@ func (c *Client) requestWithType(req *http.Request, ct string) (Response, error)
 			nil
 	}
 
-	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
 		return Response{}, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
 	}
 
@@ -155,7 +155,7 @@ func (c *Client) retryableRequestWithType(req *http.Request, ct string, retryPol
 		return Response{}, fmt.Errorf("read response failed: %w", err)
 	}
 
-	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
 		return Response{}, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
 	}
 
