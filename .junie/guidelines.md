@@ -3,10 +3,32 @@
 This document describes how to contribute code to this repository and align with the current architecture. It focuses on how to abstract raw HTTP calls into TeamCity resources, how to use the new HTTP client helpers, how to organize models.
 
 ## How to execute the provider and check it on a real TeamCity instance
-- We have docker compose file with example TeamCity server image: docker-compose.yml
-- For running teamcity with agent, only if task requires - use docker-compose-with-agent.yml
-- We also have an IDE run configuraion to compile the provider and run it against the TeamCity instance: .run/DebugProvider.run.xml
+- We have docker compose file with example TeamCity server image: `docker-compose.yml` (Starts TC server at http://localhost:8111 with token `token123`)
+- For running teamcity with agent, only if task requires - use `docker-compose-with-agent.yml`
+- To debug/run your local provider changes:
+    1. Start the TeamCity server: `docker compose up -d`
+    2. Run the `DebugProvider` IDE configuration in Debug mode (or just run the same commands in terminal instead of IDE run configuration if there are some issues)
+    3. Copy the `TF_REATTACH_PROVIDERS` value from the console output.
+    4. In your terminal, export it: `export TF_REATTACH_PROVIDERS='...'`
+    5. Now you can run `terraform plan/apply` in an example folder (like `examples/0-empty_development`) without running `terraform init`.
 - More info about how to run the provider can be found here: CONTRIBUTING.md
+- TeamCity has its swagger json at http://localhost:8111/app/rest/swagger.json
+
+## Reproducing issues
+To reproduce an issue, it is recommended to:
+1. Create a new folder under `examples/` (e.g., `examples/repro-issue-123`).
+2. Create a `main.tf` and specify a specific published version of the provider:
+```terraform
+terraform {
+  required_providers {
+    teamcity = {
+      source  = "jetbrains/teamcity"
+      version = "1.0.0" # Use the version where the issue is present
+    }
+  }
+}
+```
+3. This allows for a clean reproduction environment without needing to mess with local provider builds initially.
 
 ## Overview
 - `client/`: Go HTTP client for TeamCity REST API. Each file in this package focuses on a specific TeamCity entity (project, pool, vcsroot, etc.).
@@ -95,8 +117,40 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 - Ensure Create/Update state population is complete and uses values returned by the server (IDs, computed fields, etc.).
 
 ## Testing
-- Add/maintain unit tests under client/*_test.go for client behavior.
-- Add/maintain tests under teamcity/*_test.go for resource behavior when feasible.
+- Add/maintain unit tests under `client/*_test.go` for client behavior.
+- **Mandatory Acceptance Testing**: Every new fix or feature MUST include acceptance tests in `teamcity/*_test.go`.
+- Use `resource.Test` with `Steps` to define your test cases.
+- **Example of Acceptance Test** (see `teamcity/pool_resource_test.go`):
+```go
+func TestAccPoolResource_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+                    resource "teamcity_pool" "test" {
+                        name = "test_pool"
+                        size = 10
+                    }
+                `,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_pool.test", "name", "test_pool"),
+					resource.TestCheckResourceAttr("teamcity_pool.test", "size", "10"),
+				),
+			},
+		},
+	})
+}
+```
+- **How to run acceptance tests**:
+    1. Ensure TeamCity server is running.
+    2. Run (you can also use GoLand to run specific tests):
+    ```bash
+    export TEAMCITY_PASSWORD=token123
+    export TEAMCITY_HOST=http://localhost:8111
+    export TF_ACC=1
+    go test -v ./teamcity -run TestAccPoolResource_basic
+    ```
 - Validate that ErrNotFound flows are handled correctly in both client and resource layers.
 
 ## Style and Naming
