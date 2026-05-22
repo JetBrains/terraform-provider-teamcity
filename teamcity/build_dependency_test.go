@@ -14,7 +14,7 @@ func TestAccSnapshotDependency_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
+				Config: providerConfig + fmt.Sprintf(`
                     resource "teamcity_project" "test" {
                         name = "%s"
                     }
@@ -60,7 +60,7 @@ func TestAccArtifactDependency_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
+				Config: providerConfig + fmt.Sprintf(`
                     resource "teamcity_project" "test" {
                         name = "%s"
                     }

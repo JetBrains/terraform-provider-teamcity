@@ -120,6 +120,7 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 - Add/maintain unit tests under `client/*_test.go` for client behavior.
 - **Mandatory Acceptance Testing**: Every new fix or feature MUST include acceptance tests in `teamcity/*_test.go`.
 - Use `resource.Test` with `Steps` to define your test cases.
+- Acceptance test Terraform configs must include `providerConfig` (for example, `Config: providerConfig + ...`). CI exports `TF_ACC_PROVIDER_NAMESPACE=jetbrains`, so `providerConfig` declares `required_providers { teamcity = { source = "jetbrains/teamcity" } }`. If a test uses raw config without `providerConfig`, Terraform infers `registry.terraform.io/hashicorp/teamcity`, which can fail with `Inconsistent dependency lock file`.
 - **Example of Acceptance Test** (see `teamcity/pool_resource_test.go`):
 ```go
 func TestAccPoolResource_basic(t *testing.T) {
