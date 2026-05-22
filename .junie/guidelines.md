@@ -6,7 +6,7 @@ This document describes how to contribute code to this repository and align with
 - We have docker compose file with example TeamCity server image: `docker-compose.yml` (Starts TC server at http://localhost:8111 with token `token123`)
 - For running teamcity with agent, only if task requires - use `docker-compose-with-agent.yml`
 - To debug/run your local provider changes:
-    1. Start the TeamCity server: `docker compose up -d`
+    1. Start the TeamCity server: `podman compose up -d` (or `docker compose`)
     2. Run the `DebugProvider` IDE configuration in Debug mode (or just run the same commands in terminal instead of IDE run configuration if there are some issues)
     3. Copy the `TF_REATTACH_PROVIDERS` value from the console output.
     4. In your terminal, export it: `export TF_REATTACH_PROVIDERS='...'`

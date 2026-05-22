@@ -8,7 +8,7 @@ familiarize themselves with the project structure and conventions.
 
 ### To debug provider:
 
-1. Run TeamCity server of preferred version via docker-compose.yml file. It should start a TeamCity container with pre-defined token. (There is a `tc-server` run configuration)
+1. Run TeamCity server of preferred version via docker-compose.yml file using Podman or Docker. It should start a TeamCity container with pre-defined token. (There is a `tc-server` run configuration that uses Podman by default)
 2. Open the `DebugProvider` run configuration and make sure the correct module is chosen:![](examples/0-empty_development/images/img.png)
 2. Execute in debug mode this `DebugProvider` run configuration. You will see something like:
 
@@ -21,7 +21,7 @@ Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environ
 3. In the `examples/0-empty_development` folder export this `TF_REATTACH_PROVIDERS` env variable and you can use `terraform plan/apply`, you dont need to run `terraform init` because it already knows where to get the provider plugin part.
 
 ### Run all tests:
-* `docker compose up -d --wait --wait-timeout 1000`
+* `podman compose up -d --wait --wait-timeout 1000` (or `docker compose`)
 ```bash
 export TEAMCITY_PASSWORD=token123
 export TEAMCITY_HOST=http://localhost:8111

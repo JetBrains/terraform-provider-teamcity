@@ -21,7 +21,7 @@ resource "teamcity_build_configuration" "test" {
 ### Required
 
 - **name** (String) Name of the build configuration.
-- **project_id** (String) ID of the project where the build configuration will be created.
+- **project_id** (String) ID of the project where the build configuration will be created. Changing this attribute will replace the build configuration.
 
 ### Optional
 

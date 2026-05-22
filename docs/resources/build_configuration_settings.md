@@ -2,6 +2,8 @@
 
 General settings for a build configuration, including build number counter, pattern, and artifact rules.
 
+~> **Note:** Deleting this resource will not delete the settings from TeamCity, but will reset them to their default values (e.g., build counter to 1, pattern to `%build.counter%`, and empty artifact rules).
+
 ## Example Usage
 
 ```terraform

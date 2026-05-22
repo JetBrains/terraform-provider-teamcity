@@ -44,3 +44,11 @@ resource "teamcity_build_configuration_vcs_root" "example" {
 ### Computed
 
 - `id` (String) Resource identifier in the form 'build_configuration_id/vcs_root_id'.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import teamcity_build_configuration_vcs_root.example build_configuration_id/vcs_root_id
+```
