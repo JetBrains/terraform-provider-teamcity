@@ -2,6 +2,7 @@ package teamcity
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"terraform-provider-teamcity/client"
 
@@ -208,7 +209,24 @@ func (r *bcSettingsResource) Update(ctx context.Context, req resource.UpdateRequ
 }
 
 func (r *bcSettingsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state bcSettingsResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	buildTypeId := state.BuildConfigurationId.ValueString()
+
 	// Settings cannot be deleted, only reset to defaults.
-	// We don't have a good way to reset to defaults via individual field PUTs if we don't know the defaults.
-	// For now, we just leave them as is or we could try to set them to empty strings if appropriate.
+	// We reset them to TeamCity defaults.
+	if err := r.client.SetBuildTypeSetting(buildTypeId, "buildNumberCounter", "1"); err != nil && !errors.Is(err, client.ErrNotFound) {
+		resp.Diagnostics.AddError("Error resetting buildNumberCounter", err.Error())
+	}
+	if err := r.client.SetBuildTypeSetting(buildTypeId, "buildNumberPattern", "%build.counter%"); err != nil && !errors.Is(err, client.ErrNotFound) {
+		resp.Diagnostics.AddError("Error resetting buildNumberPattern", err.Error())
+	}
+	if err := r.client.SetBuildTypeSetting(buildTypeId, "artifactRules", ""); err != nil && !errors.Is(err, client.ErrNotFound) {
+		resp.Diagnostics.AddError("Error resetting artifactRules", err.Error())
+	}
 }

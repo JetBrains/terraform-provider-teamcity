@@ -88,7 +88,6 @@ func (c *Client) request(req *http.Request) (Response, error) {
 
 func (c *Client) requestWithType(req *http.Request, ct string) (Response, error) {
 	c.setHeaders(req, ct)
-
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return Response{}, fmt.Errorf("request failed: %w", err)
@@ -100,12 +99,14 @@ func (c *Client) requestWithType(req *http.Request, ct string) (Response, error)
 		return Response{}, fmt.Errorf("read response failed: %w", err)
 	}
 
-	if res.StatusCode == http.StatusNotFound && req.Method == "GET" {
-		return Response{
+	if res.StatusCode == http.StatusNotFound {
+		if req.Method == http.MethodGet || req.Method == http.MethodDelete {
+			return Response{
 				StatusCode: res.StatusCode,
 				Body:       body,
-			},
-			nil
+			}, nil
+		}
+		return Response{}, ErrNotFound
 	}
 
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
@@ -153,6 +154,16 @@ func (c *Client) retryableRequestWithType(req *http.Request, ct string, retryPol
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return Response{}, fmt.Errorf("read response failed: %w", err)
+	}
+
+	if res.StatusCode == http.StatusNotFound {
+		if req.Method == http.MethodGet || req.Method == http.MethodDelete {
+			return Response{
+				StatusCode: res.StatusCode,
+				Body:       body,
+			}, nil
+		}
+		return Response{}, ErrNotFound
 	}
 
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
@@ -471,5 +482,9 @@ func (c *Client) setHeaders(req *http.Request, ct string) {
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(c.Username+":"+c.Password)))
 	}
 	req.Header.Set("Content-Type", ct)
-	req.Header.Set("Accept", ct)
+	if ct == "text/plain" {
+		req.Header.Set("Accept", "text/plain")
+	} else {
+		req.Header.Set("Accept", "application/json, text/plain")
+	}
 }

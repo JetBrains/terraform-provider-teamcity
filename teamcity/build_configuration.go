@@ -89,7 +89,11 @@ func (d *buildConfDataSource) Read(ctx context.Context, req datasource.ReadReque
 	conf.Name = types.StringValue(result.Name)
 	conf.ProjectID = types.StringValue(result.GetProjectID())
 	conf.Description = types.StringValue(result.Description)
-	conf.BuildType = types.StringValue(result.Type)
+	if result.Type != "" {
+		conf.BuildType = types.StringValue(result.Type)
+	} else {
+		conf.BuildType = types.StringValue("regular")
+	}
 	conf.Paused = types.BoolValue(result.Paused)
 
 	diags = resp.State.Set(ctx, &conf)

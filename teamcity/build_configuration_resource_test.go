@@ -121,6 +121,39 @@ resource "teamcity_build_configuration" "move" {
 					resource.TestCheckResourceAttr("teamcity_build_configuration.move", "project_id", "P2"),
 				),
 			},
+			// Change ID (RequiresReplace)
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "test" {
+	name = "test_project"
+}
+
+resource "teamcity_build_configuration" "id_change" {
+	id         = "custom_id"
+	name       = "name1"
+	project_id = teamcity_project.test.id
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration.id_change", "id", "custom_id"),
+				),
+			},
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "test" {
+	name = "test_project"
+}
+
+resource "teamcity_build_configuration" "id_change" {
+	id         = "new_custom_id"
+	name       = "name1"
+	project_id = teamcity_project.test.id
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration.id_change", "id", "new_custom_id"),
+				),
+			},
 		},
 	})
 }

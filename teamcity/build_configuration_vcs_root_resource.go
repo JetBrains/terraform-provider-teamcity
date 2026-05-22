@@ -3,9 +3,11 @@ package teamcity
 import (
 	"context"
 	"fmt"
+	"strings"
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -14,8 +16,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &bcVcsRootResource{}
-	_ resource.ResourceWithConfigure = &bcVcsRootResource{}
+	_ resource.Resource                = &bcVcsRootResource{}
+	_ resource.ResourceWithConfigure   = &bcVcsRootResource{}
+	_ resource.ResourceWithImportState = &bcVcsRootResource{}
 )
 
 func NewBuildConfigurationVcsRootResource() resource.Resource {
@@ -182,4 +185,19 @@ func (r *bcVcsRootResource) Delete(ctx context.Context, req resource.DeleteReque
 		resp.Diagnostics.AddError("Error detaching VCS root", err.Error())
 		return
 	}
+}
+
+func (r *bcVcsRootResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	idParts := strings.Split(req.ID, "/")
+	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Expected import identifier with format: build_configuration_id/vcs_root_id. Got: %q", req.ID),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("build_configuration_id"), idParts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("vcs_root_id"), idParts[1])...)
 }

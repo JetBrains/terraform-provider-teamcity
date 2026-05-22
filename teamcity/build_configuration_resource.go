@@ -43,6 +43,7 @@ func (r *buildConfigurationResource) Schema(_ context.Context, _ resource.Schema
 				Optional:            true,
 				MarkdownDescription: "ID of the build configuration. If not provided, it will be generated from the name.",
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -52,6 +53,9 @@ func (r *buildConfigurationResource) Schema(_ context.Context, _ resource.Schema
 			"project_id": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "ID of the project where the build configuration will be created.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"description": schema.StringAttribute{
 				Optional: true,
@@ -116,6 +120,16 @@ func (r *buildConfigurationResource) Create(ctx context.Context, req resource.Cr
 		resp.Diagnostics.AddError(
 			"Error creating build configuration",
 			"Could not create build configuration: "+err.Error(),
+		)
+		return
+	}
+
+	// Fetch full data to ensure all fields (like type) are populated
+	result, err = r.client.GetBuildType(result.ID)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error fetching build configuration after creation",
+			err.Error(),
 		)
 		return
 	}
@@ -202,20 +216,6 @@ func (r *buildConfigurationResource) Update(ctx context.Context, req resource.Up
 			return
 		}
 		state.Paused = types.BoolValue(result == "true")
-	}
-
-	// Move project if needed
-	if !plan.ProjectID.Equal(state.ProjectID) {
-		projectID := plan.ProjectID.ValueString()
-		requestBody := map[string]interface{}{
-			"id": projectID,
-		}
-		_, err := r.client.SetFieldJson("buildTypes", id, "project", requestBody)
-		if err != nil {
-			resp.Diagnostics.AddError("Error moving build configuration to another project", err.Error())
-			return
-		}
-		state.ProjectID = plan.ProjectID
 	}
 
 	diags = resp.State.Set(ctx, &state)

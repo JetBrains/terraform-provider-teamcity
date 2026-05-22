@@ -32,7 +32,7 @@ func (c *Client) NewBuildType(bt models.BuildTypeJson) (*models.BuildTypeJson, e
 
 func (c *Client) GetBuildType(id string) (*models.BuildTypeJson, error) {
 	var actual models.BuildTypeJson
-	err := c.GetRequest(fmt.Sprintf("/buildTypes/id:%s", id), "", &actual)
+	err := c.GetRequest(fmt.Sprintf("/buildTypes/id:%s", id), "fields=id,name,type,projectId,project(id),paused,description", &actual)
 	if errors.Is(err, ErrNotFound) {
 		return nil, nil
 	}
