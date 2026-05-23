@@ -82,6 +82,11 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
     - In Read, call Get; if it returns nil (ErrNotFound), remove the resource from the state.
     - In Delete, call Delete and handle errors appropriately.
     - It is better to use validators, plan modifiers, and attribute conversions similar to [pool_resource.go](../teamcity/pool_resource.go) for robust UX (e.g., int64validator, setplanmodifier, etc.).
+- Treat identity and parent references as lifecycle decisions. If TeamCity does not safely support changing an attribute in place (for example resource `id` or parent `project_id` / `build_configuration_id`), add `RequiresReplace()` and cover that behavior in acceptance tests.
+- For attributes returned incompletely by TeamCity's default response, request explicit `fields` in the client and refresh the object after Create before writing state. Build configurations need fields such as `id,name,type,projectId,project(id),paused,description`; otherwise non-default values like `type = composite` can drift.
+- Optional+Computed maps must preserve null-vs-empty intent. If the user wrote `properties = {}` and TeamCity returns no properties, keep an empty map in state; only write null when the user omitted the map. This avoids perpetual plan diffs for feature/step/trigger-style generic properties.
+- Independent child resources must have real Delete semantics. If TeamCity has no child object to delete, reset the managed fields to TeamCity defaults or clearly model the resource differently; never leave Delete as a silent no-op.
+- Resources with stable composite IDs should implement import. Use predictable formats such as `build_configuration_id/vcs_root_id`, parse them defensively, and add an import acceptance step.
 - Data sources should follow the same separation of concerns: read using logic from `client/`, map to DataModel, and expose via the Terraform schema.
 
 # Additional information
@@ -113,6 +118,9 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 
 ## Error Handling Guidelines
 - Prefer returning (nil, nil) for not-found reads in client layer by detecting errors.Is(err, client.ErrNotFound).
+- Delete operations should be idempotent: a missing remote object should not fail Terraform destroy or replacement.
+- Keep 404 handling consistent across normal and retryable request paths. If a helper returns `client.ErrNotFound`, callers must be able to detect it with `errors.Is`, including field-setting helpers used during cleanup/reset.
+- Keep header behavior centralized in `setHeaders()`. For `text/plain` field endpoints, send `Accept: text/plain` consistently for both normal and retryable requests.
 - Surface descriptive errors from resource layer using resp.Diagnostics.AddError with actionable messages.
 - Ensure Create/Update state population is complete and uses values returned by the server (IDs, computed fields, etc.).
 
@@ -120,6 +128,8 @@ func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 - Add/maintain unit tests under `client/*_test.go` for client behavior.
 - **Mandatory Acceptance Testing**: Every new fix or feature MUST include acceptance tests in `teamcity/*_test.go`.
 - Use `resource.Test` with `Steps` to define your test cases.
+- Acceptance tests for a new resource should cover more than the happy path when the lifecycle is non-trivial: update, import, replacement-only attributes, deletion while the parent remains, deletion after out-of-band parent removal, and a second plan that expects no drift.
+- When a schema has Optional+Computed collections, add a regression test for explicit empty values such as `properties = {}` using `plancheck.ExpectEmptyPlan()`.
 - Acceptance test Terraform configs must include `providerConfig` (for example, `Config: providerConfig + ...`). CI exports `TF_ACC_PROVIDER_NAMESPACE=jetbrains`, so `providerConfig` declares `required_providers { teamcity = { source = "jetbrains/teamcity" } }`. If a test uses raw config without `providerConfig`, Terraform infers `registry.terraform.io/hashicorp/teamcity`, which can fail with `Inconsistent dependency lock file`.
 - **Example of Acceptance Test** (see `teamcity/pool_resource_test.go`):
 ```go
@@ -152,6 +162,7 @@ func TestAccPoolResource_basic(t *testing.T) {
     export TF_ACC=1
     go test -v ./teamcity -run TestAccPoolResource_basic
     ```
+- If Go commands fail with a local `GOROOT` mismatch, rerun them with `env -u GOROOT`.
 - Validate that ErrNotFound flows are handled correctly in both client and resource layers.
 
 ## Style and Naming
