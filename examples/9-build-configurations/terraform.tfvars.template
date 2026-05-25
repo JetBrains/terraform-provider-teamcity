@@ -1,0 +1,2 @@
+teamcity_url   = "http://localhost:8111"
+teamcity_token = "token123"
