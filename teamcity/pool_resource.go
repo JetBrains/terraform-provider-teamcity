@@ -373,6 +373,13 @@ func (r *poolResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 func getProjectsAttrValue(data []models.ProjectJson) []attr.Value {
 	projects := []attr.Value{}
 	for _, p := range data {
+		// Skip virtual projects: these are auto-generated (e.g. by the parallel
+		// tests feature) and assigned to the pool by parent-project inheritance,
+		// not by the user. Tracking them in state causes perpetual drift since
+		// they are not part of the managed configuration.
+		if p.Virtual {
+			continue
+		}
 		projects = append(projects, types.StringValue(*p.Id))
 	}
 

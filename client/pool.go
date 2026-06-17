@@ -29,7 +29,14 @@ func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 	var pool models.PoolJson
 	endpoint := fmt.Sprintf("/agentPools/name:%s", name)
 
-	err := c.GetRequest(endpoint, "", &pool)
+	// Explicitly request the projects' "virtual" attribute, which is not part of
+	// the default field set. Virtual projects are auto-generated (e.g. by the
+	// parallel tests feature) and assigned to the pool by parent-project
+	// inheritance, so they must be distinguishable from user-managed projects.
+	// The scalar pool fields have to be re-listed or they would be dropped.
+	query := "fields=id,name,maxAgents,projects(project(id,name,virtual))"
+
+	err := c.GetRequest(endpoint, query, &pool)
 
 	if errors.Is(err, ErrNotFound) {
 		return nil, nil
