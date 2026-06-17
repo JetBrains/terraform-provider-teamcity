@@ -115,6 +115,11 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	if pool.Projects != nil {
 		elements := []attr.Value{}
 		for _, project := range pool.Projects.Project {
+			// Skip virtual projects (auto-generated, inherited from parent
+			// projects) so the data source reports only user-managed projects.
+			if project.Virtual {
+				continue
+			}
 			elements = append(elements, types.StringValue(*project.Id))
 		}
 

@@ -11,6 +11,7 @@ type ProjectsJson struct {
 type ProjectJson struct {
 	Name            string               `json:"name"`
 	Id              *string              `json:"id,omitempty"`
+	Virtual         bool                 `json:"virtual,omitempty"`
 	ParentProject   *ProjectJson         `json:"parentProject,omitempty"`
 	ProjectFeatures *ProjectFeaturesJson `json:"projectFeatures,omitempty"`
 }
