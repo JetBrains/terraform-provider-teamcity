@@ -8,7 +8,6 @@ import (
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -113,17 +112,7 @@ func (d *poolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 
 	if pool.Projects != nil {
-		elements := []attr.Value{}
-		for _, project := range pool.Projects.Project {
-			// Skip virtual projects (auto-generated, inherited from parent
-			// projects) so the data source reports only user-managed projects.
-			if project.Virtual {
-				continue
-			}
-			elements = append(elements, types.StringValue(*project.Id))
-		}
-
-		state.Projects, diags = types.SetValue(types.StringType, elements)
+		state.Projects, diags = types.SetValue(types.StringType, getProjectsAttrValue(pool.Projects.Project))
 		if diags.HasError() {
 			return
 		}
