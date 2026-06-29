@@ -9,6 +9,8 @@ import (
 	"terraform-provider-teamcity/models"
 )
 
+const poolFieldsQuery = "fields=id,name,maxAgents,projects(project(id,name,virtual))"
+
 func (c *Client) NewPool(p models.PoolJson) (*models.PoolJson, error) {
 	var actual models.PoolJson
 
@@ -34,9 +36,7 @@ func (c *Client) GetPool(name string) (*models.PoolJson, error) {
 	// parallel tests feature) and assigned to the pool by parent-project
 	// inheritance, so they must be distinguishable from user-managed projects.
 	// The scalar pool fields have to be re-listed or they would be dropped.
-	query := "fields=id,name,maxAgents,projects(project(id,name,virtual))"
-
-	err := c.GetRequest(endpoint, query, &pool)
+	err := c.GetRequest(endpoint, poolFieldsQuery, &pool)
 
 	if errors.Is(err, ErrNotFound) {
 		return nil, nil

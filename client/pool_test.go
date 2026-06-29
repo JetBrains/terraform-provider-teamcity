@@ -14,15 +14,18 @@ func TestPool(t *testing.T) {
 		test func(*testing.T)
 	}{
 		{
-			name: "test-get-pool",
+			name: "test-get-pool-requests-virtual-project-fields",
 			test: func(t *testing.T) {
-				testPoolJSON := `{"name":"Default","id":1,"maxAgents":0}`
+				testPoolJSON := `{"name":"Default","id":1,"projects":{"project":[{"name":"Managed","id":"Managed_A"},{"name":"Virtual","id":"Virtual_Project","virtual":true}]}}`
 
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(testPoolJSON))
+					_, _ = w.Write([]byte(testPoolJSON))
 					if r.URL.Path != "/app/rest/agentPools/name:Default" {
-						t.Fatal(fmt.Errorf("wrong url: %s", r.URL.Path))
+						t.Fatal(fmt.Errorf("wrong url path: %s", r.URL.Path))
+					}
+					if r.URL.RawQuery != poolFieldsQuery {
+						t.Fatal(fmt.Errorf("wrong query: %s, expected: %s", r.URL.RawQuery, poolFieldsQuery))
 					}
 				}))
 				defer server.Close()
