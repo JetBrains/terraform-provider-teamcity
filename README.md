@@ -17,6 +17,7 @@ The TeamCity Terraform Provider allows you to:
 * Set up routine server operations like cleanups and email notifications
 * Create and manage users, user groups, and permissions
 * Set up licenses and authentication modules
+* Manage TeamCity cloud profiles and their cloud image definitions
 
 See the [Documentation](https://registry.terraform.io/providers/JetBrains/teamcity/latest/docs) for the complete list of available resources and their fields.
 
@@ -83,7 +84,11 @@ For more advanced examples, see the `/examples/` folder:
 
 7. `examples/7-import_resources`
    
-   Importing existing resources from a running TeamCity instance.
+    Importing existing resources from a running TeamCity instance.
+
+8. `examples/8-cloud_profile`
+
+    Configuring an AWS EC2 cloud profile and an AMI-backed cloud image. Set AWS credentials through sensitive Terraform input variables or another secure secret source; never commit them.
 
 > These samples rely on existing  GitHub organisation, so, they are not easily runnable as is, since the custom GitHub app cannot be re-used, and GitHub provides no API to create it automatically.
 Also, all used repositories are created in teamcity-terraform-test organisation.

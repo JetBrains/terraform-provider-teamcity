@@ -15,7 +15,7 @@ func TestCreateCloudProfilePostsProfileAndImages(t *testing.T) {
 	expected := models.CloudProfileJson{
 		Name:            "AWS EC2 Profile",
 		CloudProviderId: "amazon",
-		Project:         &models.ProjectJson{Id: stringPointer("CloudProject")},
+		Project:         &models.CloudProfileProjectJson{Id: stringPointer("CloudProject")},
 		Properties: &models.Properties{Property: []models.Property{
 			{Name: "access-id", Value: "access-key"},
 		}},
@@ -41,6 +41,18 @@ func TestCreateCloudProfilePostsProfileAndImages(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		var payload map[string]json.RawMessage
+		if err := json.Unmarshal(body, &payload); err != nil {
+			t.Fatal(err)
+		}
+		var projectPayload map[string]json.RawMessage
+		if err := json.Unmarshal(payload["project"], &projectPayload); err != nil {
+			t.Fatal(err)
+		}
+		if _, hasName := projectPayload["name"]; hasName {
+			t.Fatalf("project payload = %s, must not send an empty project name", payload["project"])
+		}
+
 		var actual models.CloudProfileJson
 		if err := json.Unmarshal(body, &actual); err != nil {
 			t.Fatal(err)
@@ -51,8 +63,14 @@ func TestCreateCloudProfilePostsProfileAndImages(t *testing.T) {
 		if actual.Project == nil || actual.Project.Id == nil || *actual.Project.Id != "CloudProject" {
 			t.Fatalf("project = %#v, want id CloudProject", actual.Project)
 		}
+		if actual.Properties == nil || len(actual.Properties.Property) != 1 || actual.Properties.Property[0] != (models.Property{Name: "access-id", Value: "access-key"}) {
+			t.Fatalf("profile properties = %#v, want access-id", actual.Properties)
+		}
 		if actual.Images == nil || len(actual.Images.CloudImage) != 1 || actual.Images.CloudImage[0].Name != "Ubuntu agent" {
 			t.Fatalf("images = %#v, want one Ubuntu agent image", actual.Images)
+		}
+		if actual.Images.CloudImage[0].Properties == nil || len(actual.Images.CloudImage[0].Properties.Property) != 1 || actual.Images.CloudImage[0].Properties.Property[0] != (models.Property{Name: "image-id", Value: "ami-0123456789abcdef0"}) {
+			t.Fatalf("image properties = %#v, want image-id", actual.Images.CloudImage[0].Properties)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -161,6 +179,21 @@ func TestUpdateAndDeleteCloudProfileUseProfileLocator(t *testing.T) {
 		if requests[i] != want[i] {
 			t.Fatalf("request %d = %q, want %q", i, requests[i], want[i])
 		}
+	}
+}
+
+func TestDeleteCloudProfileIsIdempotentWhenProfileIsMissing(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("method = %s, want DELETE", r.Method)
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	cloudClient := NewClient(server.URL, "token", "", "", 0)
+	if err := cloudClient.DeleteCloudProfile("missing-profile"); err != nil {
+		t.Fatalf("DeleteCloudProfile returned %v, want nil for a missing profile", err)
 	}
 }
 
