@@ -133,6 +133,9 @@ func (c *Client) DeleteCloudProfile(projectID, profileID string) error {
 	return c.DeleteProjectFeature(projectID, profileID)
 }
 
+// getProjectFeatures uses an explicit projection because generic project-feature reads
+// can omit properties required to reconstruct Terraform state. Feature POST responses can
+// also be empty, so createProjectFeature intentionally does not rely on a response body.
 func (c *Client) getProjectFeatures(projectID string) (*models.ProjectFeaturesJson, error) {
 	var features models.ProjectFeaturesJson
 	if err := c.GetRequest(projectFeaturesEndpoint(projectID), "fields=projectFeature(id,type,properties(property(name,value)))", &features); err != nil {
@@ -185,7 +188,7 @@ func cloudImageFeature(image models.CloudImageJson, profileID string) models.Pro
 	setProperty(&properties, "profileId", profileID)
 	setProperty(&properties, "image-name-prefix", image.Name)
 	if image.AgentPoolId != nil {
-		setProperty(&properties, "agentPoolId", strconv.Itoa(*image.AgentPoolId))
+		setProperty(&properties, "agent_pool_id", strconv.Itoa(*image.AgentPoolId))
 	}
 	return models.ProjectFeatureJson{Type: cloudImageFeatureType, Properties: properties}
 }
@@ -207,12 +210,12 @@ func cloudImageFromFeature(feature models.ProjectFeatureJson) models.CloudImageJ
 		image.Id = *feature.Id
 	}
 	image.Name = propertyValue(feature.Properties, "image-name-prefix")
-	if value := propertyValue(feature.Properties, "agentPoolId"); value != "" {
+	if value := propertyValue(feature.Properties, "agent_pool_id"); value != "" {
 		if poolID, err := strconv.Atoi(value); err == nil {
 			image.AgentPoolId = &poolID
 		}
 	}
-	removeProperties(image.Properties, "profileId", "image-name-prefix", "agentPoolId")
+	removeProperties(image.Properties, "profileId", "image-name-prefix", "agent_pool_id")
 	return image
 }
 

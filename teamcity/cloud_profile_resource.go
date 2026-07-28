@@ -62,6 +62,7 @@ func (r *cloudProfileResource) Schema(_ context.Context, _ resource.SchemaReques
 			},
 			"properties": schema.MapAttribute{
 				Optional:    true,
+				Computed:    true,
 				Sensitive:   true,
 				ElementType: types.StringType,
 				Description: "Cloud provider-specific properties. The complete map is sensitive because TeamCity cloud profiles can contain secure values.",
@@ -85,6 +86,7 @@ func (r *cloudProfileResource) Schema(_ context.Context, _ resource.SchemaReques
 						},
 						"properties": schema.MapAttribute{
 							Optional:    true,
+							Computed:    true,
 							Sensitive:   true,
 							ElementType: types.StringType,
 							Description: "Image-specific provider properties. The complete map is sensitive because it can contain secure values.",
@@ -133,22 +135,12 @@ func (r *cloudProfileResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError("Error creating cloud profile", err.Error())
 		return
 	}
-	if created.Id == "" {
+	if created == nil || created.Id == "" {
 		resp.Diagnostics.AddError("Error creating cloud profile", "TeamCity returned a cloud profile without an ID")
 		return
 	}
 
-	refreshed, err := r.client.GetCloudProfile(plan.ProjectId.ValueString(), created.Id)
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading created cloud profile", err.Error())
-		return
-	}
-	if refreshed == nil {
-		resp.Diagnostics.AddError("Error reading created cloud profile", "TeamCity did not return the newly created cloud profile")
-		return
-	}
-
-	r.jsonToModel(ctx, refreshed, &plan, &resp.Diagnostics)
+	r.jsonToModel(ctx, created, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -197,21 +189,12 @@ func (r *cloudProfileResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	profileID := state.Id.ValueString()
-	if updated.Id != "" {
-		profileID = updated.Id
-	}
-	refreshed, err := r.client.GetCloudProfile(state.ProjectId.ValueString(), profileID)
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading updated cloud profile", err.Error())
-		return
-	}
-	if refreshed == nil {
+	if updated == nil {
 		resp.Diagnostics.AddError("Error reading updated cloud profile", "TeamCity did not return the updated cloud profile")
 		return
 	}
 
-	r.jsonToModel(ctx, refreshed, &plan, &resp.Diagnostics)
+	r.jsonToModel(ctx, updated, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -250,17 +233,32 @@ func (r *cloudProfileResource) modelToJSON(ctx context.Context, plan models.Clou
 		Images:          &models.CloudImagesJson{CloudImage: make([]models.CloudImageJson, 0, len(plan.Images))},
 	}
 
-	for index, imagePlan := range plan.Images {
+	previousImagesByName := make(map[string]models.CloudImageDataModel, len(plan.Images))
+	if previous != nil {
+		for _, previousImage := range previous.Images {
+			previousImagesByName[previousImage.Name.ValueString()] = previousImage
+		}
+	}
+
+	imageNames := make(map[string]struct{}, len(plan.Images))
+	for _, imagePlan := range plan.Images {
+		imageName := imagePlan.Name.ValueString()
+		if _, exists := imageNames[imageName]; exists {
+			diags.AddAttributeError(path.Root("image"), "Duplicate cloud image name", fmt.Sprintf("Cloud image name %q is configured more than once. Image names must be unique within a cloud profile.", imageName))
+			return profile
+		}
+		imageNames[imageName] = struct{}{}
+
 		image := models.CloudImageJson{
-			Name:       imagePlan.Name.ValueString(),
+			Name:       imageName,
 			Properties: propertiesFromMap(ctx, imagePlan.Properties, diags),
 		}
 		if !imagePlan.AgentPoolId.IsNull() && !imagePlan.AgentPoolId.IsUnknown() {
 			poolID := int(imagePlan.AgentPoolId.ValueInt64())
 			image.AgentPoolId = &poolID
 		}
-		if previous != nil && index < len(previous.Images) && !previous.Images[index].Id.IsNull() && !previous.Images[index].Id.IsUnknown() {
-			image.Id = previous.Images[index].Id.ValueString()
+		if previousImage, ok := previousImagesByName[imagePlan.Name.ValueString()]; ok && !previousImage.Id.IsNull() && !previousImage.Id.IsUnknown() {
+			image.Id = previousImage.Id.ValueString()
 		}
 		profile.Images.CloudImage = append(profile.Images.CloudImage, image)
 	}
@@ -282,30 +280,46 @@ func (r *cloudProfileResource) jsonToModel(ctx context.Context, profile *models.
 		return
 	}
 
-	images := make([]models.CloudImageDataModel, 0, len(profile.Images.CloudImage))
-	for index, image := range profile.Images.CloudImage {
-		var previousImage *models.CloudImageDataModel
-		if index < len(state.Images) {
-			previousImage = &state.Images[index]
-		}
+	serverImagesByName := make(map[string]models.CloudImageJson, len(profile.Images.CloudImage))
+	for _, image := range profile.Images.CloudImage {
+		serverImagesByName[image.Name] = image
+	}
 
-		imageState := models.CloudImageDataModel{
-			Id:   types.StringValue(image.Id),
-			Name: types.StringValue(image.Name),
+	images := make([]models.CloudImageDataModel, 0, len(profile.Images.CloudImage))
+	for _, previousImage := range state.Images {
+		image, ok := serverImagesByName[previousImage.Name.ValueString()]
+		if !ok {
+			continue
 		}
-		if previousImage == nil {
-			imageState.Properties = mapFromProperties(ctx, image.Properties, types.MapNull(types.StringType), diags)
-		} else {
-			imageState.Properties = mapFromProperties(ctx, image.Properties, previousImage.Properties, diags)
+		images = append(images, cloudImageToState(ctx, image, &previousImage, diags))
+		delete(serverImagesByName, image.Name)
+	}
+	for _, image := range profile.Images.CloudImage {
+		if _, ok := serverImagesByName[image.Name]; !ok {
+			continue
 		}
-		if image.AgentPoolId != nil {
-			imageState.AgentPoolId = types.Int64Value(int64(*image.AgentPoolId))
-		} else {
-			imageState.AgentPoolId = types.Int64Null()
-		}
-		images = append(images, imageState)
+		images = append(images, cloudImageToState(ctx, image, nil, diags))
+		delete(serverImagesByName, image.Name)
 	}
 	state.Images = images
+}
+
+func cloudImageToState(ctx context.Context, image models.CloudImageJson, previous *models.CloudImageDataModel, diags *diag.Diagnostics) models.CloudImageDataModel {
+	imageState := models.CloudImageDataModel{
+		Id:   types.StringValue(image.Id),
+		Name: types.StringValue(image.Name),
+	}
+	if previous == nil {
+		imageState.Properties = mapFromProperties(ctx, image.Properties, types.MapNull(types.StringType), diags)
+	} else {
+		imageState.Properties = mapFromProperties(ctx, image.Properties, previous.Properties, diags)
+	}
+	if image.AgentPoolId != nil {
+		imageState.AgentPoolId = types.Int64Value(int64(*image.AgentPoolId))
+	} else {
+		imageState.AgentPoolId = types.Int64Null()
+	}
+	return imageState
 }
 
 func propertiesFromMap(ctx context.Context, value types.Map, diags *diag.Diagnostics) *models.Properties {

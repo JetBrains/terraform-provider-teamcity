@@ -1,6 +1,6 @@
 services:
   teamcity-server-local:
-    image: jetbrains/teamcity-server:2023.05
+    image: jetbrains/teamcity-server:2026.1.2
     volumes:
       - type: bind
         source: "./testdata"

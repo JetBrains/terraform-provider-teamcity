@@ -13,6 +13,8 @@ terraform.tfvars
 .terraform/
 
 swagger.json
+swagger_pretty.json
+tfplugindocs
 
 local-teamcity-podman
 

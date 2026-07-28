@@ -63,7 +63,7 @@ resource "teamcity_cloud_profile" "aws" {
 
 ### Optional
 
-- `image` (Block List) Cloud images managed by this profile. (see [below for nested schema](#nestedblock--image))
+- `image` (Block List) Cloud images managed by this profile. Image names must be unique within the profile. (see [below for nested schema](#nestedblock--image))
 - `properties` (Map of String, Sensitive) Cloud provider-specific properties. The complete map is sensitive because TeamCity cloud profiles can contain secure values.
 
 ### Read-Only

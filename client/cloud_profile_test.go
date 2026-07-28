@@ -107,3 +107,19 @@ func featurePropertyValue(properties models.Properties, name string) string {
 func stringPointer(value string) *string {
 	return &value
 }
+
+func TestCloudImageFeatureUsesTeamCityAgentPoolProperty(t *testing.T) {
+	poolID := 7
+	feature := cloudImageFeature(models.CloudImageJson{AgentPoolId: &poolID}, "amazon-42")
+	if value := featurePropertyValue(feature.Properties, "agent_pool_id"); value != "7" {
+		t.Fatalf("agent_pool_id = %q, want 7", value)
+	}
+	if value := featurePropertyValue(feature.Properties, "agentPoolId"); value != "" {
+		t.Fatalf("unexpected legacy agentPoolId property = %q", value)
+	}
+
+	image := cloudImageFromFeature(models.ProjectFeatureJson{Properties: models.Properties{Property: []models.Property{{Name: "agent_pool_id", Value: "7"}}}})
+	if image.AgentPoolId == nil || *image.AgentPoolId != 7 {
+		t.Fatalf("agent pool ID = %#v, want 7", image.AgentPoolId)
+	}
+}
