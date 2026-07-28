@@ -5,55 +5,280 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
+	"strconv"
 
 	"terraform-provider-teamcity/models"
 )
 
-const cloudProfileFieldsQuery = "fields=id,name,cloudProviderId,project(id),properties(property(name,value)),images(image(id,name,agentPoolId,properties(property(name,value))))"
+const (
+	cloudProfileFeatureType = "CloudProfile"
+	cloudImageFeatureType   = "CloudImage"
+)
 
-func (c *Client) CreateCloudProfile(profile models.CloudProfileJson) (*models.CloudProfileJson, error) {
-	body, err := json.Marshal(profile)
+func (c *Client) CreateCloudProfile(projectID string, profile models.CloudProfileJson) (*models.CloudProfileJson, error) {
+	before, err := c.getProjectFeatures(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	var actual models.CloudProfileJson
-	if err := c.PostRequest("/cloud/profiles", bytes.NewReader(body), &actual); err != nil {
+	if err := c.createProjectFeature(projectID, cloudProfileFeature(profile)); err != nil {
 		return nil, err
 	}
 
-	return &actual, nil
-}
+	after, err := c.getProjectFeatures(projectID)
+	if err != nil {
+		return nil, err
+	}
+	createdProfile, ok := newlyCreatedFeature(before, after, cloudProfileFeatureType)
+	if !ok || createdProfile.Id == nil {
+		return nil, fmt.Errorf("TeamCity did not return the created cloud profile project feature")
+	}
 
-func (c *Client) GetCloudProfile(id string) (*models.CloudProfileJson, error) {
-	var actual models.CloudProfileJson
-	endpoint := fmt.Sprintf("/cloud/profiles/id:%s", id)
-
-	if err := c.GetRequest(endpoint, cloudProfileFieldsQuery, &actual); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, nil
+	profileID := *createdProfile.Id
+	for _, image := range images(profile) {
+		if err := c.createProjectFeature(projectID, cloudImageFeature(image, profileID)); err != nil {
+			return nil, err
 		}
-		return nil, err
 	}
 
-	return &actual, nil
+	return c.GetCloudProfile(projectID, profileID)
 }
 
-func (c *Client) UpdateCloudProfile(id string, profile models.CloudProfileJson) (*models.CloudProfileJson, error) {
-	body, err := json.Marshal(profile)
+func (c *Client) GetCloudProfile(projectID, profileID string) (*models.CloudProfileJson, error) {
+	feature, err := c.getProjectFeature(projectID, profileID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
+	if feature.Type != cloudProfileFeatureType {
+		return nil, fmt.Errorf("project feature %q is %q, not a cloud profile", profileID, feature.Type)
+	}
 
-	var actual models.CloudProfileJson
-	endpoint := fmt.Sprintf("/cloud/profiles/id:%s", id)
-	if err := c.PutRequest(endpoint, bytes.NewReader(body), &actual); err != nil {
+	features, err := c.getProjectFeatures(projectID)
+	if err != nil {
+		return nil, err
+	}
+	profile := cloudProfileFromFeature(*feature)
+	projectIDCopy := projectID
+	profile.Project = &models.CloudProfileProjectJson{Id: &projectIDCopy}
+	profile.Images = &models.CloudImagesJson{}
+	for _, candidate := range features.ProjectFeature {
+		if candidate.Type != cloudImageFeatureType || propertyValue(candidate.Properties, "profileId") != profileID {
+			continue
+		}
+		profile.Images.CloudImage = append(profile.Images.CloudImage, cloudImageFromFeature(candidate))
+	}
+	return &profile, nil
+}
+
+func (c *Client) UpdateCloudProfile(projectID, profileID string, profile models.CloudProfileJson) (*models.CloudProfileJson, error) {
+	if err := c.updateProjectFeature(projectID, profileID, cloudProfileFeature(profile)); err != nil {
 		return nil, err
 	}
 
-	return &actual, nil
+	features, err := c.getProjectFeatures(projectID)
+	if err != nil {
+		return nil, err
+	}
+	existingImages := map[string]struct{}{}
+	for _, feature := range features.ProjectFeature {
+		if feature.Type == cloudImageFeatureType && feature.Id != nil && propertyValue(feature.Properties, "profileId") == profileID {
+			existingImages[*feature.Id] = struct{}{}
+		}
+	}
+
+	for _, image := range images(profile) {
+		feature := cloudImageFeature(image, profileID)
+		if image.Id == "" {
+			if err := c.createProjectFeature(projectID, feature); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		if _, exists := existingImages[image.Id]; !exists {
+			return nil, fmt.Errorf("cloud image project feature %q no longer exists", image.Id)
+		}
+		if err := c.updateProjectFeature(projectID, image.Id, feature); err != nil {
+			return nil, err
+		}
+		delete(existingImages, image.Id)
+	}
+	for imageID := range existingImages {
+		if err := c.DeleteProjectFeature(projectID, imageID); err != nil {
+			return nil, err
+		}
+	}
+
+	return c.GetCloudProfile(projectID, profileID)
 }
 
-func (c *Client) DeleteCloudProfile(id string) error {
-	return c.DeleteRequest(fmt.Sprintf("/cloud/profiles/id:%s", id))
+func (c *Client) DeleteCloudProfile(projectID, profileID string) error {
+	features, err := c.getProjectFeatures(projectID)
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, feature := range features.ProjectFeature {
+		if feature.Type == cloudImageFeatureType && feature.Id != nil && propertyValue(feature.Properties, "profileId") == profileID {
+			if err := c.DeleteProjectFeature(projectID, *feature.Id); err != nil {
+				return err
+			}
+		}
+	}
+	return c.DeleteProjectFeature(projectID, profileID)
+}
+
+func (c *Client) getProjectFeatures(projectID string) (*models.ProjectFeaturesJson, error) {
+	var features models.ProjectFeaturesJson
+	if err := c.GetRequest(projectFeaturesEndpoint(projectID), "fields=projectFeature(id,type,properties(property(name,value)))", &features); err != nil {
+		return nil, err
+	}
+	return &features, nil
+}
+
+func (c *Client) getProjectFeature(projectID, featureID string) (*models.ProjectFeatureJson, error) {
+	var feature models.ProjectFeatureJson
+	if err := c.GetRequest(projectFeatureEndpoint(projectID, featureID), "fields=id,type,properties(property(name,value))", &feature); err != nil {
+		return nil, err
+	}
+	return &feature, nil
+}
+
+func (c *Client) createProjectFeature(projectID string, feature models.ProjectFeatureJson) error {
+	body, err := json.Marshal(feature)
+	if err != nil {
+		return err
+	}
+	return c.PostRequest(projectFeaturesEndpoint(projectID), bytes.NewReader(body), nil)
+}
+
+func (c *Client) updateProjectFeature(projectID, featureID string, feature models.ProjectFeatureJson) error {
+	body, err := json.Marshal(feature)
+	if err != nil {
+		return err
+	}
+	return c.PutRequest(projectFeatureEndpoint(projectID, featureID), bytes.NewReader(body), nil)
+}
+
+func projectFeaturesEndpoint(projectID string) string {
+	return fmt.Sprintf("/projects/id:%s/projectFeatures", projectID)
+}
+
+func projectFeatureEndpoint(projectID, featureID string) string {
+	return fmt.Sprintf("/projects/id:%s/projectFeatures/id:%s", projectID, featureID)
+}
+
+func cloudProfileFeature(profile models.CloudProfileJson) models.ProjectFeatureJson {
+	properties := copyProperties(profile.Properties)
+	setProperty(&properties, "cloud-code", profile.CloudProviderId)
+	setProperty(&properties, "name", profile.Name)
+	return models.ProjectFeatureJson{Type: cloudProfileFeatureType, Properties: properties}
+}
+
+func cloudImageFeature(image models.CloudImageJson, profileID string) models.ProjectFeatureJson {
+	properties := copyProperties(image.Properties)
+	setProperty(&properties, "profileId", profileID)
+	setProperty(&properties, "image-name-prefix", image.Name)
+	if image.AgentPoolId != nil {
+		setProperty(&properties, "agentPoolId", strconv.Itoa(*image.AgentPoolId))
+	}
+	return models.ProjectFeatureJson{Type: cloudImageFeatureType, Properties: properties}
+}
+
+func cloudProfileFromFeature(feature models.ProjectFeatureJson) models.CloudProfileJson {
+	profile := models.CloudProfileJson{Properties: &models.Properties{Property: copyProperties(&feature.Properties).Property}}
+	if feature.Id != nil {
+		profile.Id = *feature.Id
+	}
+	profile.CloudProviderId = propertyValue(feature.Properties, "cloud-code")
+	profile.Name = propertyValue(feature.Properties, "name")
+	removeProperties(profile.Properties, "cloud-code", "name")
+	return profile
+}
+
+func cloudImageFromFeature(feature models.ProjectFeatureJson) models.CloudImageJson {
+	image := models.CloudImageJson{Properties: &models.Properties{Property: copyProperties(&feature.Properties).Property}}
+	if feature.Id != nil {
+		image.Id = *feature.Id
+	}
+	image.Name = propertyValue(feature.Properties, "image-name-prefix")
+	if value := propertyValue(feature.Properties, "agentPoolId"); value != "" {
+		if poolID, err := strconv.Atoi(value); err == nil {
+			image.AgentPoolId = &poolID
+		}
+	}
+	removeProperties(image.Properties, "profileId", "image-name-prefix", "agentPoolId")
+	return image
+}
+
+func images(profile models.CloudProfileJson) []models.CloudImageJson {
+	if profile.Images == nil {
+		return nil
+	}
+	return profile.Images.CloudImage
+}
+
+func newlyCreatedFeature(before, after *models.ProjectFeaturesJson, featureType string) (models.ProjectFeatureJson, bool) {
+	existing := map[string]struct{}{}
+	for _, feature := range before.ProjectFeature {
+		if feature.Id != nil {
+			existing[*feature.Id] = struct{}{}
+		}
+	}
+	for _, feature := range after.ProjectFeature {
+		if feature.Type == featureType && feature.Id != nil {
+			if _, found := existing[*feature.Id]; !found {
+				return feature, true
+			}
+		}
+	}
+	return models.ProjectFeatureJson{}, false
+}
+
+func copyProperties(properties *models.Properties) models.Properties {
+	if properties == nil {
+		return models.Properties{}
+	}
+	result := models.Properties{Property: append([]models.Property(nil), properties.Property...)}
+	sort.Slice(result.Property, func(i, j int) bool { return result.Property[i].Name < result.Property[j].Name })
+	return result
+}
+
+func propertyValue(properties models.Properties, name string) string {
+	for _, property := range properties.Property {
+		if property.Name == name {
+			return property.Value
+		}
+	}
+	return ""
+}
+
+func setProperty(properties *models.Properties, name, value string) {
+	for index := range properties.Property {
+		if properties.Property[index].Name == name {
+			properties.Property[index].Value = value
+			return
+		}
+	}
+	properties.Property = append(properties.Property, models.Property{Name: name, Value: value})
+	sort.Slice(properties.Property, func(i, j int) bool { return properties.Property[i].Name < properties.Property[j].Name })
+}
+
+func removeProperties(properties *models.Properties, names ...string) {
+	removed := map[string]struct{}{}
+	for _, name := range names {
+		removed[name] = struct{}{}
+	}
+	kept := properties.Property[:0]
+	for _, property := range properties.Property {
+		if _, exists := removed[property.Name]; !exists {
+			kept = append(kept, property)
+		}
+	}
+	properties.Property = kept
 }

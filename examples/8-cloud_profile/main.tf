@@ -31,7 +31,7 @@ resource "teamcity_cloud_profile" "aws" {
   project_id        = teamcity_project.cloud_agents.id
 
   properties = {
-    "access-id"         = var.aws_access_key_id
+    "secure:access-id"  = var.aws_access_key_id
     "secure:secret-key" = var.aws_secret_access_key
     "region"            = "eu-west-1"
   }
@@ -39,7 +39,7 @@ resource "teamcity_cloud_profile" "aws" {
   image {
     name = "Ubuntu build agent"
     properties = {
-      "image-id"      = var.aws_ami_id
+      "amazon-id"     = var.aws_ami_id
       "instance-type" = "t3.medium"
     }
   }

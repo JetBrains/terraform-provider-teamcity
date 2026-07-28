@@ -8,9 +8,11 @@ description: |-
 
 # teamcity_cloud_profile (Resource)
 
-Manages a TeamCity cloud profile and the cloud images owned by that profile. The resource is suitable for an AWS EC2 profile whose image properties reference an AMI ID.
+Manages a TeamCity cloud profile and the cloud images owned by that profile. TeamCity stores both as Project Features (`CloudProfile` and `CloudImage`), assigns their IDs, and links an image to its generated profile ID. The resource is suitable for an AWS EC2 profile whose image properties reference an AMI ID.
 
 Cloud-profile properties can contain credentials or other secret material. The `properties` maps are sensitive in Terraform output, but their values still reside in Terraform state. Use an encrypted, access-controlled state backend and provide secrets through sensitive input variables or another secret-management mechanism.
+
+TeamCity treats `secure:*` properties as write-only: their names can be returned without values. The provider preserves an already-configured secure value during refresh. After importing a resource, configure secure properties again so Terraform can apply them. Import IDs use `<project_id>/<cloud_profile_feature_id>`.
 
 ## Example Usage
 
@@ -35,7 +37,7 @@ resource "teamcity_cloud_profile" "aws" {
   project_id        = "CloudAgents"
 
   properties = {
-    "access-id"         = var.aws_access_key_id
+    "secure:access-id"  = var.aws_access_key_id
     "secure:secret-key" = var.aws_secret_access_key
     "region"            = "eu-west-1"
   }
@@ -43,7 +45,7 @@ resource "teamcity_cloud_profile" "aws" {
   image {
     name = "Ubuntu build agent"
     properties = {
-      "image-id"      = var.aws_ami_id
+      "amazon-id"     = var.aws_ami_id
       "instance-type" = "t3.medium"
     }
   }

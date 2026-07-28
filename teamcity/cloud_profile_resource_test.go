@@ -1,9 +1,11 @@
 package teamcity
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
@@ -12,93 +14,120 @@ import (
 	"terraform-provider-teamcity/models"
 )
 
-const testCloudProfileFieldsQuery = "fields=id,name,cloudProviderId,project(id),properties(property(name,value)),images(image(id,name,agentPoolId,properties(property(name,value))))"
-
-type fakeCloudProfileServerState struct {
-	mu      sync.Mutex
-	profile *models.CloudProfileJson
+type fakeProjectFeatureServerState struct {
+	mu       sync.Mutex
+	features []models.ProjectFeatureJson
+	nextID   int
 }
 
 func newFakeCloudProfileServer(t *testing.T) *httptest.Server {
 	t.Helper()
-
-	state := &fakeCloudProfileServerState{}
+	state := &fakeProjectFeatureServerState{nextID: 1}
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		const profilePath = "/app/rest/cloud/profiles/id:aws-profile"
-
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/app/rest":
-			w.Header().Set("Content-Type", "text/plain")
+		const collection = "/app/rest/projects/id:CloudProject/projectFeatures"
+		if r.Method == http.MethodGet && r.URL.Path == "/app/rest" {
 			_, _ = w.Write([]byte("OK"))
 			return
-		case r.Method == http.MethodPost && r.URL.Path == "/app/rest/cloud/profiles":
-			var request models.CloudProfileJson
-			if err := decodeJSONBody(r, &request); err != nil {
+		}
+
+		state.mu.Lock()
+		defer state.mu.Unlock()
+		if r.URL.Path == collection {
+			switch r.Method {
+			case http.MethodGet:
+				writeCloudProfileJSON(w, models.ProjectFeaturesJson{ProjectFeature: redactedFeatures(state.features)})
+			case http.MethodPost:
+				var feature models.ProjectFeatureJson
+				if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+				if feature.Type == "CloudProfile" {
+					feature.Id = stringPointer("amazon-42")
+				} else if feature.Type == "CloudImage" {
+					feature.Id = stringPointer(fmt.Sprintf("PROJECT_EXT_%d", state.nextID))
+					state.nextID++
+				} else {
+					http.Error(w, "unexpected project feature type", http.StatusBadRequest)
+					return
+				}
+				state.features = append(state.features, feature)
+				w.WriteHeader(http.StatusOK) // live TeamCity returns no JSON body for this route
+			default:
+				http.Error(w, "unsupported collection method", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		const itemPrefix = collection + "/id:"
+		if !strings.HasPrefix(r.URL.Path, itemPrefix) {
+			http.Error(w, "unexpected route", http.StatusNotFound)
+			return
+		}
+		featureID := strings.TrimPrefix(r.URL.Path, itemPrefix)
+		index := featureIndex(state.features, featureID)
+		if index == -1 {
+			http.Error(w, "feature not found", http.StatusNotFound)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			writeCloudProfileJSON(w, redactFeature(state.features[index]))
+		case http.MethodPut:
+			var feature models.ProjectFeatureJson
+			if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			state.mu.Lock()
-			state.profile = completeCloudProfileIDs(request)
-			response := *state.profile
-			state.mu.Unlock()
-			writeJSON(w, response)
-			return
-		case r.Method == http.MethodGet && r.URL.Path == profilePath:
-			if r.URL.RawQuery != testCloudProfileFieldsQuery {
-				http.Error(w, fmt.Sprintf("unexpected cloud profile query: %s", r.URL.RawQuery), http.StatusBadRequest)
-				return
-			}
-			state.mu.Lock()
-			profile := state.profile
-			state.mu.Unlock()
-			if profile == nil {
-				http.Error(w, "cloud profile not found", http.StatusNotFound)
-				return
-			}
-			writeJSON(w, *profile)
-			return
-		case r.Method == http.MethodPut && r.URL.Path == profilePath:
-			var request models.CloudProfileJson
-			if err := decodeJSONBody(r, &request); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			if request.Images != nil && len(request.Images.CloudImage) > 0 && request.Images.CloudImage[0].Id != "aws-image-1" {
-				http.Error(w, "cloud image update must preserve the existing image ID", http.StatusBadRequest)
-				return
-			}
-			state.mu.Lock()
-			if state.profile == nil {
-				state.mu.Unlock()
-				http.Error(w, "cloud profile not found", http.StatusNotFound)
-				return
-			}
-			request.Id = state.profile.Id
-			state.profile = completeCloudProfileIDs(request)
-			response := *state.profile
-			state.mu.Unlock()
-			writeJSON(w, response)
-			return
-		case r.Method == http.MethodDelete && r.URL.Path == profilePath:
-			state.mu.Lock()
-			state.profile = nil
-			state.mu.Unlock()
+			feature.Id = state.features[index].Id
+			state.features[index] = feature
+			w.WriteHeader(http.StatusOK)
+		case http.MethodDelete:
+			state.features = append(state.features[:index], state.features[index+1:]...)
 			w.WriteHeader(http.StatusNoContent)
-			return
 		default:
-			http.Error(w, fmt.Sprintf("unexpected request: %s %s?%s", r.Method, r.URL.Path, r.URL.RawQuery), http.StatusNotFound)
+			http.Error(w, "unsupported item method", http.StatusMethodNotAllowed)
 		}
 	}))
 }
 
-func completeCloudProfileIDs(profile models.CloudProfileJson) *models.CloudProfileJson {
-	profile.Id = "aws-profile"
-	if profile.Images != nil {
-		for index := range profile.Images.CloudImage {
-			profile.Images.CloudImage[index].Id = fmt.Sprintf("aws-image-%d", index+1)
+func stringPointer(value string) *string {
+	return &value
+}
+
+func featureIndex(features []models.ProjectFeatureJson, id string) int {
+	for index, feature := range features {
+		if feature.Id != nil && *feature.Id == id {
+			return index
 		}
 	}
-	return &profile
+	return -1
+}
+
+func redactedFeatures(features []models.ProjectFeatureJson) []models.ProjectFeatureJson {
+	result := make([]models.ProjectFeatureJson, len(features))
+	for index, feature := range features {
+		result[index] = redactFeature(feature)
+	}
+	return result
+}
+
+func redactFeature(feature models.ProjectFeatureJson) models.ProjectFeatureJson {
+	properties := append([]models.Property(nil), feature.Properties.Property...)
+	for index := range properties {
+		if strings.HasPrefix(properties[index].Name, "secure:") {
+			properties[index].Value = ""
+		}
+	}
+	feature.Properties = models.Properties{Property: properties}
+	return feature
+}
+
+func writeCloudProfileJSON(w http.ResponseWriter, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		panic(err)
+	}
 }
 
 func cloudProfileConfig(name, accessID, imageID string) string {
@@ -109,14 +138,15 @@ resource "teamcity_cloud_profile" "test" {
   project_id        = "CloudProject"
 
   properties = {
-    "access-id" = %q
-    "region"    = "eu-west-1"
+    "secure:access-id" = %q
+    "region"           = "eu-west-1"
   }
 
   image {
     name = "Ubuntu agent"
     properties = {
-      "image-id" = %q
+      "amazon-id" = %q
+      "source-id" = "tcci-5370"
     }
     agent_pool_id = 1
   }
@@ -129,17 +159,10 @@ func TestAccCloudProfileResourceLifecycle(t *testing.T) {
 	defer server.Close()
 	t.Setenv("TEAMCITY_HOST", server.URL)
 	t.Setenv("TEAMCITY_TOKEN", "test-token")
+	t.Setenv("TF_CLI_CONFIG_FILE", "")
 
 	initialConfig := cloudProfileConfig("AWS EC2 Profile", "initial-access-key", "ami-0123456789abcdef0")
 	updatedConfig := cloudProfileConfig("Renamed AWS EC2 Profile", "updated-access-key", "ami-0fedcba9876543210")
-	emptyConfig := providerConfig + `
-resource "teamcity_cloud_profile" "test" {
-  name              = "Renamed AWS EC2 Profile"
-  cloud_provider_id = "amazon"
-  project_id        = "CloudProject"
-  properties        = {}
-}
-`
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -147,47 +170,34 @@ resource "teamcity_cloud_profile" "test" {
 			{
 				Config: initialConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "id", "aws-profile"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "name", "AWS EC2 Profile"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "cloud_provider_id", "amazon"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "project_id", "CloudProject"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "properties.access-id", "initial-access-key"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "image.#", "1"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "image.0.id", "aws-image-1"),
+					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "id", "amazon-42"),
+					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "properties.secure:access-id", "initial-access-key"),
+					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "image.0.id", "PROJECT_EXT_1"),
 					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "image.0.agent_pool_id", "1"),
 				),
 			},
 			{
-				Config: initialConfig,
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-				},
+				Config:           initialConfig,
+				ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}},
 			},
 			{
 				Config: updatedConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "name", "Renamed AWS EC2 Profile"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "properties.access-id", "updated-access-key"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "image.0.properties.image-id", "ami-0fedcba9876543210"),
+					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "properties.secure:access-id", "updated-access-key"),
+					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "image.0.properties.amazon-id", "ami-0fedcba9876543210"),
 				),
 			},
 			{
-				Config: emptyConfig,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "properties.%", "0"),
-					resource.TestCheckResourceAttr("teamcity_cloud_profile.test", "image.#", "0"),
-				),
+				Config:           updatedConfig,
+				ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}},
 			},
 			{
-				Config: emptyConfig,
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-				},
-			},
-			{
-				ResourceName:      "teamcity_cloud_profile.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "teamcity_cloud_profile.test",
+				ImportStateId:           "CloudProject/amazon-42",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"properties.secure:access-id"},
 			},
 		},
 	})

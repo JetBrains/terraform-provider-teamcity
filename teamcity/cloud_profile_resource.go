@@ -3,6 +3,7 @@ package teamcity
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -127,7 +128,7 @@ func (r *cloudProfileResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	created, err := r.client.CreateCloudProfile(profile)
+	created, err := r.client.CreateCloudProfile(plan.ProjectId.ValueString(), profile)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating cloud profile", err.Error())
 		return
@@ -137,7 +138,7 @@ func (r *cloudProfileResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	refreshed, err := r.client.GetCloudProfile(created.Id)
+	refreshed, err := r.client.GetCloudProfile(plan.ProjectId.ValueString(), created.Id)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading created cloud profile", err.Error())
 		return
@@ -158,7 +159,7 @@ func (r *cloudProfileResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	profile, err := r.client.GetCloudProfile(state.Id.ValueString())
+	profile, err := r.client.GetCloudProfile(state.ProjectId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading cloud profile", err.Error())
 		return
@@ -190,7 +191,7 @@ func (r *cloudProfileResource) Update(ctx context.Context, req resource.UpdateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	updated, err := r.client.UpdateCloudProfile(state.Id.ValueString(), profile)
+	updated, err := r.client.UpdateCloudProfile(state.ProjectId.ValueString(), state.Id.ValueString(), profile)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating cloud profile", err.Error())
 		return
@@ -200,7 +201,7 @@ func (r *cloudProfileResource) Update(ctx context.Context, req resource.UpdateRe
 	if updated.Id != "" {
 		profileID = updated.Id
 	}
-	refreshed, err := r.client.GetCloudProfile(profileID)
+	refreshed, err := r.client.GetCloudProfile(state.ProjectId.ValueString(), profileID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading updated cloud profile", err.Error())
 		return
@@ -224,13 +225,19 @@ func (r *cloudProfileResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	if err := r.client.DeleteCloudProfile(state.Id.ValueString()); err != nil {
+	if err := r.client.DeleteCloudProfile(state.ProjectId.ValueString(), state.Id.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting cloud profile", err.Error())
 	}
 }
 
 func (r *cloudProfileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	parts := strings.SplitN(req.ID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		resp.Diagnostics.AddError("Invalid cloud profile import ID", "Use <project_id>/<cloud_profile_feature_id>.")
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_id"), parts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
 }
 
 func (r *cloudProfileResource) modelToJSON(ctx context.Context, plan models.CloudProfileDataModel, previous *models.CloudProfileDataModel, diags *diag.Diagnostics) models.CloudProfileJson {
@@ -329,8 +336,22 @@ func mapFromProperties(ctx context.Context, properties *models.Properties, previ
 		return empty
 	}
 
+	previousValues := map[string]string{}
+	if !previous.IsNull() && !previous.IsUnknown() {
+		diags.Append(previous.ElementsAs(ctx, &previousValues, false)...)
+		if diags.HasError() {
+			return types.MapNull(types.StringType)
+		}
+	}
+
 	result := make(map[string]string, len(properties.Property))
 	for _, property := range properties.Property {
+		if strings.HasPrefix(property.Name, "secure:") && property.Value == "" {
+			if previousValue, ok := previousValues[property.Name]; ok {
+				result[property.Name] = previousValue
+				continue
+			}
+		}
 		result[property.Name] = property.Value
 	}
 	mapped, mapDiags := types.MapValueFrom(ctx, types.StringType, result)
