@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	cloudProfileFeatureType = "CloudProfile"
-	cloudImageFeatureType   = "CloudImage"
+	cloudProfileFeatureType       = "CloudProfile"
+	cloudImageFeatureType         = "CloudImage"
+	cloudProfileDiscoveryAttempts = 2
 )
 
 func (c *Client) CreateCloudProfile(projectID string, profile models.CloudProfileJson) (*models.CloudProfileJson, error) {
@@ -26,13 +27,9 @@ func (c *Client) CreateCloudProfile(projectID string, profile models.CloudProfil
 		return nil, err
 	}
 
-	after, err := c.getProjectFeatures(projectID)
+	createdProfile, err := c.discoverCreatedCloudProfile(projectID, before)
 	if err != nil {
 		return nil, err
-	}
-	createdProfile, ok := newlyCreatedFeature(before, after, cloudProfileFeatureType)
-	if !ok || createdProfile.Id == nil {
-		return nil, fmt.Errorf("TeamCity did not return the created cloud profile project feature")
 	}
 
 	profileID := *createdProfile.Id
@@ -50,6 +47,24 @@ func (c *Client) CreateCloudProfile(projectID string, profile models.CloudProfil
 		return nil, c.cleanupFailedCloudProfileCreate(projectID, profileID, fmt.Errorf("created cloud profile project feature %q is unavailable", profileID))
 	}
 	return created, nil
+}
+
+func (c *Client) discoverCreatedCloudProfile(projectID string, before *models.ProjectFeaturesJson) (*models.ProjectFeatureJson, error) {
+	var lastErr error
+	for attempt := 1; attempt <= cloudProfileDiscoveryAttempts; attempt++ {
+		after, err := c.getProjectFeatures(projectID)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		createdProfile, ok := newlyCreatedFeature(before, after, cloudProfileFeatureType)
+		if ok && createdProfile.Id != nil {
+			return &createdProfile, nil
+		}
+		lastErr = fmt.Errorf("TeamCity did not return the created cloud profile project feature")
+	}
+
+	return nil, fmt.Errorf("TeamCity may have created an unmanaged cloud profile in project %q because its server-assigned ID could not be discovered after %d attempts: %w", projectID, cloudProfileDiscoveryAttempts, lastErr)
 }
 
 func (c *Client) cleanupFailedCloudProfileCreate(projectID, profileID string, createErr error) error {

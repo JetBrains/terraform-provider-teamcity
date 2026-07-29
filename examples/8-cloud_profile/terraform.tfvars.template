@@ -1,0 +1,6 @@
+# Copy this file to terraform.tfvars only for local use. Never commit terraform.tfvars.
+# Prefer a secret manager or TF_VAR_ environment variables for AWS credentials.
+
+aws_access_key_id     = "replace-with-a-non-production-access-key-id"
+aws_secret_access_key = "replace-with-a-secret-from-your-secret-manager"
+aws_ami_id            = "ami-0123456789abcdef0"

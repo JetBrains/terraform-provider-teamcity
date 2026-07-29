@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"terraform-provider-teamcity/models"
@@ -14,7 +15,12 @@ func TestCreateCloudProfileUsesProjectFeaturesAndReadsGeneratedIDs(t *testing.T)
 	var features []models.ProjectFeatureJson
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const featuresPath = "/app/rest/projects/id:CloudProject/projectFeatures"
+		const collectionFields = "fields=projectFeature(id,type,properties(property(name,value)))"
+		const itemFields = "fields=id,type,properties(property(name,value))"
 		if r.Method == http.MethodGet && r.URL.Path == featuresPath+"/id:amazon-42" {
+			if r.URL.RawQuery != itemFields {
+				t.Fatalf("feature read query = %q, want %q", r.URL.RawQuery, itemFields)
+			}
 			if len(features) == 0 {
 				http.Error(w, "profile not found", http.StatusNotFound)
 				return
@@ -31,6 +37,9 @@ func TestCreateCloudProfileUsesProjectFeaturesAndReadsGeneratedIDs(t *testing.T)
 
 		switch r.Method {
 		case http.MethodGet:
+			if r.URL.RawQuery != collectionFields {
+				t.Fatalf("project-feature collection query = %q, want %q", r.URL.RawQuery, collectionFields)
+			}
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(models.ProjectFeaturesJson{ProjectFeature: features}); err != nil {
 				t.Fatal(err)
@@ -176,6 +185,119 @@ func TestCreateCloudProfileCleansUpProfileWhenImageCreationFails(t *testing.T) {
 	}
 	if len(features) != 0 {
 		t.Fatalf("features after failed create = %#v, want no orphaned features", features)
+	}
+}
+
+func TestCreateCloudProfileRetriesDiscoveryBeforeCleanup(t *testing.T) {
+	var features []models.ProjectFeatureJson
+	var discoveryRequests int
+	var profileDeleteRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const featuresPath = "/app/rest/projects/id:CloudProject/projectFeatures"
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == featuresPath:
+			discoveryRequests++
+			if discoveryRequests == 2 {
+				http.Error(w, "temporary discovery failure", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(models.ProjectFeaturesJson{ProjectFeature: features}); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && r.URL.Path == featuresPath:
+			var feature models.ProjectFeatureJson
+			if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
+				t.Fatal(err)
+			}
+			if feature.Type != cloudProfileFeatureType {
+				http.Error(w, "unexpected feature type", http.StatusBadRequest)
+				return
+			}
+			feature.Id = stringPointer("amazon-42")
+			features = append(features, feature)
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == featuresPath+"/id:amazon-42":
+			http.Error(w, "readback failed", http.StatusInternalServerError)
+		case r.Method == http.MethodDelete && r.URL.Path == featuresPath+"/id:amazon-42":
+			profileDeleteRequests++
+			features = nil
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.Error(w, "unexpected request", http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	cloudClient := NewClient(server.URL, "token", "", "", 1)
+	_, err := cloudClient.CreateCloudProfile("CloudProject", models.CloudProfileJson{
+		Name:            "AWS EC2 Profile",
+		CloudProviderId: "amazon",
+	})
+	if err == nil {
+		t.Fatal("CreateCloudProfile succeeded after readback failed")
+	}
+	if discoveryRequests < 3 {
+		t.Fatalf("project-feature discovery requests = %d, want an initial list and a retry after the profile POST", discoveryRequests)
+	}
+	if profileDeleteRequests != 1 {
+		t.Fatalf("profile DELETE requests = %d, want 1", profileDeleteRequests)
+	}
+	if len(features) != 0 {
+		t.Fatalf("features after failed create = %#v, want no orphaned features", features)
+	}
+}
+
+func TestCreateCloudProfileReportsPotentialOrphanWhenDiscoveryCannotRecover(t *testing.T) {
+	var features []models.ProjectFeatureJson
+	var discoveryRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const featuresPath = "/app/rest/projects/id:CloudProject/projectFeatures"
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == featuresPath:
+			discoveryRequests++
+			if discoveryRequests > 1 {
+				http.Error(w, "persistent discovery failure", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(models.ProjectFeaturesJson{ProjectFeature: features}); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && r.URL.Path == featuresPath:
+			var feature models.ProjectFeatureJson
+			if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
+				t.Fatal(err)
+			}
+			if feature.Type != cloudProfileFeatureType {
+				http.Error(w, "unexpected feature type", http.StatusBadRequest)
+				return
+			}
+			feature.Id = stringPointer("amazon-42")
+			features = append(features, feature)
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, "unexpected request", http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	cloudClient := NewClient(server.URL, "token", "", "", 1)
+	_, err := cloudClient.CreateCloudProfile("CloudProject", models.CloudProfileJson{
+		Name:            "AWS EC2 Profile",
+		CloudProviderId: "amazon",
+	})
+	if err == nil {
+		t.Fatal("CreateCloudProfile succeeded after persistent discovery failure")
+	}
+	if !strings.Contains(err.Error(), "may have created an unmanaged cloud profile") {
+		t.Fatalf("error = %q, want actionable unmanaged-profile recovery message", err)
+	}
+	if discoveryRequests < 3 {
+		t.Fatalf("project-feature discovery requests = %d, want retry after the profile POST", discoveryRequests)
+	}
+	if len(features) != 1 {
+		t.Fatalf("features after unrecoverable discovery failure = %#v, want the created profile to remain identifiable for recovery", features)
 	}
 }
 

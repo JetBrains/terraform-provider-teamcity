@@ -88,7 +88,7 @@ For more advanced examples, see the `/examples/` folder:
 
 8. `examples/8-cloud_profile`
 
-    Configuring an AWS EC2 cloud profile and an AMI-backed cloud image. Set AWS credentials through sensitive Terraform input variables or another secure secret source; never commit them.
+    Configuring an AWS EC2 cloud profile and an AMI-backed cloud image. Set AWS credentials through sensitive Terraform input variables or another secure secret source; never commit them. See [the cloud-profile resource documentation](docs/resources/cloud_profile.md) for the supported AWS property pattern, import syntax, generated feature IDs, and secure-property behavior.
 
 > These samples rely on existing  GitHub organisation, so, they are not easily runnable as is, since the custom GitHub app cannot be re-used, and GitHub provides no API to create it automatically.
 Also, all used repositories are created in teamcity-terraform-test organisation.
