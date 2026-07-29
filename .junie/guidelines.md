@@ -3,7 +3,7 @@
 This document describes how to contribute code to this repository and align with the current architecture. It focuses on how to abstract raw HTTP calls into TeamCity resources, how to use the new HTTP client helpers, how to organize models.
 
 ## How to execute the provider and check it on a real TeamCity instance
-- We have docker compose file with example TeamCity server image: `docker-compose.yml` (Starts TC server at http://localhost:8111 with token `token123`)
+- We have docker compose file with example TeamCity server image: `docker-compose.yml` (starts TeamCity at http://localhost:8111 with disposable Basic-auth password `token123`)
 - For running teamcity with agent, only if task requires - use `docker-compose-with-agent.yml`
 - To debug/run your local provider changes:
     1. Start the TeamCity server: `podman compose up -d` (or `docker compose`)

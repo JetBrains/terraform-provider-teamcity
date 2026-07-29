@@ -123,3 +123,105 @@ func TestCloudImageFeatureUsesTeamCityAgentPoolProperty(t *testing.T) {
 		t.Fatalf("agent pool ID = %#v, want 7", image.AgentPoolId)
 	}
 }
+
+func TestCreateCloudProfileCleansUpProfileWhenImageCreationFails(t *testing.T) {
+	var features []models.ProjectFeatureJson
+	var profileDeleteRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const featuresPath = "/app/rest/projects/id:CloudProject/projectFeatures"
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == featuresPath:
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(models.ProjectFeaturesJson{ProjectFeature: features}); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && r.URL.Path == featuresPath:
+			var feature models.ProjectFeatureJson
+			if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
+				t.Fatal(err)
+			}
+			switch feature.Type {
+			case cloudProfileFeatureType:
+				feature.Id = stringPointer("amazon-42")
+				features = append(features, feature)
+				w.WriteHeader(http.StatusOK)
+			case cloudImageFeatureType:
+				http.Error(w, "image creation failed", http.StatusInternalServerError)
+			default:
+				http.Error(w, "unexpected feature type", http.StatusBadRequest)
+			}
+		case r.Method == http.MethodDelete && r.URL.Path == featuresPath+"/id:amazon-42":
+			profileDeleteRequests++
+			features = nil
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.Error(w, "unexpected request", http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	cloudClient := NewClient(server.URL, "token", "", "", 0)
+	_, err := cloudClient.CreateCloudProfile("CloudProject", models.CloudProfileJson{
+		Name:            "AWS EC2 Profile",
+		CloudProviderId: "amazon",
+		Images: &models.CloudImagesJson{CloudImage: []models.CloudImageJson{{
+			Name: "failing image",
+		}}},
+	})
+	if err == nil {
+		t.Fatal("CreateCloudProfile succeeded after image creation failed")
+	}
+	if profileDeleteRequests != 1 {
+		t.Fatalf("profile DELETE requests = %d, want 1", profileDeleteRequests)
+	}
+	if len(features) != 0 {
+		t.Fatalf("features after failed create = %#v, want no orphaned features", features)
+	}
+}
+
+func TestCreateCloudProfileCleansUpProfileWhenReadbackFails(t *testing.T) {
+	var features []models.ProjectFeatureJson
+	var profileDeleteRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const featuresPath = "/app/rest/projects/id:CloudProject/projectFeatures"
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == featuresPath:
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(models.ProjectFeaturesJson{ProjectFeature: features}); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && r.URL.Path == featuresPath:
+			var feature models.ProjectFeatureJson
+			if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
+				t.Fatal(err)
+			}
+			feature.Id = stringPointer("amazon-42")
+			features = append(features, feature)
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == featuresPath+"/id:amazon-42":
+			http.Error(w, "readback failed", http.StatusInternalServerError)
+		case r.Method == http.MethodDelete && r.URL.Path == featuresPath+"/id:amazon-42":
+			profileDeleteRequests++
+			features = nil
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.Error(w, "unexpected request", http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	cloudClient := NewClient(server.URL, "token", "", "", 0)
+	_, err := cloudClient.CreateCloudProfile("CloudProject", models.CloudProfileJson{
+		Name:            "AWS EC2 Profile",
+		CloudProviderId: "amazon",
+	})
+	if err == nil {
+		t.Fatal("CreateCloudProfile succeeded after readback failed")
+	}
+	if profileDeleteRequests != 1 {
+		t.Fatalf("profile DELETE requests = %d, want 1", profileDeleteRequests)
+	}
+	if len(features) != 0 {
+		t.Fatalf("features after failed create = %#v, want no orphaned features", features)
+	}
+}

@@ -38,11 +38,25 @@ func (c *Client) CreateCloudProfile(projectID string, profile models.CloudProfil
 	profileID := *createdProfile.Id
 	for _, image := range images(profile) {
 		if err := c.createProjectFeature(projectID, cloudImageFeature(image, profileID)); err != nil {
-			return nil, err
+			return nil, c.cleanupFailedCloudProfileCreate(projectID, profileID, err)
 		}
 	}
 
-	return c.GetCloudProfile(projectID, profileID)
+	created, err := c.GetCloudProfile(projectID, profileID)
+	if err != nil {
+		return nil, c.cleanupFailedCloudProfileCreate(projectID, profileID, err)
+	}
+	if created == nil {
+		return nil, c.cleanupFailedCloudProfileCreate(projectID, profileID, fmt.Errorf("created cloud profile project feature %q is unavailable", profileID))
+	}
+	return created, nil
+}
+
+func (c *Client) cleanupFailedCloudProfileCreate(projectID, profileID string, createErr error) error {
+	if err := c.DeleteCloudProfile(projectID, profileID); err != nil {
+		return fmt.Errorf("%w; additionally failed to clean up cloud profile project feature %q: %v", createErr, profileID, err)
+	}
+	return createErr
 }
 
 func (c *Client) GetCloudProfile(projectID, profileID string) (*models.CloudProfileJson, error) {

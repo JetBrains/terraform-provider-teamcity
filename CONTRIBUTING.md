@@ -8,7 +8,7 @@ familiarize themselves with the project structure and conventions.
 
 ### To debug provider:
 
-1. Run TeamCity server of preferred version via docker-compose.yml file using Podman or Docker. It should start a TeamCity container with pre-defined token. (There is a `tc-server` run configuration that uses Podman by default)
+1. Run TeamCity server of preferred version via docker-compose.yml file using Podman or Docker. It should start a TeamCity container with a pre-defined disposable Basic-auth password. (There is a `tc-server` run configuration that uses Podman by default)
 2. Open the `DebugProvider` run configuration and make sure the correct module is chosen:![](examples/0-empty_development/images/img.png)
 2. Execute in debug mode this `DebugProvider` run configuration. You will see something like:
 
