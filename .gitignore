@@ -18,4 +18,6 @@ tfplugindocs
 
 local-teamcity-podman
 
+/plans/
+
 .DS_Store
