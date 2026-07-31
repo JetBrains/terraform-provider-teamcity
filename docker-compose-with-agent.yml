@@ -1,6 +1,22 @@
 services:
+  # The teamcity-server-local image runs as a fixed non-root uid, which commonly
+  # differs from the uid that owns ./testdata on the host after a fresh checkout.
+  # Without this, the server can't write into the bind-mounted directory and gets
+  # stuck waiting for interactive startup confirmation instead of reading
+  # teamcity.properties. Reset the host permissions before the server starts.
+  init-testdata-permissions:
+    image: alpine:3.20
+    entrypoint: ["chmod", "-R", "a+rwX", "/testdata"]
+    volumes:
+      - type: bind
+        source: "./testdata"
+        target: "/testdata"
+
   teamcity-server-local:
     image: jetbrains/teamcity-server:2025.11-linux-arm64
+    depends_on:
+      init-testdata-permissions:
+        condition: service_completed_successfully
     volumes:
       - type: bind
         source: "./testdata"
