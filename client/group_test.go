@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"terraform-provider-teamcity/models"
@@ -77,6 +78,71 @@ func TestGroup(t *testing.T) {
 
 				if actual.Description != "A new group" {
 					t.Fatalf("expected description 'A new group', got '%s'", actual.Description)
+				}
+			},
+		},
+		{
+			name: "test-new-group-generates-key-from-name",
+			test: func(t *testing.T) {
+				var sentBody []byte
+
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					sentBody, _ = io.ReadAll(r.Body)
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{"key":"MY_TESTGROUP_2","name":"My Test-Group 2!"}`))
+				}))
+				defer server.Close()
+
+				httpClient := NewClient(server.URL, "token", "", "", 12)
+
+				// No key supplied, so it has to be derived from the name:
+				// spaces become underscores, letters are upper-cased, digits are
+				// kept and anything else is dropped.
+				actual, err := httpClient.NewGroup(models.GroupJson{Name: "My Test-Group 2!"})
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				var sent models.GroupJson
+				if err := json.Unmarshal(sentBody, &sent); err != nil {
+					t.Fatal(err)
+				}
+				if sent.Key != "MY_TESTGROUP_2" {
+					t.Fatalf("expected generated key 'MY_TESTGROUP_2' to be sent, got '%s'", sent.Key)
+				}
+				if sent.Name != "My Test-Group 2!" {
+					t.Fatalf("expected name to be sent unchanged, got '%s'", sent.Name)
+				}
+				if actual.Key != "MY_TESTGROUP_2" {
+					t.Fatalf("expected returned key 'MY_TESTGROUP_2', got '%s'", actual.Key)
+				}
+			},
+		},
+		{
+			name: "test-new-group-keeps-explicit-key",
+			test: func(t *testing.T) {
+				var sentBody []byte
+
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					sentBody, _ = io.ReadAll(r.Body)
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{"key":"custom_key","name":"My Test Group"}`))
+				}))
+				defer server.Close()
+
+				httpClient := NewClient(server.URL, "token", "", "", 12)
+
+				_, err := httpClient.NewGroup(models.GroupJson{Key: "custom_key", Name: "My Test Group"})
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				var sent models.GroupJson
+				if err := json.Unmarshal(sentBody, &sent); err != nil {
+					t.Fatal(err)
+				}
+				if sent.Key != "custom_key" {
+					t.Fatalf("expected explicit key 'custom_key' to be preserved, got '%s'", sent.Key)
 				}
 			},
 		},
