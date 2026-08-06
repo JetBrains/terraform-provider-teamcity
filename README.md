@@ -90,6 +90,10 @@ For more advanced examples, see the `/examples/` folder:
 
     Configuring an AWS EC2 cloud profile and an AMI-backed cloud image. Set AWS credentials through sensitive Terraform input variables or another secure secret source; never commit them. See [the cloud-profile resource documentation](docs/resources/cloud_profile.md) for the supported AWS property pattern, import syntax, generated feature IDs, and secure-property behavior.
 
+9. `examples/9-build-configurations`
+
+    A full tour of [build configuration](https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html) management: regular, composite, and deployment build configurations with parameters, settings, an attached VCS root, build steps, build features, VCS and schedule triggers, snapshot and artifact dependencies, and agent requirements. Also shows creating a [build configuration template](https://www.jetbrains.com/help/teamcity/build-configuration-template.html) with `teamcity_template` and attaching it to a build configuration with `teamcity_build_configuration_template`.
+
 > These samples rely on existing  GitHub organisation, so, they are not easily runnable as is, since the custom GitHub app cannot be re-used, and GitHub provides no API to create it automatically.
 Also, all used repositories are created in teamcity-terraform-test organisation.
 
