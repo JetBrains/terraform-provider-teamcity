@@ -7,13 +7,14 @@ type BuildTypesJson struct {
 }
 
 type BuildTypeJson struct {
-	ID          string       `json:"id,omitempty"`
-	Name        string       `json:"name,omitempty"`
-	ProjectID   string       `json:"projectId,omitempty"`
-	Description string       `json:"description,omitempty"`
-	Type        string       `json:"type,omitempty"`
-	Paused      bool         `json:"paused,omitempty"`
-	Project     *ProjectJson `json:"project,omitempty"`
+	ID           string       `json:"id,omitempty"`
+	Name         string       `json:"name,omitempty"`
+	ProjectID    string       `json:"projectId,omitempty"`
+	Description  string       `json:"description,omitempty"`
+	Type         string       `json:"type,omitempty"`
+	Paused       bool         `json:"paused,omitempty"`
+	TemplateFlag bool         `json:"templateFlag,omitempty"`
+	Project      *ProjectJson `json:"project,omitempty"`
 }
 
 func (bt *BuildTypeJson) GetProjectID() string {
@@ -21,6 +22,19 @@ func (bt *BuildTypeJson) GetProjectID() string {
 		return *bt.Project.Id
 	}
 	return bt.ProjectID
+}
+
+type BuildTypeTemplateEntryDataModel struct {
+	ID                   types.String `tfsdk:"id"`
+	BuildConfigurationId types.String `tfsdk:"build_configuration_id"`
+	TemplateId           types.String `tfsdk:"template_id"`
+}
+
+type BuildTypeTemplateDataModel struct {
+	ID          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	ProjectID   types.String `tfsdk:"project_id"`
+	Description types.String `tfsdk:"description"`
 }
 
 type BuildTypeDataModel struct {
