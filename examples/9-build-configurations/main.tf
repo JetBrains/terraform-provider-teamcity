@@ -2,7 +2,7 @@ terraform {
   required_providers {
     teamcity = {
       source  = "jetbrains/teamcity"
-      version = "0.0.90"
+      version = "0.0.94"
     }
   }
 }
@@ -131,9 +131,9 @@ resource "teamcity_build_configuration_step" "compile_step" {
   name                   = "Fake compile"
   type                   = "simpleRunner"
   properties = {
-    "script.content"          = "echo Compiling..."
-    "teamcity.step.mode"      = "default"
-    "use.custom.script"       = "true"
+    "script.content"     = "echo Compiling..."
+    "teamcity.step.mode" = "default"
+    "use.custom.script"  = "true"
   }
 }
 
@@ -166,8 +166,8 @@ resource "teamcity_build_configuration_trigger" "vcs_trigger" {
   build_configuration_id = teamcity_build_configuration.build.id
   type                   = "vcsTrigger"
   properties = {
-    "quietPeriodMode"     = "DO_NOT_USE"
-    "branchFilter"        = "+:*"
+    "quietPeriodMode"           = "DO_NOT_USE"
+    "branchFilter"              = "+:*"
     "groupCheckkinsByCommitter" = "true"
   }
 }
@@ -177,10 +177,10 @@ resource "teamcity_build_configuration_trigger" "schedule_trigger" {
   build_configuration_id = teamcity_build_configuration.build.id
   type                   = "schedulingTrigger"
   properties = {
-    "schedulingPolicy"    = "daily"
-    "hour"                = "0"
-    "minute"              = "0"
-    "timezone"            = "SERVER"
+    "schedulingPolicy"                   = "daily"
+    "hour"                               = "0"
+    "minute"                             = "0"
+    "timezone"                           = "SERVER"
     "triggerBuildWithPendingChangesOnly" = "true"
   }
 }
@@ -194,11 +194,11 @@ resource "teamcity_build_configuration_snapshot_dependency" "chain" {
   build_configuration_id = teamcity_build_configuration.composite.id
   depends_on_id          = teamcity_build_configuration.build.id
   properties = {
-    "run-build-if-dependency-failed"     = "MAKE_FAILED_TO_START"
+    "run-build-if-dependency-failed"          = "MAKE_FAILED_TO_START"
     "run-build-if-dependency-failed-to-start" = "MAKE_FAILED_TO_START"
-    "run-build-on-the-same-agent"        = "false"
-    "take-started-build-with-same-revisions" = "true"
-    "take-successful-builds-only"        = "true"
+    "run-build-on-the-same-agent"             = "false"
+    "take-started-build-with-same-revisions"  = "true"
+    "take-successful-builds-only"             = "true"
   }
 }
 
@@ -211,9 +211,9 @@ resource "teamcity_build_configuration_artifact_dependency" "deploy_artifact" {
   build_configuration_id = teamcity_build_configuration.deploy.id
   depends_on_id          = teamcity_build_configuration.build.id
   properties = {
-    "pathRules"           = "artifacts/**=>downloaded"
-    "revisionName"        = "lastSuccessful"
-    "revisionValue"       = "latest.lastSuccessful"
+    "pathRules"                 = "artifacts/**=>downloaded"
+    "revisionName"              = "lastSuccessful"
+    "revisionValue"             = "latest.lastSuccessful"
     "cleanDestinationDirectory" = "true"
   }
 }
@@ -235,6 +235,30 @@ resource "teamcity_build_configuration_agent_requirement" "docker_req" {
   build_configuration_id = teamcity_build_configuration.build.id
   condition              = "exists"
   name                   = "docker.version"
+}
+
+############################################################
+# PHASE 8: teamcity_template + teamcity_build_configuration_template
+############################################################
+
+# Build configuration template with reusable settings
+resource "teamcity_template" "base" {
+  name        = "Base Template"
+  project_id  = teamcity_project.demo.id
+  description = "Reusable settings for build configurations"
+}
+
+# Templates are configured with the same build_configuration_* resources
+resource "teamcity_build_configuration_parameter" "template_param" {
+  build_configuration_id = teamcity_template.base.id
+  name                   = "template.greeting"
+  value                  = "hello from template"
+}
+
+# Attach the existing template to a build configuration
+resource "teamcity_build_configuration_template" "build_base" {
+  build_configuration_id = teamcity_build_configuration.build.id
+  template_id            = teamcity_template.base.id
 }
 
 ############################################################
