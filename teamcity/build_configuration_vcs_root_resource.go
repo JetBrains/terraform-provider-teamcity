@@ -97,9 +97,7 @@ func (r *bcVcsRootResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	plan.ID = types.StringValue(fmt.Sprintf("%s/%s", buildTypeId, vcsRootId))
-	if actual.CheckoutRules != "" {
-		plan.CheckoutRules = types.StringValue(actual.CheckoutRules)
-	}
+	plan.CheckoutRules = types.StringValue(actual.CheckoutRules)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
