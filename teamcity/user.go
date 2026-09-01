@@ -251,11 +251,10 @@ func (r *userResource) update(plan userResourceModel) client.User {
 		}
 	}
 
-	user.Roles = &client.RoleAssignments{
-		RoleAssignment: []client.RoleAssignment{},
-	}
-
-	if plan.Roles != nil {
+	if len(plan.Roles) > 0 {
+		user.Roles = &client.RoleAssignments{
+			RoleAssignment: make([]client.RoleAssignment, 0, len(plan.Roles)),
+		}
 		for _, role := range plan.Roles {
 			assignment := client.RoleAssignment{
 				Id: role.Id.ValueString(),
