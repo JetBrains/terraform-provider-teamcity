@@ -94,14 +94,7 @@ func (r *groupResource) Configure(_ context.Context, req resource.ConfigureReque
 	r.client = req.ProviderData.(*client.Client)
 }
 
-func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan models.GroupDataModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
+func groupPayload(plan models.GroupDataModel) models.GroupJson {
 	group := models.GroupJson{
 		Name: plan.Name.ValueString(),
 	}
@@ -114,11 +107,10 @@ func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		group.Key = plan.Key.ValueString()
 	}
 
-	group.Roles = &models.RoleAssignmentsJson{
-		RoleAssignment: []models.RoleAssignmentJson{},
-	}
-
-	if plan.Roles != nil {
+	if len(plan.Roles) > 0 {
+		group.Roles = &models.RoleAssignmentsJson{
+			RoleAssignment: make([]models.RoleAssignmentJson, 0, len(plan.Roles)),
+		}
 		for _, role := range plan.Roles {
 			assignment := models.RoleAssignmentJson{
 				Id: role.Id.ValueString(),
@@ -127,6 +119,19 @@ func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, 
 			group.Roles.RoleAssignment = append(group.Roles.RoleAssignment, assignment)
 		}
 	}
+
+	return group
+}
+
+func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan models.GroupDataModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	group := groupPayload(plan)
 
 	if !plan.ParentGroups.IsNull() {
 		var parents []types.String
