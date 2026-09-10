@@ -2,6 +2,8 @@ package teamcity
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -10,6 +12,21 @@ import (
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
 )
+
+// knownModuleNames are the raw TeamCity auth-module names already modeled by
+// dedicated, typed attributes under `modules`. Kept in sync with the
+// `if module.Name == "..."` cases in readState() and the appends in update().
+var knownModuleNames = map[string]string{
+	"Token-Auth":           "token",
+	"Default":              "built_in",
+	"HTTP-Basic":           "basic_http",
+	"Google-oauth":         "google",
+	"GitHubApp-oauth":      "github_app",
+	"GitHub-oauth":         "github",
+	"GHE-oauth":            "github_enterprise",
+	"JetbrainsSpace-oauth": "jetbrains_space",
+	"LDAP":                 "ldap",
+}
 
 var (
 	_ resource.Resource                   = &authResource{}
@@ -47,6 +64,18 @@ type authModulesModel struct {
 	GithubEnterprise *authModuleGithubModel    `tfsdk:"github_enterprise"`
 	LDAP             *authModuleLDAPModel      `tfsdk:"ldap"`
 	Space            *authModuleSpaceModel     `tfsdk:"jetbrains_space"`
+	Other            []authModuleOtherModel    `tfsdk:"others"`
+}
+
+// authModuleOtherModel is an escape hatch for auth modules the provider does
+// not (yet) model with a dedicated typed attribute — for example plugin-provided
+// modules such as the SAML plugin's "HTTP-SAML.v2". Without this, any module not
+// covered by a typed field above is silently dropped on every apply, because
+// SetAuthSettings() PUTs the entire module list and update() only ever
+// reconstructs the modules it knows about.
+type authModuleOtherModel struct {
+	Name       types.String `tfsdk:"name"`
+	Properties types.Map    `tfsdk:"properties"`
 }
 
 func (r *authResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
@@ -174,6 +203,23 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 							},
 						},
 					},
+					"others": schema.ListNestedAttribute{
+						Optional:    true,
+						Description: "Escape hatch for auth modules with no dedicated attribute above (for example plugin-provided modules such as the SAML plugin's 'HTTP-SAML.v2'). Without an entry here, TeamCity auth modules that this provider does not model are silently removed on every apply, because the whole module list is replaced on update. 'name' must be the raw TeamCity auth-module name (as seen in Administration > Authentication Modules / auth-config.xml), not a display name.",
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"name": schema.StringAttribute{
+									Required:    true,
+									Description: "Raw TeamCity auth-module name, e.g. 'HTTP-SAML.v2'. Must not collide with a module already covered by a dedicated attribute (token, built_in, basic_http, google, github_app, github, github_enterprise, ldap, jetbrains_space).",
+								},
+								"properties": schema.MapAttribute{
+									Optional:    true,
+									ElementType: types.StringType,
+									Description: "Module-specific properties as returned/accepted by the TeamCity REST API for this module.",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -228,6 +274,28 @@ func (r *authResource) ValidateConfig(ctx context.Context, req resource.Validate
 		}
 	}
 
+	seenOtherNames := map[string]bool{}
+	for i, other := range config.Modules.Other {
+		name := other.Name.ValueString()
+		if name == "" {
+			continue
+		}
+		if typedAttr, ok := knownModuleNames[name]; ok {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("modules").AtName("others").AtListIndex(i).AtName("name"),
+				"module already has a dedicated attribute",
+				fmt.Sprintf("%q is managed via 'modules.%s'. Use that attribute instead of listing it under 'modules.others', to avoid conflicting updates.", name, typedAttr),
+			)
+		}
+		if seenOtherNames[name] {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("modules").AtName("others").AtListIndex(i).AtName("name"),
+				"duplicate module name",
+				fmt.Sprintf("%q appears more than once in 'modules.others'.", name),
+			)
+		}
+		seenOtherNames[name] = true
+	}
 }
 
 func (r *authResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -238,12 +306,15 @@ func (r *authResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	newState, err := r.update(plan)
+	newState, err := r.update(ctx, plan, &resp.Diagnostics)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting authentication settings",
 			err.Error(),
 		)
+		return
+	}
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -264,12 +335,15 @@ func (r *authResource) Read(ctx context.Context, _ resource.ReadRequest, resp *r
 		return
 	}
 
-	newState, err := r.readState(result)
+	newState, err := r.readState(ctx, result, &resp.Diagnostics)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read authentication settings",
 			err.Error(),
 		)
+		return
+	}
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -288,12 +362,15 @@ func (r *authResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	newState, err := r.update(plan)
+	newState, err := r.update(ctx, plan, &resp.Diagnostics)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting authentication settings",
 			err.Error(),
 		)
+		return
+	}
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -311,7 +388,7 @@ func (r *authResource) ImportState(ctx context.Context, req resource.ImportState
 	resp.State.Set(ctx, authResourceModel{})
 }
 
-func (r *authResource) update(plan authResourceModel) (authResourceModel, error) {
+func (r *authResource) update(ctx context.Context, plan authResourceModel, diags *diag.Diagnostics) (authResourceModel, error) {
 	settings := client.AuthSettings{
 		AllowGuest:        plan.AllowGuest.ValueBool(),
 		GuestUsername:     plan.GuestUsername.ValueString(),
@@ -384,16 +461,35 @@ func (r *authResource) update(plan authResourceModel) (authResourceModel, error)
 			},
 		})
 	}
+	for _, other := range plan.Modules.Other {
+		props := map[string]string{}
+		if !other.Properties.IsNull() && !other.Properties.IsUnknown() {
+			diags.Append(other.Properties.ElementsAs(ctx, &props, false)...)
+			if diags.HasError() {
+				return authResourceModel{}, nil
+			}
+		}
+
+		properties := make([]models.Property, 0, len(props))
+		for name, value := range props {
+			properties = append(properties, models.Property{Name: name, Value: value})
+		}
+
+		settings.Modules.Module = append(settings.Modules.Module, client.Module{
+			Name:       other.Name.ValueString(),
+			Properties: &models.Properties{Property: properties},
+		})
+	}
 
 	result, err := r.client.SetAuthSettings(settings)
 	if err != nil {
 		return authResourceModel{}, err
 	}
 
-	return r.readState(result)
+	return r.readState(ctx, result, diags)
 }
 
-func (r *authResource) readState(result client.AuthSettings) (authResourceModel, error) {
+func (r *authResource) readState(ctx context.Context, result client.AuthSettings, diags *diag.Diagnostics) (authResourceModel, error) {
 	var state authResourceModel
 
 	state.AllowGuest = types.BoolValue(result.AllowGuest)
@@ -406,8 +502,10 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 
 	for _, module := range result.Modules.Module {
 		props := make(map[string]string)
-		for _, p := range module.Properties.Property {
-			props[p.Name] = p.Value
+		if module.Properties != nil {
+			for _, p := range module.Properties.Property {
+				props[p.Name] = p.Value
+			}
 		}
 
 		if module.Name == "Token-Auth" {
@@ -482,6 +580,31 @@ func (r *authResource) readState(result client.AuthSettings) (authResourceModel,
 			}
 			continue
 		}
+
+		// Any module name not matched above has no dedicated attribute (yet).
+		// Surface it via 'others' instead of silently dropping it from state —
+		// otherwise the next apply's PUT would omit it entirely and remove it
+		// from the server, even though nothing in the Pulumi/Terraform config changed.
+		//
+		// Use a null map (not an empty one) when there are no properties, to
+		// match a config that omits 'properties' entirely — otherwise every
+		// plan shows a permanent no-op diff between config (null) and state
+		// (empty map) for modules with no properties, such as "HTTP-SAML.v2".
+		var propertiesMap types.Map
+		if len(props) == 0 {
+			propertiesMap = types.MapNull(types.StringType)
+		} else {
+			var mapDiags diag.Diagnostics
+			propertiesMap, mapDiags = types.MapValueFrom(ctx, types.StringType, props)
+			diags.Append(mapDiags...)
+			if diags.HasError() {
+				return authResourceModel{}, nil
+			}
+		}
+		state.Modules.Other = append(state.Modules.Other, authModuleOtherModel{
+			Name:       types.StringValue(module.Name),
+			Properties: propertiesMap,
+		})
 	}
 
 	return state, nil
