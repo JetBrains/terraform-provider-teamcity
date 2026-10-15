@@ -3,11 +3,13 @@ package teamcity
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"sort"
 	"strconv"
 	"terraform-provider-teamcity/client"
 	"terraform-provider-teamcity/models"
@@ -214,6 +216,7 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 								},
 								"properties": schema.MapAttribute{
 									Optional:    true,
+									Computed:    true,
 									ElementType: types.StringType,
 									Description: "Module-specific properties as returned/accepted by the TeamCity REST API for this module.",
 								},
@@ -325,7 +328,14 @@ func (r *authResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 }
 
-func (r *authResource) Read(ctx context.Context, _ resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *authResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state authResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	result, err := r.client.GetAuthSettings()
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -335,7 +345,7 @@ func (r *authResource) Read(ctx context.Context, _ resource.ReadRequest, resp *r
 		return
 	}
 
-	newState, err := r.readState(ctx, result, &resp.Diagnostics)
+	newState, err := r.readState(ctx, result, state.Modules.Other, &resp.Diagnostics)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read authentication settings",
@@ -347,7 +357,7 @@ func (r *authResource) Read(ctx context.Context, _ resource.ReadRequest, resp *r
 		return
 	}
 
-	diags := resp.State.Set(ctx, newState)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -470,9 +480,14 @@ func (r *authResource) update(ctx context.Context, plan authResourceModel, diags
 			}
 		}
 
+		keys := make([]string, 0, len(props))
+		for k := range props {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
 		properties := make([]models.Property, 0, len(props))
-		for name, value := range props {
-			properties = append(properties, models.Property{Name: name, Value: value})
+		for _, name := range keys {
+			properties = append(properties, models.Property{Name: name, Value: props[name]})
 		}
 
 		settings.Modules.Module = append(settings.Modules.Module, client.Module{
@@ -486,10 +501,10 @@ func (r *authResource) update(ctx context.Context, plan authResourceModel, diags
 		return authResourceModel{}, err
 	}
 
-	return r.readState(ctx, result, diags)
+	return r.readState(ctx, result, plan.Modules.Other, diags)
 }
 
-func (r *authResource) readState(ctx context.Context, result client.AuthSettings, diags *diag.Diagnostics) (authResourceModel, error) {
+func (r *authResource) readState(ctx context.Context, result client.AuthSettings, currentOthers []authModuleOtherModel, diags *diag.Diagnostics) (authResourceModel, error) {
 	var state authResourceModel
 
 	state.AllowGuest = types.BoolValue(result.AllowGuest)
@@ -590,9 +605,21 @@ func (r *authResource) readState(ctx context.Context, result client.AuthSettings
 		// match a config that omits 'properties' entirely — otherwise every
 		// plan shows a permanent no-op diff between config (null) and state
 		// (empty map) for modules with no properties, such as "HTTP-SAML.v2".
+		currentMap := types.MapNull(types.StringType)
+		for _, o := range currentOthers {
+			if o.Name.ValueString() == module.Name {
+				currentMap = o.Properties
+				break
+			}
+		}
+
 		var propertiesMap types.Map
 		if len(props) == 0 {
-			propertiesMap = types.MapNull(types.StringType)
+			if currentMap.IsNull() || currentMap.IsUnknown() {
+				propertiesMap = types.MapNull(types.StringType)
+			} else {
+				propertiesMap = types.MapValueMust(types.StringType, map[string]attr.Value{})
+			}
 		} else {
 			var mapDiags diag.Diagnostics
 			propertiesMap, mapDiags = types.MapValueFrom(ctx, types.StringType, props)
