@@ -175,3 +175,52 @@ resource "teamcity_auth_settings" "test" {
 		},
 	})
 }
+
+// TestAccAuth_otherModuleExplicitEmptyProperties verifies that an explicit
+// 'properties = {}' does not cause an inconsistent result error after apply
+// or drift to null on subsequent plans.
+func TestAccAuth_otherModuleExplicitEmptyProperties(t *testing.T) {
+	config := providerConfig + `
+resource "teamcity_auth_settings" "test" {
+  allow_guest              = false
+  guest_username           = "guest"
+  welcome_text             = ""
+  collapse_login_form      = false
+  per_project_permissions  = false
+  email_verification       = false
+
+  modules = {
+    token      = {}
+    basic_http = {}
+
+    others = [
+      {
+        name       = "HTTP-SAML.v2"
+        properties = {}
+      }
+    ]
+  }
+}
+`
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_auth_settings.test", "modules.others.0.name", "HTTP-SAML.v2"),
+					resource.TestCheckResourceAttr("teamcity_auth_settings.test", "modules.others.0.properties.%", "0"),
+				),
+			},
+			{
+				Config: config,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
