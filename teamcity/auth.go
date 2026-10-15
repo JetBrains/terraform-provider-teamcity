@@ -96,16 +96,20 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 		Description: "TeamCity can authenticate users via an internal database, or can integrate into your system and use external authentication sources such as Windows Domain, LDAP, or Git hosting providers. More details [here](https://www.jetbrains.com/help/teamcity/configuring-authentication-settings.html)",
 		Attributes: map[string]schema.Attribute{
 			"allow_guest": schema.BoolAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Allow login as guest user",
 			},
 			"guest_username": schema.StringAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Guest user username",
 			},
 			"welcome_text": schema.StringAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Welcome text on the login page",
 			},
 			"collapse_login_form": schema.BoolAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Collapse username/password form",
 			},
 			//"two_factor_mode": schema.StringAttribute{
 			//	Required: true,
@@ -114,94 +118,119 @@ func (r *authResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			//	},
 			//},
 			"per_project_permissions": schema.BoolAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Enable per-project permissions",
 			},
 			"email_verification": schema.BoolAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Enable email verification",
 			},
 			"modules": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"token": schema.SingleNestedAttribute{
-						Required: true,
+						Required:            true,
+						MarkdownDescription: "Token-Based Authentication",
 					},
 					"built_in": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Authentication with TeamCity-specific credentials",
 						Attributes: map[string]schema.Attribute{
 							"registration": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow user registration from the login page",
 							},
 							"change_passwords": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow users to change their passwords on the profile page",
 							},
 							"reset_passwords": schema.BoolAttribute{
-								Optional: true,
+								Optional:            true,
+								MarkdownDescription: "Allow users to reset forgotten passwords on the login page",
 							},
 						},
 					},
 					"basic_http": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Allows basic HTTP authentication using other modules",
 					},
 					"google": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Authentication using a Google account",
 						Attributes: map[string]schema.Attribute{
 							"create_new_users": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow creating new users on the first login",
 							},
 							"all_domains": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow users from all domains to log in, including *gmail.com*",
 							},
 							"domains": schema.StringAttribute{
-								Optional: true,
+								Optional:            true,
+								MarkdownDescription: "Restrict authentication to users from the specified Google domains, comma-separated",
 							},
 						},
 					},
 					"github_app": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Authentication using a GitHub App connection",
 						Attributes: map[string]schema.Attribute{
 							"create_new_users": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow creating new users on the first login",
 							},
 							"organizations": schema.StringAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Restrict authentication to users from the specified GitHub organizations, comma-separated",
 							},
 						},
 					},
 					"github": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Authentication using a GitHub.com account",
 						Attributes: map[string]schema.Attribute{
 							"create_new_users": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow creating new users on the first login",
 							},
 							"organizations": schema.StringAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Restrict authentication to users from the specified GitHub organizations, comma-separated",
 							},
 						},
 					},
 					"github_enterprise": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Authentication using a GitHub Enterprise account",
 						Attributes: map[string]schema.Attribute{
 							"create_new_users": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow creating new users on the first login",
 							},
 							"organizations": schema.StringAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Restrict authentication to users from the specified GitHub organizations, comma-separated",
 							},
 						},
 					},
 					"ldap": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Authentication using LDAP",
 						Attributes: map[string]schema.Attribute{
 							"create_new_users": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow creating new users on the first login",
 							},
 						},
 					},
 					"jetbrains_space": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						MarkdownDescription: "Authentication using a JetBrains Space account",
 						Attributes: map[string]schema.Attribute{
 							"create_new_users": schema.BoolAttribute{
-								Required: true,
+								Required:            true,
+								MarkdownDescription: "Allow creating new users on the first login",
 							},
 						},
 					},

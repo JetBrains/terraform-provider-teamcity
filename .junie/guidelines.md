@@ -165,6 +165,11 @@ func TestAccPoolResource_basic(t *testing.T) {
 - If Go commands fail with a local `GOROOT` mismatch, rerun them with `env -u GOROOT`.
 - Validate that ErrNotFound flows are handled correctly in both client and resource layers.
 
+## Documentation (`docs/` and `tfplugindocs`)
+- Every schema attribute in `teamcity/*.go` MUST set `Description` or `MarkdownDescription` in Go code (`schema.*Attribute`), not just hand-edited text in `docs/resources/*.md`.
+- Some legacy files under `docs/resources/*.md` contain hand-written attribute descriptions, `## Example Usage`, or `## Import` sections that were not backed by `Description`/`MarkdownDescription` in Go code or `examples/` templates.
+- Before running `tfplugindocs generate --provider-dir .` (or reviewing a PR that modifies `docs/`), always inspect `git diff docs/` to verify that existing attribute descriptions, `## Example Usage`, and `## Import` blocks are not wiped out. If an existing resource lacks `Description`/`MarkdownDescription` in its `Schema()` definition, backport those descriptions into the Go schema first so `tfplugindocs` preserves them.
+
 ## Style and Naming
 - File naming: teamcity/_resource.go for resources; teamcity/_data_source.go for data sources; client/.go for HTTP abstractions; models/.go for models.
 - Types: DataModel and Json.

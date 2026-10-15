@@ -52,31 +52,31 @@ resource "teamcity_auth_settings" "settings" {
 
 ### Required
 
-- `allow_guest` (Boolean)
-- `collapse_login_form` (Boolean)
-- `email_verification` (Boolean)
-- `guest_username` (String)
+- `allow_guest` (Boolean) Allow login as guest user
+- `collapse_login_form` (Boolean) Collapse username/password form
+- `email_verification` (Boolean) Enable email verification
+- `guest_username` (String) Guest user username
 - `modules` (Attributes) (see [below for nested schema](#nestedatt--modules))
-- `per_project_permissions` (Boolean)
-- `welcome_text` (String)
+- `per_project_permissions` (Boolean) Enable per-project permissions
+- `welcome_text` (String) Welcome text on the login page
 
 <a id="nestedatt--modules"></a>
 ### Nested Schema for `modules`
 
 Required:
 
-- `token` (Attributes) (see [below for nested schema](#nestedatt--modules--token))
+- `token` (Attributes) Token-Based Authentication (see [below for nested schema](#nestedatt--modules--token))
 
 Optional:
 
-- `basic_http` (Attributes) (see [below for nested schema](#nestedatt--modules--basic_http))
-- `built_in` (Attributes) (see [below for nested schema](#nestedatt--modules--built_in))
-- `github` (Attributes) (see [below for nested schema](#nestedatt--modules--github))
-- `github_app` (Attributes) (see [below for nested schema](#nestedatt--modules--github_app))
-- `github_enterprise` (Attributes) (see [below for nested schema](#nestedatt--modules--github_enterprise))
-- `google` (Attributes) (see [below for nested schema](#nestedatt--modules--google))
-- `jetbrains_space` (Attributes) (see [below for nested schema](#nestedatt--modules--jetbrains_space))
-- `ldap` (Attributes) (see [below for nested schema](#nestedatt--modules--ldap))
+- `basic_http` (Attributes) Allows basic HTTP authentication using other modules (see [below for nested schema](#nestedatt--modules--basic_http))
+- `built_in` (Attributes) Authentication with TeamCity-specific credentials (see [below for nested schema](#nestedatt--modules--built_in))
+- `github` (Attributes) Authentication using a GitHub.com account (see [below for nested schema](#nestedatt--modules--github))
+- `github_app` (Attributes) Authentication using a GitHub App connection (see [below for nested schema](#nestedatt--modules--github_app))
+- `github_enterprise` (Attributes) Authentication using a GitHub Enterprise account (see [below for nested schema](#nestedatt--modules--github_enterprise))
+- `google` (Attributes) Authentication using a Google account (see [below for nested schema](#nestedatt--modules--google))
+- `jetbrains_space` (Attributes) Authentication using a JetBrains Space account (see [below for nested schema](#nestedatt--modules--jetbrains_space))
+- `ldap` (Attributes) Authentication using LDAP (see [below for nested schema](#nestedatt--modules--ldap))
 - `others` (Attributes List) Escape hatch for auth modules with no dedicated attribute above (for example plugin-provided modules such as the SAML plugin's 'HTTP-SAML.v2'). Without an entry here, TeamCity auth modules that this provider does not model are silently removed on every apply, because the whole module list is replaced on update. 'name' must be the raw TeamCity auth-module name (as seen in Administration > Authentication Modules / auth-config.xml), not a display name. (see [below for nested schema](#nestedatt--modules--others))
 
 <a id="nestedatt--modules--token"></a>
@@ -92,12 +92,12 @@ Optional:
 
 Required:
 
-- `change_passwords` (Boolean)
-- `registration` (Boolean)
+- `change_passwords` (Boolean) Allow users to change their passwords on the profile page
+- `registration` (Boolean) Allow user registration from the login page
 
 Optional:
 
-- `reset_passwords` (Boolean)
+- `reset_passwords` (Boolean) Allow users to reset forgotten passwords on the login page
 
 
 <a id="nestedatt--modules--github"></a>
@@ -105,8 +105,8 @@ Optional:
 
 Required:
 
-- `create_new_users` (Boolean)
-- `organizations` (String)
+- `create_new_users` (Boolean) Allow creating new users on the first login
+- `organizations` (String) Restrict authentication to users from the specified GitHub organizations, comma-separated
 
 
 <a id="nestedatt--modules--github_app"></a>
@@ -114,8 +114,8 @@ Required:
 
 Required:
 
-- `create_new_users` (Boolean)
-- `organizations` (String)
+- `create_new_users` (Boolean) Allow creating new users on the first login
+- `organizations` (String) Restrict authentication to users from the specified GitHub organizations, comma-separated
 
 
 <a id="nestedatt--modules--github_enterprise"></a>
@@ -123,8 +123,8 @@ Required:
 
 Required:
 
-- `create_new_users` (Boolean)
-- `organizations` (String)
+- `create_new_users` (Boolean) Allow creating new users on the first login
+- `organizations` (String) Restrict authentication to users from the specified GitHub organizations, comma-separated
 
 
 <a id="nestedatt--modules--google"></a>
@@ -132,12 +132,12 @@ Required:
 
 Required:
 
-- `all_domains` (Boolean)
-- `create_new_users` (Boolean)
+- `all_domains` (Boolean) Allow users from all domains to log in, including *gmail.com*
+- `create_new_users` (Boolean) Allow creating new users on the first login
 
 Optional:
 
-- `domains` (String)
+- `domains` (String) Restrict authentication to users from the specified Google domains, comma-separated
 
 
 <a id="nestedatt--modules--jetbrains_space"></a>
@@ -145,7 +145,7 @@ Optional:
 
 Required:
 
-- `create_new_users` (Boolean)
+- `create_new_users` (Boolean) Allow creating new users on the first login
 
 
 <a id="nestedatt--modules--ldap"></a>
@@ -153,7 +153,7 @@ Required:
 
 Required:
 
-- `create_new_users` (Boolean)
+- `create_new_users` (Boolean) Allow creating new users on the first login
 
 
 <a id="nestedatt--modules--others"></a>
