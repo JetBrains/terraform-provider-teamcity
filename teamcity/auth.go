@@ -279,6 +279,9 @@ func (r *authResource) ValidateConfig(ctx context.Context, req resource.Validate
 
 	seenOtherNames := map[string]bool{}
 	for i, other := range config.Modules.Other {
+		if other.Name.IsNull() || other.Name.IsUnknown() {
+			continue
+		}
 		name := other.Name.ValueString()
 		if name == "" {
 			continue
