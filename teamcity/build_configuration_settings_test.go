@@ -66,6 +66,11 @@ resource "teamcity_build_configuration_settings" "s" {
 					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", "+:dist/*.zip"),
 				),
 			},
+			{
+				ResourceName:      "teamcity_build_configuration_settings.s",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -197,4 +202,227 @@ func testAccClientFromEnv() client.Client {
 		os.Getenv("TEAMCITY_PASSWORD"),
 		0,
 	)
+}
+
+func TestAccBuildConfigurationSettings_optionalAttributes(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Optional Settings Project"
+  id   = "opt_settings_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Optional Settings BC"
+  id         = "opt_settings_bc"
+}
+
+resource "teamcity_build_configuration_settings" "s" {
+  build_configuration_id = teamcity_build_configuration.bc.id
+  artifact_rules         = "+:target/*.jar"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_counter", "1"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_pattern", "%build.counter%"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", "+:target/*.jar"),
+				),
+			},
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Optional Settings Project"
+  id   = "opt_settings_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Optional Settings BC"
+  id         = "opt_settings_bc"
+}
+
+resource "teamcity_build_configuration_settings" "s" {
+  build_configuration_id = teamcity_build_configuration.bc.id
+  build_number_pattern   = "v%build.counter%"
+  artifact_rules         = "+:dist/*.zip"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_counter", "1"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_pattern", "v%build.counter%"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", "+:dist/*.zip"),
+				),
+			},
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Optional Settings Project"
+  id   = "opt_settings_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Optional Settings BC"
+  id         = "opt_settings_bc"
+}
+
+resource "teamcity_build_configuration_settings" "s" {
+  build_configuration_id = teamcity_build_configuration.bc.id
+  artifact_rules         = "+:dist/*.zip"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_counter", "1"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_pattern", "v%build.counter%"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", "+:dist/*.zip"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccBuildConfigurationSettings_preservesExistingServerSettings(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Preserve Settings Project"
+  id   = "preserve_settings_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Preserve Settings BC"
+  id         = "preserve_settings_bc"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					func(s *terraform.State) error {
+						c := testAccClientFromEnv()
+						if err := c.SetBuildTypeSetting("preserve_settings_bc", "buildNumberCounter", "42"); err != nil {
+							return err
+						}
+						if err := c.SetBuildTypeSetting("preserve_settings_bc", "buildNumberPattern", "preexisting-%build.counter%"); err != nil {
+							return err
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Preserve Settings Project"
+  id   = "preserve_settings_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Preserve Settings BC"
+  id         = "preserve_settings_bc"
+}
+
+resource "teamcity_build_configuration_settings" "s" {
+  build_configuration_id = teamcity_build_configuration.bc.id
+  artifact_rules         = "+:preserve/*.jar"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_counter", "42"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_pattern", "preexisting-%build.counter%"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", "+:preserve/*.jar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccBuildConfigurationSettings_singleCounterOrPatternAndDrift(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Single Counter Project"
+  id   = "single_counter_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Single Counter BC"
+  id         = "single_counter_bc"
+}
+
+resource "teamcity_build_configuration_settings" "s" {
+  build_configuration_id = teamcity_build_configuration.bc.id
+  build_number_counter   = 55
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_counter", "55"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_pattern", "%build.counter%"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", ""),
+				),
+			},
+			{
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Single Counter Project"
+  id   = "single_counter_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Single Counter BC"
+  id         = "single_counter_bc"
+}
+
+resource "teamcity_build_configuration_settings" "s" {
+  build_configuration_id = teamcity_build_configuration.bc.id
+  build_number_pattern   = "only-pattern-%build.counter%"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_counter", "55"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_pattern", "only-pattern-%build.counter%"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", ""),
+				),
+			},
+			{
+				PreConfig: func() {
+					c := testAccClientFromEnv()
+					_ = c.DeleteBuildType("single_counter_bc")
+				},
+				Config: providerConfig + `
+resource "teamcity_project" "p" {
+  name = "Single Counter Project"
+  id   = "single_counter_project"
+}
+
+resource "teamcity_build_configuration" "bc" {
+  project_id = teamcity_project.p.id
+  name       = "Single Counter BC"
+  id         = "single_counter_bc"
+}
+
+resource "teamcity_build_configuration_settings" "s" {
+  build_configuration_id = teamcity_build_configuration.bc.id
+  build_number_pattern   = "only-pattern-%build.counter%"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_counter", "1"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "build_number_pattern", "only-pattern-%build.counter%"),
+					resource.TestCheckResourceAttr("teamcity_build_configuration_settings.s", "artifact_rules", ""),
+				),
+			},
+		},
+	})
 }

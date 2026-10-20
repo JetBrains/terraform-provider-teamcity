@@ -6,16 +6,20 @@ import (
 	"strconv"
 	"terraform-provider-teamcity/client"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
-	_ resource.Resource              = &bcSettingsResource{}
-	_ resource.ResourceWithConfigure = &bcSettingsResource{}
+	_ resource.Resource                = &bcSettingsResource{}
+	_ resource.ResourceWithConfigure   = &bcSettingsResource{}
+	_ resource.ResourceWithImportState = &bcSettingsResource{}
 )
 
 func NewBuildConfigurationSettingsResource() resource.Resource {
@@ -50,7 +54,8 @@ func (r *bcSettingsResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"build_configuration_id": schema.StringAttribute{
-				Required: true,
+				Required:    true,
+				Description: "The ID of the build configuration.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -59,16 +64,25 @@ func (r *bcSettingsResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Optional:    true,
 				Computed:    true,
 				Description: "The next build number to be used.",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"build_number_pattern": schema.StringAttribute{
 				Optional:    true,
 				Computed:    true,
 				Description: "The pattern for the build number.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"artifact_rules": schema.StringAttribute{
 				Optional:    true,
 				Computed:    true,
 				Description: "Rules for artifacts produced by the build.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -91,7 +105,7 @@ func (r *bcSettingsResource) Create(ctx context.Context, req resource.CreateRequ
 
 	buildTypeId := plan.BuildConfigurationId.ValueString()
 
-	if !plan.BuildNumberCounter.IsNull() {
+	if !plan.BuildNumberCounter.IsNull() && !plan.BuildNumberCounter.IsUnknown() {
 		err := r.client.SetBuildTypeSetting(buildTypeId, "buildNumberCounter", strconv.FormatInt(plan.BuildNumberCounter.ValueInt64(), 10))
 		if err != nil {
 			resp.Diagnostics.AddError("Error setting buildNumberCounter", err.Error())
@@ -99,7 +113,7 @@ func (r *bcSettingsResource) Create(ctx context.Context, req resource.CreateRequ
 		}
 	}
 
-	if !plan.BuildNumberPattern.IsNull() {
+	if !plan.BuildNumberPattern.IsNull() && !plan.BuildNumberPattern.IsUnknown() {
 		err := r.client.SetBuildTypeSetting(buildTypeId, "buildNumberPattern", plan.BuildNumberPattern.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Error setting buildNumberPattern", err.Error())
@@ -107,7 +121,7 @@ func (r *bcSettingsResource) Create(ctx context.Context, req resource.CreateRequ
 		}
 	}
 
-	if !plan.ArtifactRules.IsNull() {
+	if !plan.ArtifactRules.IsNull() && !plan.ArtifactRules.IsUnknown() {
 		err := r.client.SetBuildTypeSetting(buildTypeId, "artifactRules", plan.ArtifactRules.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Error setting artifactRules", err.Error())
@@ -116,6 +130,10 @@ func (r *bcSettingsResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	plan.Id = types.StringValue(buildTypeId)
+
+	if _, ok := r.readSettings(buildTypeId, &plan, &resp.Diagnostics); !ok {
+		return
+	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -130,33 +148,15 @@ func (r *bcSettingsResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	buildTypeId := state.BuildConfigurationId.ValueString()
+	state.Id = types.StringValue(buildTypeId)
 
-	counter, err := r.client.GetBuildTypeSetting(buildTypeId, "buildNumberCounter")
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading buildNumberCounter", err.Error())
+	found, ok := r.readSettings(buildTypeId, &state, &resp.Diagnostics)
+	if !ok {
 		return
 	}
-	if counter != nil {
-		val, _ := strconv.ParseInt(*counter, 10, 64)
-		state.BuildNumberCounter = types.Int64Value(val)
-	}
-
-	pattern, err := r.client.GetBuildTypeSetting(buildTypeId, "buildNumberPattern")
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading buildNumberPattern", err.Error())
+	if !found {
+		resp.State.RemoveResource(ctx)
 		return
-	}
-	if pattern != nil {
-		state.BuildNumberPattern = types.StringValue(*pattern)
-	}
-
-	rules, err := r.client.GetBuildTypeSetting(buildTypeId, "artifactRules")
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading artifactRules", err.Error())
-		return
-	}
-	if rules != nil {
-		state.ArtifactRules = types.StringValue(*rules)
 	}
 
 	diags = resp.State.Set(ctx, state)
@@ -180,7 +180,7 @@ func (r *bcSettingsResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	buildTypeId := plan.BuildConfigurationId.ValueString()
 
-	if !plan.BuildNumberCounter.Equal(state.BuildNumberCounter) {
+	if !plan.BuildNumberCounter.IsNull() && !plan.BuildNumberCounter.IsUnknown() && !plan.BuildNumberCounter.Equal(state.BuildNumberCounter) {
 		err := r.client.SetBuildTypeSetting(buildTypeId, "buildNumberCounter", strconv.FormatInt(plan.BuildNumberCounter.ValueInt64(), 10))
 		if err != nil {
 			resp.Diagnostics.AddError("Error updating buildNumberCounter", err.Error())
@@ -188,7 +188,7 @@ func (r *bcSettingsResource) Update(ctx context.Context, req resource.UpdateRequ
 		}
 	}
 
-	if !plan.BuildNumberPattern.Equal(state.BuildNumberPattern) {
+	if !plan.BuildNumberPattern.IsNull() && !plan.BuildNumberPattern.IsUnknown() && !plan.BuildNumberPattern.Equal(state.BuildNumberPattern) {
 		err := r.client.SetBuildTypeSetting(buildTypeId, "buildNumberPattern", plan.BuildNumberPattern.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Error updating buildNumberPattern", err.Error())
@@ -196,12 +196,16 @@ func (r *bcSettingsResource) Update(ctx context.Context, req resource.UpdateRequ
 		}
 	}
 
-	if !plan.ArtifactRules.Equal(state.ArtifactRules) {
+	if !plan.ArtifactRules.IsNull() && !plan.ArtifactRules.IsUnknown() && !plan.ArtifactRules.Equal(state.ArtifactRules) {
 		err := r.client.SetBuildTypeSetting(buildTypeId, "artifactRules", plan.ArtifactRules.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Error updating artifactRules", err.Error())
 			return
 		}
+	}
+
+	if _, ok := r.readSettings(buildTypeId, &plan, &resp.Diagnostics); !ok {
+		return
 	}
 
 	diags = resp.State.Set(ctx, plan)
@@ -229,4 +233,52 @@ func (r *bcSettingsResource) Delete(ctx context.Context, req resource.DeleteRequ
 	if err := r.client.SetBuildTypeSetting(buildTypeId, "artifactRules", ""); err != nil && !errors.Is(err, client.ErrNotFound) {
 		resp.Diagnostics.AddError("Error resetting artifactRules", err.Error())
 	}
+}
+
+func (r *bcSettingsResource) readSettings(buildTypeId string, model *bcSettingsResourceModel, diags *diag.Diagnostics) (bool, bool) {
+	counter, err := r.client.GetBuildTypeSetting(buildTypeId, "buildNumberCounter")
+	if err != nil {
+		diags.AddError("Error reading buildNumberCounter", err.Error())
+		return false, false
+	}
+
+	pattern, err := r.client.GetBuildTypeSetting(buildTypeId, "buildNumberPattern")
+	if err != nil {
+		diags.AddError("Error reading buildNumberPattern", err.Error())
+		return false, false
+	}
+
+	rules, err := r.client.GetBuildTypeSetting(buildTypeId, "artifactRules")
+	if err != nil {
+		diags.AddError("Error reading artifactRules", err.Error())
+		return false, false
+	}
+
+	if counter == nil && pattern == nil && rules == nil {
+		return false, true
+	}
+
+	if counter != nil {
+		val, err := strconv.ParseInt(*counter, 10, 64)
+		if err != nil {
+			diags.AddError("Error parsing buildNumberCounter", err.Error())
+			return true, false
+		}
+		model.BuildNumberCounter = types.Int64Value(val)
+	}
+
+	if pattern != nil {
+		model.BuildNumberPattern = types.StringValue(*pattern)
+	}
+
+	if rules != nil {
+		model.ArtifactRules = types.StringValue(*rules)
+	}
+
+	return true, true
+}
+
+func (r *bcSettingsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("build_configuration_id"), req.ID)...)
 }
