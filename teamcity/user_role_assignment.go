@@ -157,32 +157,9 @@ func (r *userRoleAssignmentResource) Create(ctx context.Context, req resource.Cr
 		scope = plan.Scope.ValueString()
 	}
 
-	// Build updated user with new role
-	updatedUser := client.User{
-		Id:       user.Id,
-		Username: user.Username,
-	}
-
-	// Copy existing roles and add new one
-	updatedUser.Roles = &client.RoleAssignments{
-		RoleAssignment: []client.RoleAssignment{},
-	}
-
-	// Copy existing roles
-	if user.Roles != nil {
-		for _, role := range user.Roles.RoleAssignment {
-			updatedUser.Roles.RoleAssignment = append(updatedUser.Roles.RoleAssignment, role)
-		}
-	}
-
-	// Add new role
-	updatedUser.Roles.RoleAssignment = append(updatedUser.Roles.RoleAssignment, client.RoleAssignment{
-		Id:    plan.RoleId.ValueString(),
-		Scope: scope,
-	})
-
-	// Update user
-	_, err = r.client.SetUser(updatedUser)
+	// Add only this role: rewriting the user's whole role list would lose any role assigned to the
+	// same user in parallel.
+	err = r.client.AddUserRole(userId, plan.RoleId.ValueString(), scope)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error assigning role to user",
@@ -268,46 +245,9 @@ func (r *userRoleAssignmentResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 
-	// Get current user
-	user, err := r.client.GetUser(state.UserId.ValueString())
-	if err != nil {
-		// If user doesn't exist, consider it deleted
-		if strings.Contains(err.Error(), "404") {
-			return
-		}
-		resp.Diagnostics.AddError(
-			"Error getting user",
-			err.Error(),
-		)
-		return
-	}
-
-	if user == nil {
-		// User doesn't exist, nothing to delete
-		return
-	}
-
-	// Build updated user without the role
-	updatedUser := client.User{
-		Id:       user.Id,
-		Username: user.Username,
-	}
-
-	updatedUser.Roles = &client.RoleAssignments{
-		RoleAssignment: []client.RoleAssignment{},
-	}
-
-	// Copy existing roles except the one being deleted
-	if user.Roles != nil {
-		for _, role := range user.Roles.RoleAssignment {
-			if !(role.Id == state.RoleId.ValueString() && role.Scope == state.Scope.ValueString()) {
-				updatedUser.Roles.RoleAssignment = append(updatedUser.Roles.RoleAssignment, role)
-			}
-		}
-	}
-
-	// Update user
-	_, err = r.client.SetUser(updatedUser)
+	// Remove only this role, for the same reason Create adds only one. A user that no longer exists
+	// has no role to remove, which TeamCity answers with a 404 the client treats as done.
+	err := r.client.RemoveUserRole(state.UserId.ValueString(), state.RoleId.ValueString(), state.Scope.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error removing role from user",

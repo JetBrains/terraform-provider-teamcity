@@ -134,3 +134,25 @@ func (c *Client) DeleteUser(id string) error {
 
 	return nil
 }
+
+// AddUserRole gives the user one role, leaving the user's other roles alone, so that assignments
+// made in parallel do not overwrite each other. Adding a role the user already has succeeds.
+func (c *Client) AddUserRole(userId, roleId, scope string) error {
+	role := models.RoleAssignmentJson{
+		Id:    roleId,
+		Scope: scope,
+	}
+
+	rb, err := json.Marshal(role)
+	if err != nil {
+		return err
+	}
+
+	return c.PostRequest(fmt.Sprintf("/users/id:%s/roles", userId), bytes.NewReader(rb), nil)
+}
+
+// RemoveUserRole takes one role from the user, leaving the user's other roles alone. Removing a role
+// the user does not have, or a role of a user that no longer exists, succeeds.
+func (c *Client) RemoveUserRole(userId, roleId, scope string) error {
+	return c.DeleteRequest(fmt.Sprintf("/users/id:%s/roles/%s/%s", userId, roleId, scope))
+}
