@@ -35,7 +35,7 @@ resource "teamcity_global_settings" "global" {
 - `default_quiet_period` (Number) Default VCS trigger quiet period. In seconds, default: `60`
 
 
-- `encryption` (Attributes) Use custom encryption key (see [below for nested schema](#nestedatt--encryption))
+- `encryption` (Attributes) Use a custom encryption key. Leave it out to keep the server's current encryption settings, including a key the server generated at first start (TeamCity 2026.2 does). Removing it after it was set switches the server back to TeamCity's default encryption. (see [below for nested schema](#nestedatt--encryption))
 - `artifacts_domain_isolation` (Attributes) Artifacts Domain isolation protection (see [below for nested schema](#nestedatt--artifacts_domain_isolation))
 
 <a id="nestedatt--encryption"></a>

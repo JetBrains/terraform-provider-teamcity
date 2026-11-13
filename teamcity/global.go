@@ -2,6 +2,7 @@ package teamcity
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-teamcity/client"
 )
@@ -111,6 +113,10 @@ func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					"key": schema.StringAttribute{
 						Required:  true,
 						Sensitive: true,
+						// An empty key is not sent, so TeamCity would keep the key it has.
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(1),
+						},
 					},
 				},
 				Default: objectdefault.StaticValue(types.ObjectNull(
@@ -155,7 +161,7 @@ func (r *globalResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	newState, err := r.update(plan)
+	newState, err := r.update(plan, nil)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting global settings",
@@ -163,9 +169,7 @@ func (r *globalResource) Create(ctx context.Context, req resource.CreateRequest,
 		)
 		return
 	}
-	if newState.Encryption != nil {
-		newState.Encryption.Key = plan.Encryption.Key
-	}
+	newState.Encryption = configuredEncryption(newState.Encryption, plan.Encryption)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -199,9 +203,7 @@ func (r *globalResource) Read(ctx context.Context, req resource.ReadRequest, res
 		)
 		return
 	}
-	if newState.Encryption != nil {
-		newState.Encryption.Key = oldState.Encryption.Key
-	}
+	newState.Encryption = configuredEncryption(newState.Encryption, oldState.Encryption)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -218,7 +220,14 @@ func (r *globalResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	newState, err := r.update(plan)
+	var state globalResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	newState, err := r.update(plan, state.Encryption)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting global settings",
@@ -226,9 +235,7 @@ func (r *globalResource) Update(ctx context.Context, req resource.UpdateRequest,
 		)
 		return
 	}
-	if newState.Encryption != nil {
-		newState.Encryption.Key = plan.Encryption.Key
-	}
+	newState.Encryption = configuredEncryption(newState.Encryption, plan.Encryption)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -244,11 +251,10 @@ func (r *globalResource) ImportState(ctx context.Context, req resource.ImportSta
 	resp.State.Set(ctx, globalResourceModel{})
 }
 
-func (r *globalResource) update(plan globalResourceModel) (*globalResourceModel, error) {
-	var key string
-	if plan.Encryption != nil {
-		v := plan.Encryption.Key.ValueString()
-		key = v
+func (r *globalResource) update(plan globalResourceModel, priorEncryption *EncryptionModel) (*globalResourceModel, error) {
+	useEncryption, key, err := r.encryptionToSet(plan.Encryption, priorEncryption)
+	if err != nil {
+		return nil, err
 	}
 
 	enableArtifactsDomainIsolation := true
@@ -267,7 +273,7 @@ func (r *globalResource) update(plan globalResourceModel) (*globalResourceModel,
 		DefaultVCSCheckInterval:        plan.DefaultVCSCheckInterval.ValueInt64(),
 		EnforceDefaultVCSCheckInterval: plan.EnforceDefaultVCSCheckInterval.ValueBool(),
 		DefaultQuietPeriod:             plan.DefaultQuietPeriod.ValueInt64(),
-		UseEncryption:                  plan.Encryption != nil,
+		UseEncryption:                  useEncryption,
 		EncryptionKey:                  key,
 		ArtifactsDomainIsolation:       enableArtifactsDomainIsolation,
 		ArtifactsUrl:                   artifactsURL,
@@ -279,6 +285,37 @@ func (r *globalResource) update(plan globalResourceModel) (*globalResourceModel,
 	}
 
 	return r.readState(*result)
+}
+
+// encryptionToSet returns the useEncryption and encryptionKey values to send. A configured block
+// sets its key, and removing the block turns the custom key off. With no block in either the
+// configuration or the prior state, the server keeps its current encryption: the empty key is not
+// sent, and TeamCity keeps its key when the request carries none. A new server can have generated
+// a key of its own at first start (TeamCity 2026.2 does), which useEncryption=false would replace
+// with TeamCity's default encryption.
+func (r *globalResource) encryptionToSet(configured, prior *EncryptionModel) (bool, string, error) {
+	if configured != nil {
+		return true, configured.Key.ValueString(), nil
+	}
+	if prior != nil {
+		return false, "", nil
+	}
+	current, err := r.client.GetGlobalSettings()
+	if err != nil {
+		return false, "", err
+	}
+	return current.UseEncryption, "", nil
+}
+
+// configuredEncryption returns the encryption block to keep in the state. TeamCity never returns
+// the key, so the block holds the configured one while the server uses a custom key. Without a
+// configured block the state has none either, whatever the server uses, so that leaving the block
+// out plans no change.
+func configuredEncryption(server, configured *EncryptionModel) *EncryptionModel {
+	if server == nil || configured == nil {
+		return nil
+	}
+	return &EncryptionModel{Key: configured.Key}
 }
 
 func (r *globalResource) readState(result client.GlobalSettings) (*globalResourceModel, error) {
