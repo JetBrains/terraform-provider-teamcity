@@ -18,6 +18,20 @@ func TestAccUserRoleAssignment_parallel(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
+resource "teamcity_auth_settings" "test" {
+  allow_guest             = false
+  guest_username          = "guest"
+  welcome_text            = ""
+  collapse_login_form     = false
+  per_project_permissions = true
+  email_verification      = false
+
+  modules = {
+    token      = {}
+    basic_http = {}
+  }
+}
+
 resource "teamcity_project" "proj_a" {
   id   = "AccRoleProjA"
   name = "Acc Role Project A"
@@ -36,45 +50,51 @@ resource "teamcity_user" "racer" {
 }
 
 resource "teamcity_user_role_assignment" "sys_admin_global" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "SYSTEM_ADMIN"
-  scope    = "g"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "SYSTEM_ADMIN"
+  scope      = "g"
 }
 
 resource "teamcity_user_role_assignment" "proj_a_viewer" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "PROJECT_VIEWER"
-  scope    = "p:${teamcity_project.proj_a.id}"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "PROJECT_VIEWER"
+  scope      = "p:${teamcity_project.proj_a.id}"
 }
 
 resource "teamcity_user_role_assignment" "proj_a_dev" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "PROJECT_DEVELOPER"
-  scope    = "p:${teamcity_project.proj_a.id}"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "PROJECT_DEVELOPER"
+  scope      = "p:${teamcity_project.proj_a.id}"
 }
 
 resource "teamcity_user_role_assignment" "proj_a_admin" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "PROJECT_ADMIN"
-  scope    = "p:${teamcity_project.proj_a.id}"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "PROJECT_ADMIN"
+  scope      = "p:${teamcity_project.proj_a.id}"
 }
 
 resource "teamcity_user_role_assignment" "proj_b_viewer" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "PROJECT_VIEWER"
-  scope    = "p:${teamcity_project.proj_b.id}"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "PROJECT_VIEWER"
+  scope      = "p:${teamcity_project.proj_b.id}"
 }
 
 resource "teamcity_user_role_assignment" "proj_b_agent_mgr" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "AGENT_MANAGER"
-  scope    = "p:${teamcity_project.proj_b.id}"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "AGENT_MANAGER"
+  scope      = "p:${teamcity_project.proj_b.id}"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -108,6 +128,20 @@ resource "teamcity_user_role_assignment" "proj_b_agent_mgr" {
 			},
 			{
 				Config: providerConfig + `
+resource "teamcity_auth_settings" "test" {
+  allow_guest             = false
+  guest_username          = "guest"
+  welcome_text            = ""
+  collapse_login_form     = false
+  per_project_permissions = true
+  email_verification      = false
+
+  modules = {
+    token      = {}
+    basic_http = {}
+  }
+}
+
 resource "teamcity_project" "proj_a" {
   id   = "AccRoleProjA"
   name = "Acc Role Project A"
@@ -126,24 +160,27 @@ resource "teamcity_user" "racer" {
 }
 
 resource "teamcity_user_role_assignment" "sys_admin_global" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "SYSTEM_ADMIN"
-  scope    = "g"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "SYSTEM_ADMIN"
+  scope      = "g"
 }
 
 resource "teamcity_user_role_assignment" "proj_a_viewer" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "PROJECT_VIEWER"
-  scope    = "p:${teamcity_project.proj_a.id}"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "PROJECT_VIEWER"
+  scope      = "p:${teamcity_project.proj_a.id}"
 }
 
 resource "teamcity_user_role_assignment" "proj_a_admin" {
-  user_id  = teamcity_user.racer.id
-  username = teamcity_user.racer.username
-  role_id  = "PROJECT_ADMIN"
-  scope    = "p:${teamcity_project.proj_a.id}"
+  depends_on = [teamcity_auth_settings.test]
+  user_id    = teamcity_user.racer.id
+  username   = teamcity_user.racer.username
+  role_id    = "PROJECT_ADMIN"
+  scope      = "p:${teamcity_project.proj_a.id}"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
