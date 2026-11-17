@@ -118,8 +118,8 @@ func TestGlobalSettingsUpdate_KeepsTheServerKeyWithoutABlock(t *testing.T) {
 	if len(fake.puts) != 1 {
 		t.Fatalf("got %d PUT requests, want 1", len(fake.puts))
 	}
-	if got := fake.puts[0]["useEncryption"]; got != true {
-		t.Errorf("sent useEncryption=%v, want true", got)
+	if _, sent := fake.puts[0]["useEncryption"]; sent {
+		t.Errorf("sent useEncryption=%v, want omitted", fake.puts[0]["useEncryption"])
 	}
 	if _, sent := fake.puts[0]["encryptionKey"]; sent {
 		t.Errorf("sent an encryptionKey, want none")
@@ -133,36 +133,40 @@ func TestGlobalSettingsUpdate_KeepsTheServerKeyWithoutABlock(t *testing.T) {
 	}
 }
 
+func boolPtr(v bool) *bool {
+	return &v
+}
+
 func TestEncryptionToSet(t *testing.T) {
 	tests := []struct {
 		name              string
 		configured, prior *EncryptionModel
-		serverEncrypts    bool
-		wantUse           bool
+		wantUse           *bool
 		wantKey           string
-		wantGets          int
 	}{
-		{name: "a configured block sets its key", configured: testKey, prior: testKey, serverEncrypts: false, wantUse: true, wantKey: testKey.Key.ValueString()},
-		{name: "a removed block turns the custom key off", configured: nil, prior: testKey, serverEncrypts: true, wantUse: false},
-		{name: "no block keeps the server's custom key", configured: nil, prior: nil, serverEncrypts: true, wantUse: true, wantGets: 1},
-		{name: "no block keeps the server's default encryption", configured: nil, prior: nil, serverEncrypts: false, wantUse: false, wantGets: 1},
+		{name: "a configured block sets its key", configured: testKey, prior: testKey, wantUse: boolPtr(true), wantKey: testKey.Key.ValueString()},
+		{name: "a removed block turns the custom key off", configured: nil, prior: testKey, wantUse: boolPtr(false)},
+		{name: "no block omits useEncryption to keep the server's encryption", configured: nil, prior: nil, wantUse: nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fake := &fakeGlobalSettings{useEncryption: tt.serverEncrypts}
+			fake := &fakeGlobalSettings{}
 			r, _ := fake.start(t)
 
-			gotUse, gotKey, err := r.encryptionToSet(tt.configured, tt.prior)
+			gotUse, gotKey := r.encryptionToSet(tt.configured, tt.prior)
 
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+			switch {
+			case tt.wantUse == nil && gotUse != nil:
+				t.Errorf("got useEncryption=%v, want nil", *gotUse)
+			case tt.wantUse != nil && (gotUse == nil || *gotUse != *tt.wantUse):
+				t.Errorf("got useEncryption=%v, want %v", gotUse, *tt.wantUse)
 			}
-			if gotUse != tt.wantUse || gotKey != tt.wantKey {
-				t.Errorf("got useEncryption=%v key=%q, want useEncryption=%v key=%q", gotUse, gotKey, tt.wantUse, tt.wantKey)
+			if gotKey != tt.wantKey {
+				t.Errorf("got key=%q, want %q", gotKey, tt.wantKey)
 			}
-			if fake.gets != tt.wantGets {
-				t.Errorf("got %d GET requests, want %d", fake.gets, tt.wantGets)
+			if fake.gets != 0 {
+				t.Errorf("got %d GET requests, want 0", fake.gets)
 			}
 		})
 	}

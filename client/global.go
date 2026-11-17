@@ -16,7 +16,7 @@ type GlobalSettings struct {
 	DefaultVCSCheckInterval        int64  `json:"defaultVCSCheckInterval"`
 	EnforceDefaultVCSCheckInterval bool   `json:"enforceDefaultVCSCheckInterval"`
 	DefaultQuietPeriod             int64  `json:"defaultQuietPeriod"`
-	UseEncryption                  bool   `json:"useEncryption"`
+	UseEncryption                  *bool  `json:"useEncryption,omitempty"` // Omitted when encryption is not managed so TeamCity keeps its current encryption state
 	EncryptionKey                  string `json:"encryptionKey,omitempty"` // TeamCity rejects an empty key while useEncryption is true
 	ArtifactsDomainIsolation       bool   `json:"artifactsDomainIsolation"`
 	ArtifactsUrl                   string `json:"artifactsUrl"`

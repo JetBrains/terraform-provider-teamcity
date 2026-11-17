@@ -67,52 +67,62 @@ func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 		Description: "[General TeamCity configuration](https://www.jetbrains.com/help/teamcity/teamcity-configuration-and-maintenance.html#TeamCity+Configuration)",
 		Attributes: map[string]schema.Attribute{
 			"artifact_directories": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString("system/artifacts"),
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("system/artifacts"),
+				Description: "New-line delimited. Default: `system/artifacts`",
 			},
 			"root_url": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString("http://localhost:8111"),
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("http://localhost:8111"),
+				Description: "Server URL. Default: `\"http://localhost:8111\"`",
 			},
 			"max_artifact_size": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				Default:  int64default.StaticInt64(314572800),
+				Optional:    true,
+				Computed:    true,
+				Default:     int64default.StaticInt64(314572800),
+				Description: "Maximum build artifact file size. Default: `300 MB`",
 			},
 			"max_artifact_number": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				Default:  int64default.StaticInt64(1000),
+				Optional:    true,
+				Computed:    true,
+				Default:     int64default.StaticInt64(1000),
+				Description: "Maximum number of artifacts per build. Default: `1000`",
 			},
 			"default_execution_timeout": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				Default:  int64default.StaticInt64(0),
+				Optional:    true,
+				Computed:    true,
+				Default:     int64default.StaticInt64(0),
+				Description: "Default build execution timeout. In minutes, default: `0`",
 			},
 			"default_vcs_check_interval": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				Default:  int64default.StaticInt64(60),
+				Optional:    true,
+				Computed:    true,
+				Default:     int64default.StaticInt64(60),
+				Description: "Default VCS changes check interval. In seconds, default: `60`",
 			},
 			"enforce_default_vcs_check_interval": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(false),
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+				Description: "Enforce this value as a minimum for all VCS Roots. Default: `false`",
 			},
 			"default_quiet_period": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				Default:  int64default.StaticInt64(60),
+				Optional:    true,
+				Computed:    true,
+				Default:     int64default.StaticInt64(60),
+				Description: "Default VCS trigger quiet period. In seconds, default: `60`",
 			},
 			"encryption": schema.SingleNestedAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:    true,
+				Computed:    true,
+				Description: "Use a custom encryption key. Leave it out to keep the server's current encryption settings, including a key the server generated at first start (TeamCity 2026.2 does). Removing it after it was set switches the server back to TeamCity's default encryption.",
 				Attributes: map[string]schema.Attribute{
 					"key": schema.StringAttribute{
-						Required:  true,
-						Sensitive: true,
+						Required:    true,
+						Sensitive:   true,
+						Description: "128 bit key encoded with Base64",
 						// An empty key is not sent, so TeamCity would keep the key it has.
 						Validators: []validator.String{
 							stringvalidator.LengthAtLeast(1),
@@ -124,8 +134,9 @@ func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				)),
 			},
 			"artifacts_domain_isolation": schema.SingleNestedAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:    true,
+				Computed:    true,
+				Description: "Artifacts Domain isolation protection",
 				Attributes: map[string]schema.Attribute{
 					"enabled": schema.BoolAttribute{
 						Optional:    true,
@@ -134,8 +145,9 @@ func (r *globalResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						Description: "Enabled by default, set false if it needs to be disabled",
 					},
 					"artifacts_url": schema.StringAttribute{
-						Optional: true,
-						Computed: true,
+						Optional:    true,
+						Computed:    true,
+						Description: "a URL to serve build artifacts from. The URL must be different from the Server URL",
 					},
 				},
 				Default: objectdefault.StaticValue(types.ObjectValueMust(
@@ -252,10 +264,7 @@ func (r *globalResource) ImportState(ctx context.Context, req resource.ImportSta
 }
 
 func (r *globalResource) update(plan globalResourceModel, priorEncryption *EncryptionModel) (*globalResourceModel, error) {
-	useEncryption, key, err := r.encryptionToSet(plan.Encryption, priorEncryption)
-	if err != nil {
-		return nil, err
-	}
+	useEncryption, key := r.encryptionToSet(plan.Encryption, priorEncryption)
 
 	enableArtifactsDomainIsolation := true
 	var artifactsURL string
@@ -289,22 +298,19 @@ func (r *globalResource) update(plan globalResourceModel, priorEncryption *Encry
 
 // encryptionToSet returns the useEncryption and encryptionKey values to send. A configured block
 // sets its key, and removing the block turns the custom key off. With no block in either the
-// configuration or the prior state, the server keeps its current encryption: the empty key is not
-// sent, and TeamCity keeps its key when the request carries none. A new server can have generated
-// a key of its own at first start (TeamCity 2026.2 does), which useEncryption=false would replace
-// with TeamCity's default encryption.
-func (r *globalResource) encryptionToSet(configured, prior *EncryptionModel) (bool, string, error) {
+// configuration or the prior state, useEncryption is omitted so TeamCity leaves its current
+// encryption settings untouched (both on TeamCity 2026.2, which generates a custom key at first
+// start, and on TeamCity <= 2026.1.2, which rejects useEncryption=true without encryptionKey).
+func (r *globalResource) encryptionToSet(configured, prior *EncryptionModel) (*bool, string) {
 	if configured != nil {
-		return true, configured.Key.ValueString(), nil
+		use := true
+		return &use, configured.Key.ValueString()
 	}
 	if prior != nil {
-		return false, "", nil
+		use := false
+		return &use, ""
 	}
-	current, err := r.client.GetGlobalSettings()
-	if err != nil {
-		return false, "", err
-	}
-	return current.UseEncryption, "", nil
+	return nil, ""
 }
 
 // configuredEncryption returns the encryption block to keep in the state. TeamCity never returns
@@ -330,7 +336,7 @@ func (r *globalResource) readState(result client.GlobalSettings) (*globalResourc
 	state.EnforceDefaultVCSCheckInterval = types.BoolValue(result.EnforceDefaultVCSCheckInterval)
 	state.DefaultQuietPeriod = types.Int64Value(result.DefaultQuietPeriod)
 
-	if result.UseEncryption {
+	if result.UseEncryption != nil && *result.UseEncryption {
 		state.Encryption = &EncryptionModel{}
 	}
 
