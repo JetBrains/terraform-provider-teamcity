@@ -10,14 +10,22 @@ import (
 
 // TeamCity rejects an empty encryptionKey while useEncryption is true, so an empty key must not be
 // sent at all; TeamCity then keeps its current key.
+func boolPtr(v bool) *bool {
+	return &v
+}
+
 func TestSetGlobalSettingsEncryptionKey(t *testing.T) {
 	tests := []struct {
-		name    string
-		key     string
-		wantKey bool
+		name              string
+		useEncryption     *bool
+		key               string
+		wantUseEncryption *bool
+		wantKey           bool
 	}{
-		{name: "an empty key is left out", key: "", wantKey: false},
-		{name: "a key is sent", key: "MTIzNDU2Nzg5MDEyMzQ1Ng==", wantKey: true},
+		{name: "unmanaged encryption omits both fields", useEncryption: nil, key: "", wantUseEncryption: nil, wantKey: false},
+		{name: "disabling encryption sends useEncryption=false without key", useEncryption: boolPtr(false), key: "", wantUseEncryption: boolPtr(false), wantKey: false},
+		{name: "an empty key is left out", useEncryption: boolPtr(true), key: "", wantUseEncryption: boolPtr(true), wantKey: false},
+		{name: "a key is sent", useEncryption: boolPtr(true), key: "MTIzNDU2Nzg5MDEyMzQ1Ng==", wantUseEncryption: boolPtr(true), wantKey: true},
 	}
 
 	for _, tt := range tests {
@@ -40,8 +48,19 @@ func TestSetGlobalSettingsEncryptionKey(t *testing.T) {
 			defer server.Close()
 
 			httpClient := NewClient(server.URL, "token", "", "", 0)
-			if _, err := httpClient.SetGlobalSettings(GlobalSettings{UseEncryption: true, EncryptionKey: tt.key}); err != nil {
+			if _, err := httpClient.SetGlobalSettings(GlobalSettings{UseEncryption: tt.useEncryption, EncryptionKey: tt.key}); err != nil {
 				t.Fatal(err)
+			}
+
+			gotUse, usePresent := sent["useEncryption"]
+			if tt.wantUseEncryption == nil {
+				if usePresent {
+					t.Fatalf("useEncryption sent: %v, want omitted", gotUse)
+				}
+			} else {
+				if !usePresent || gotUse != *tt.wantUseEncryption {
+					t.Fatalf("sent useEncryption=%v (present=%v), want %v", gotUse, usePresent, *tt.wantUseEncryption)
+				}
 			}
 
 			got, present := sent["encryptionKey"]
